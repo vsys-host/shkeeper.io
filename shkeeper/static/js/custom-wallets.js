@@ -103,20 +103,20 @@ function refreshWalletInfo()
     }
 }
 function setPolicyStatus()
-  {
+{
     let policyStatus = document.querySelectorAll(".pstatus"); 
     policyStatus.forEach(item => {
         switch(item.innerHTML)
         {
         case "False":
         {
-            item.innerHTML = "Off";
+            item.innerHTML = "Disabled";
             item.style.color = "#dc3545";
             break;
         }
         case "True":
         {
-            item.innerHTML = "On";
+            item.innerHTML = "Enabled";
             item.style.color = "#198754"; 
             break;
         }
@@ -124,8 +124,71 @@ function setPolicyStatus()
     });
 
 }
-
-
+function APIStatus()
+{
+    const activeStatus = "Enabled";
+    const unactiveStatus = "Disabled";
+    let APIswitcher = document.querySelector(".apistatus");
+    function getStatus()
+    {
+        const http1 = new XMLHttpRequest()
+        http1.open("GET","/api/v1/" + crypto + "/payment-gateway");
+        http1.onload = function(){
+            let data = checkAnswer(this);
+            if(data != false)
+            {
+                if(data["enabled"])
+                {
+                    setStatus(activeStatus);
+                }
+                else
+                {
+                    setStatus(unactiveStatus);
+                }
+            }
+        }
+        http1.send();
+    }
+    function setStatus(status)
+    {
+        if(status == activeStatus)
+        {
+            let status = document.getElementById('API-status');
+            APIswitcher.innerText = unactiveStatus;
+            status.classList.add('API-status-active');
+            status.classList.remove('API-status-inactive');
+            status.innerHTML = "Enabled";
+        }
+        else
+        {
+            let status = document.getElementById('API-status');
+            APIswitcher.innerText = activeStatus;
+            status.classList.add('API-status-inactive');
+            status.classList.remove('API-status-active');
+            status.innerHTML = "Disabled";
+        }
+    }
+    function checkAnswer(response)
+    {
+        if(response.status == 200)
+        {
+            let data = JSON.parse(response.responseText);
+            if(data['status'] != "success")
+            {
+                alert(data['message']);
+                return false;
+            }
+            else
+            {
+                return data;
+            }
+        }
+        alert("Response stauts: " + response.status);
+        return false;
+    }
+    window.addEventListener('DOMContentLoaded',getStatus);
+}
+APIStatus();
 window.addEventListener('DOMContentLoaded',function(){
     refreshRates();
     refreshWalletInfo();
