@@ -102,10 +102,32 @@ function refreshWalletInfo()
         }
     }
 }
+function setPolicyStatus()
+  {
+    let policyStatus = document.querySelectorAll(".pstatus"); 
+    policyStatus.forEach(item => {
+        switch(item.innerHTML)
+        {
+        case "False":
+        {
+            item.innerHTML = "Off";
+            item.style.color = "#dc3545";
+            break;
+        }
+        case "True":
+        {
+            item.innerHTML = "On";
+            item.style.color = "#198754"; 
+            break;
+        }
+        }
+    });
 
+}
 
 
 window.addEventListener('DOMContentLoaded',function(){
     refreshRates();
     refreshWalletInfo();
+    setPolicyStatus();
 });

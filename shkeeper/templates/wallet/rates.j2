@@ -69,7 +69,7 @@
               class="all-source-value form-select form-select-sm common-text"
             >
             {% for provider in rate_providers %}
-              <option value="{{provider}}" {% if provider == 'manual' %} selected {% endif %} >{{provider}}</option>
+              {% if provider != 'manual' %}<option value="{{provider}}"  selected {% endif %} >{{provider}}</option>
             {% endfor %}
             </select>
           </div>
