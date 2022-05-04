@@ -1,0 +1,509 @@
+{% extends 'wallet/page.j2' %}
+
+{% block content %}
+<div class="container overflow-auto px-5">
+  <div class="row">
+    <div class="col transactions-title">
+      <h1 class="title-text">Transactions</h1>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col common-text">
+      <div class="transactions-settings-table">
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="transactions"
+            checked
+          />
+          <div class="flex-grow-1 pe-5">
+            <p class="mb-1">Transaction ID:</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="text"
+              name="transactionID"
+              value=""
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="invoice"
+            checked
+          />
+          <div class="pe-5">
+            <p class="mb-1">Related Invoice:</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="text"
+              name="invoiceID"
+              placeholder="Invoice ID"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="amount"
+            checked
+          />
+          <div>
+            <p class="mb-1">Coin Amount:</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="text"
+              name="coinAmount"
+              placeholder="Amount"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="address"
+            checked
+          />
+          <div class="flex-grow-1 pe-5">
+            <p class="mb-1">Address:</p>
+            <input
+              class="transactions-address-input form-control form-control-sm common-text"
+              type="text"
+              name="address-input"
+              placeholder="Destination"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="inv-date"
+            checked
+          />
+          <div class="pe-5">
+            <p class="mb-1">Invoice Date</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="date"
+              name="invoiceDate"
+              placeholder="Invoice ID"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="amount-bucks"
+            checked
+          />
+          <div>
+            <p class="mb-1">$ Amount</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="text"
+              name="dollAmount"
+              placeholder="Amount"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="status"
+            checked
+          />
+          <select
+            name="statusName"
+            class="form-select common-text transactions-select"
+          >
+            <option value="" disabled>Select status</option>
+            <option value="" selected>All</option>
+            {% for status in invoice_statuses %}
+                      <option value="">{{status}}</option>
+          {% endfor %}
+          </select>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="crypto"
+            checked
+          />
+          <select
+            name="cryptoName"
+            class="form-select common-text transactions-select"
+          >
+            <option value="" disabled>Select crypto</option>
+            <option value="" selected>All</option>
+  {% for crypto in cryptos %}
+            <option value="{{crypto}}">{{crypto}}</option>
+{% endfor %}
+          </select>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="time"
+            checked
+          />
+          <div>
+            <p class="mb-1">Time</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="time"
+              name="time-input"
+              placeholder="Amount"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="invoice-crpt"
+            checked
+          />
+          <div class="flex-grow-1">
+            <p class="mb-1">Invoice Coin:</p>
+            <input
+              class="transactions-invoice-input form-control form-control-sm common-text"
+              type="text"
+              name="invoiceCoin"
+              placeholder="Amount"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="date"
+            checked
+          />
+          <div class="pe-5">
+            <p class="mb-1">Date</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="date"
+              name="date-input"
+              placeholder="Invoice ID"
+            />
+          </div>
+        </div>
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="inv-time"
+            checked
+          />
+          <div>
+            <p class="mb-1">Invoice Time</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="time"
+              name="invoiceTime"
+              placeholder="Amount"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- <table class="w-100 text-nowrap">
+        <tr>
+          <td class="w-50">
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div class="flex-grow-1 pe-5">
+                <p class="mb-1">Transaction ID:</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="text"
+                  name=""
+                  value="7ced8c044ff6638db9a400b086b192b30a936663c71cac7c55d2d0b920571b96"
+                />
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div class="pe-5">
+                <p class="mb-1">Related Invoice:</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="text"
+                  name=""
+                  placeholder="Invoice ID"
+                />
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div>
+                <p class="mb-1">Coin Amount:</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="text"
+                  name=""
+                  placeholder="Amount"
+                />
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div class="flex-grow-1 pe-5">
+                <p class="mb-1">Adress:</p>
+                <input
+                  class="transactions-address-input form-control form-control-sm common-text"
+                  type="text"
+                  name=""
+                  placeholder="Destination"
+                />
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div class="pe-5">
+                <p class="mb-1">Invoice Date</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="date"
+                  name=""
+                  placeholder="Invoice ID"
+                />
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div>
+                <p class="mb-1">$ Amount</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="text"
+                  name=""
+                  placeholder="Amount"
+                />
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <select
+                name=""
+                class="form-select common-text transactions-select"
+              >
+                <option value="" disabled selected>Select status</option>
+                <option value="">Value 2</option>
+                <option value="">Value 3</option>
+              </select>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <select
+                name=""
+                class="form-select common-text transactions-select"
+              >
+                <option value="" disabled selected>Select crypto</option>
+                <option value="">Value 2</option>
+                <option value="">Value 3</option>
+              </select>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div>
+                <p class="mb-1">Time</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="time"
+                  name=""
+                  placeholder="Amount"
+                />
+              </div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div class="flex-grow-1">
+                <p class="mb-1">Invoice Coin:</p>
+                <input
+                  class="transactions-invoice-input form-control form-control-sm common-text"
+                  type="text"
+                  name=""
+                  placeholder="Amount"
+                />
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div class="pe-5">
+                <p class="mb-1">Invoice Date</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="date"
+                  name=""
+                  placeholder="Invoice ID"
+                />
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <div class="d-flex align-items-center">
+              <input
+                class="checkbox form-check-input me-2"
+                type="checkbox"
+                name=""
+                checked
+              />
+              <div>
+                <p class="mb-1">Invoice Time</p>
+                <input
+                  class="form-control form-control-sm common-text"
+                  type="time"
+                  name=""
+                  placeholder="Amount"
+                />
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table> -->
+    </div>
+  </div>
+  <div class="row">
+    <div class="col pt-4">
+      <table
+        class="transactions-data-table w-100 common-text text-nowrap"
+      >
+        <thead>
+          <tr>
+            <th class="transactions">Transaction ID</th>
+            <th class="address table-subtitle">Adress</th>
+            <th class="crypto table-subtitle">Crypto</th>
+            <th class="amount table-subtitle">Amount</th>
+            <th class="amount-bucks table-subtitle">Amount $</th>
+            <th class="status table-subtitle">Status</th>
+            <th class="date table-subtitle">Date</th>
+            <th class="time table-subtitle">Time</th>
+            <th class="invoice table-subtitle">Invoice</th>
+            <th class="invoice-crpt table-subtitle">Invoice Coin</th>
+            <th class="invoice-bucks table-subtitle">Invoice $</th>
+            <th class="inv-date table-subtitle">Inv. Date</th>
+            <th class="inv-time table-subtitle">Inv. Time</th>
+          </tr>
+        </thead>
+        <tbody>
+  {% for tx in txs %}
+          <tr>
+            <td value="{{tx.txid}}" class="row-{{loop.index}} transactions transactions-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.txid}}" data-bs-custom-class="custom-tooltips">{{tx.txid}}</td>
+            <td value="{{tx.invoice.addr}}" class="row-{{loop.index}} address address-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.invoice.addr}}" data-bs-custom-class="custom-tooltips">{{tx.invoice.addr}}</td>
+            <td class="row-{{loop.index}} crypto">{{tx.crypto}}</td>
+            <td class="row-{{loop.index}} amount">{{(tx.amount_crypto|round(8)).normalize()}}</td>
+            <td class="row-{{loop.index}} amount-bucks">${{(tx.amount_fiat|round(2)).normalize()}}</td>
+            <td class="row-{{loop.index}} status success-text">{{tx.invoice.status.name}}</td>
+            <td class="row-{{loop.index}} date convertDate">{{tx.created_at.timestamp()}}</td>
+            <td class="row-{{loop.index}} time">{{tx.created_at.strftime('%H:%M')}}</td>
+            <td class="row-{{loop.index}} invoice">{{tx.invoice.id}}</td>
+            <td class="row-{{loop.index}} invoice-crpt">{{(tx.invoice.amount_crypto|round(8)).normalize()}}</td>
+            <td class="row-{{loop.index}} invoice-bucks">${{(tx.invoice.amount_fiat|round(2)).normalize()}}</td>
+            <td class="row-{{loop.index}} inv-date convertDate">{{tx.invoice.created_at.timestamp()}}</td>
+            <td class="row-{{loop.index}} inv-time">{{tx.invoice.created_at.strftime('%H:%M')}}</td>
+          </tr>
+  {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/custom-transactions.js') }}"></script>
+<script>document.getElementById("transactions-link").classList.add("nav-link--active");</script>
+
+{% endblock %}

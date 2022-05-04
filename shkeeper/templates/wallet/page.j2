@@ -1,0 +1,70 @@
+{% extends 'base.j2' %}
+
+{% block body %}
+    <div class="d-flex">
+      <aside
+        data-menu
+        class="side-menu is-open d-flex flex-column justify-content-between"
+      >
+        <div class="arrow-button-wrapper w-100">
+          <button data-menu-button type="button" class="arrow-button btn">
+            <svg width="32" height="32" class="arrow">
+              <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-arrow"></use>
+            </svg>
+          </button>
+        </div>
+        <nav>
+          <ul class="nav-list">
+            <li class="nav-item">
+              <a id="wallet-link" href="{{ url_for('wallet.wallets') }}" class="nav-link">
+                <svg height="32" width="32" class="nav-icon">
+                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-wallets"></use>
+                </svg>
+                <span class="nav-label">Wallets</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a id="rates-link" href="{{ url_for('wallet.rates') }}" class="nav-link">
+                <svg height="32" width="32" class="nav-icon">
+                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-source-rates"></use>
+                </svg>
+                <span class="nav-label">Source of rates</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a id="transactions-link" href="{{ url_for('wallet.transactions') }}" class="nav-link">
+                <svg height="32" width="32" class="nav-icon">
+                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-transactions"></use>
+                </svg>
+                <span class="nav-label">Transactions</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('auth.logout') }}" class="nav-link">
+                <svg height="32" width="32" class="nav-icon">
+                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-logout"></use>
+                </svg>
+                <span class="nav-label">Log out</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <div class="logo-thumb">
+          <img
+            class="menu-logo-big menu-logo align-self-center"
+            width="151"
+            src="/static/images/vsys-logo.png"
+            alt=""
+          />
+          <img
+            class="menu-logo-small menu-logo align-self-center"
+            width="80"
+            src="/static/images/vsys-logo-small.png"
+            alt=""
+          />
+        </div>
+      </aside>
+	  {% block content %}{% endblock %}
+    </div>
+    <script src="{{ url_for('static', filename='js/mobile-menu.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends 'wallet/page.j2' %}
+
+
+{% block content %}
+
+      <div class="content-container px-5 py-4">
+        <div
+          class="wallets-title__wrapper d-flex flex-wrap justify-content-center mb-5"
+        >
+          <div class="w-312">
+            <h1 class="title-text">Wallets</h1>
+          </div>
+          <div class="w-312"></div>
+          <div class="w-312"></div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-center wallets-container">
+          {% for crypto in cryptos %}
+
+                    <div class="card">
+                      <div class="card-body card-box">
+                        <svg class="currency-logo" width="48" height="48">
+                          <use href="{{ url_for('static', filename='images/icons.svg') }}#wallets-{{ crypto.getname()|lower }}"></use>
+                        </svg>
+                        <div class="d-flex justify-content-between info-content">
+                          <p class="common-text">Server:</p>
+                          <p class="server-status common-text success-text">{{ crypto.getstatus() }}</p>
+                        </div>
+                        <div class="d-flex justify-content-between info-content">
+                          <p class="common-text">Wallet status:</p>
+                          <p class="wallet-status common-text success-text">Active</p>
+                        </div>
+                        <div class="d-flex justify-content-between info-content">
+                          <p class="common-text">Cryptocurency:</p>
+                          <p class="coin-amount-value common-text" id="{{crypto.crypto}}">--</p>
+                        </div>
+                        <div class="d-flex justify-content-between info-content">
+                          <p class="common-text">Exchange rates:</p>
+                          <p class="common-text dollar">$</p>
+                          <p class="current-exchange-value common-text" id="{{crypto.crypto}}USDT">--</p>
+                        </div>
+                        <div class="d-flex justify-content-between info-content">
+                          <p class="common-text">USD equivalent:</p>
+                          <p class="common-text dollar">$</p>
+                          <p class="total-usd-value common-text">--</p>
+                        </div>
+                        <div class="d-flex justify-content-between info-content">
+                          <p class="common-text">Payout policy:</p>
+                          <p class="common-text success-text">{{crypto.wallet.ppolicy.value}}</p>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                          <a href="./wallet/{{crypto.crypto}}" class="card-link common-text">
+                            <svg class="card-icon" width="16" height="16">
+                              <use href="{{ url_for('static', filename='images/icons.svg') }}#gearsix-icon"></use>
+                            </svg>
+                            Manage
+                          </a>
+                          <a href="./payout/{{crypto.crypto}}" class="card-link common-text">
+                            <svg class="card-icon" width="16" height="16">
+                              <use href="{{ url_for('static', filename='images/icons.svg') }}#circledollar-icon"></use>
+                            </svg>
+                            Payout
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+          {% endfor %}
+        </div>
+
+        <div class="row"></div>
+      </div>
+      <script
+        src={{ url_for('static', filename='js/custom-wallets.js')}}
+      >
+      </script>
+      <script>document.getElementById("wallet-link").classList.add("nav-link--active");</script>
+
+{% endblock %}

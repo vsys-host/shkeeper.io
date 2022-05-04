@@ -1,0 +1,235 @@
+{% extends 'wallet/page.j2' %}
+
+{% block content %}
+<div class="px-5 py-4 content-container">
+<div class="row">
+  <div class="col">
+    <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{ crypto.getname()|title }} wallet</h1>
+  </div>
+</div>
+<div class="text-nowrap wallet-grid--wrap">
+  <div class="input-block">
+    <h2 class="subtitle-text mb-4">Server</h2>
+    <div class="d-flex ps-4 input-block">
+      <div class = "w-100">
+        <div class="mb-3 d-flex align-items-center justify-content-start flex-wrap">
+          <p class="server-width common-text">Host name:</p>
+          <p class="me-3 common-text">{{ crypto.gethost() }}</p>
+        </div>
+        <div class="mb-3 d-flex align-items-center justify-content-start" >
+          <p class="server-width common-text">Blockchain key:</p>
+          <!--input
+            id="inputSKey"
+            value="{{ crypto.wallet.bkey }}"
+            class=" me-2 form-control common-text server-input-width"
+            type="text"
+            name="serverKey"
+            disabled
+          /-->
+          <a href="{{url_for('api_v1.backup', crypto_name=crypto.crypto)}}" class="common-text accent-text">Download</a>
+        </div>
+        <div class="mb-3 d-flex align-items-center justify-content-start" >
+          <p id="server-status" class="server-width common-text server-inactive">Server offline</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-block">
+    <h2 class="subtitle-text mb-4">Payment Gateway</h2>
+    <div class="d-flex ps-4">
+      <div class="w-100">
+        <div class="mb-3 d-flex align-items-center justify-content-start" style=>
+          <p class="payment-width common-text">Status:</p>
+          <div id="API-status" class="common-text">Active</div>
+          <a id="API-switcher" href="#" class="common-text accent-text">Activate</a>
+        </div>
+        <div class="mb-3 d-flex align-items-center justify-content-start">
+          <p class="payment-width common-text">API URL:</p>
+          <p class="common-text">{{ url_for('api_v1.payment_request', crypto_name=crypto.crypto) }}</p>
+        </div>
+        <div class="mb-3 d-flex align-items-center justify-content-start">
+          <p class="payment-width common-text">API Token:</p>
+          <div class="d-flex align-items-center">
+            <p id="API-token" class="common-text">{{ crypto.wallet.apikey }}</p>
+            <a id="generateAPIBtn" href="#" class="ms-2 common-text accent-text" >Generate</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-column">
+  <h2 class="subtitle-text mb-4">Autopayout Policy</h2>
+  <div class="text-nowrap wallet-grid--wrap">
+    <div class="d-flex flex-column ps-4 input-block">
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+
+        <div class="autopayout-width">Destination:</div>
+        <div class="dropdown">
+          <div class="dropdown__header d-flex flex-row align-items-center">
+            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <div class="dropdown__button">
+              <svg class="dropdown-arrow__icon" width="16" height="16">
+                <use href="{{ url_for('static', filename='images/icons.svg') }}#dropdown-menu-arrow"></use>
+              </svg>
+            </div>
+          </div>
+          <div class="dropdown__body">
+            {% for pd in pdest %}
+            <div class="dropdown__item">
+              <div class="dropdown__item-wraper">
+                <div class="dropdown__text">{{ pd.addr }}</div>
+              </div>
+              <button class="dropdown-delete-button delete-button" type="button">
+                  <svg width="10" height="10">
+                    <use href="/static/images/icons.svg#close-icon"></use>
+                  </svg>
+              </button>
+            </div>
+            {% endfor %}
+            <div class="dropdown__item-sample">
+              <div class="dropdown__item-wraper">
+                <div class="dropdown__text"></div>
+              </div>
+              <button class="dropdown-delete-button delete-button" type="button">
+                  <svg width="10" height="10">
+                    <use href="/static/images/icons.svg#close-icon"></use>
+                  </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <button 
+          class="edit-btn btn btn-primary ms-3" 
+          id="manageAdd"
+          data-bs-toggle="modal" 
+          data-bs-target="#staticBackdrop"
+          >Edit</>
+      </div>
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-width">Fee:</div>
+        <div class="fee-block">
+          <div class="d-flex align-items-center">
+            <input
+              value="{{ crypto.wallet.pfee }}"
+              class="fee-input form-control common-text"
+              type="text"
+              id="pfee"
+            />
+            <p class="ms-2">sat/b</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-width">Autopayout:</div>
+        <div class="autopayout-block"><a id="pstatus" class="accent-text success-text">{{crypto.wallet.payout}}</a></div> 
+      </div>
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-width">Policy:</div>
+        <div class="policy-block d-flex align-items-center">
+          <select class="form-select form-select--width common-text" id="ppolicy">
+            {% for policy in ppolicy %}
+            <option {% if policy == crypto.wallet.ppolicy.value %} selected {% endif %}>{{policy}}</option>
+            {% endfor %}
+          </select>
+          <p class="common-text text-nowrap mx-2">once per</p>
+          <div class="d-flex flex-row" >
+            <input placeholder="Int" id="poschedulud-val" class="form-control common-text autopayout-input me-2" type="number" id="poschedule" value="{{ crypto.wallet.pcond }}"/>
+            <select id="poschedulud-term" class="form-select form-select--width common-text">
+              <option value=1>Min(s)</option>
+              <option value=60>Hour(s)</option>
+              <option value=1440>Day(s)</option>
+            </select>
+          </div>
+          <div class="d-flex flex-row align-items-center">
+            <input placeholder="Float" id="polimit-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="polimit" value="{{ crypto.wallet.pcond }}"/>
+            <div class="common-text text-nowrap mx-2">coin</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex flex-column ps-4 input-block">
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">
+            Mark invoice as partually paid <br />
+            if payment amount is less then:
+        </div>
+        <div class="llimit-block d-flex align-items-center">
+          <input
+            class="form-control common-text autopayout-input"
+            type="number"
+            value="{{ crypto.wallet.llimit }}"
+            id="llimit"
+          />
+          <p class="ps-2 common-text">%</p>
+        </div>
+      </div>
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">
+            Add fee to clients credit <br />
+            if payment amount more then:
+        </div>
+        <div class="ulimit-block d-flex align-items-center">
+          <input
+            class="form-control common-text autopayout-input"
+            type="number"
+            value="{{ crypto.wallet.ulimit }}"
+            id="ulimit"
+          />
+          <p class="ps-2 common-text">%</p>
+        </div>
+      </div>
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">Recalculate invoice rate after</div>
+        <div class="recalc-block d-flex align-items-center">
+          <input class="form-control common-text autopayout-input me-2" type="number" id="recalculate-val" value="{{ recalc.num }}"/>
+
+          <select class="form-select form-select--width common-text" id="recalculate-term" id="">
+          {% for period in recalc['periods'] %}
+            <option value="{{ period.hours }}" {% if period.hours == recalc.multiplier %}selected{% endif %}>
+              {{ period.name }}
+            </option>
+          {% endfor %}
+
+          </select>
+        </div>
+      </div>
+
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">
+          Number of confirmation <br />
+          needed for transaction
+        </div>
+        <div class="transactions-block">
+          <input
+            class="form-control common-text autopayout-input"
+            type="number"
+            value="{{ crypto.wallet.confirmations }}"
+            id="confirmations"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col d-flex justify-content-end">
+    <button type="button" class="general-button btn-primary btn me-3" id="sbutton">Save</button>
+  </div>
+</div>
+
+</div>
+<script src="/static/js/custom-manage.js"></script>
+<script src="/static/js/custom-server.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>document.getElementById("wallet-link").classList.add("nav-link--active");</script>
+{% endblock %}

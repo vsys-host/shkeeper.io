@@ -1,0 +1,105 @@
+{% extends 'wallet/page.j2' %}
+
+{% block content %}
+<div class="px-5 py-4 content-container">
+  <div class="row">
+    <div class="col">
+      <h1 class="title-text">Source of rates</h1>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <div class="d-flex flex-column source-grid text-nowrap">
+
+        {% for crypto in cryptos %}
+        <div class="d-flex align-items-center w-100">
+          <div class="rates-name" crypto="{{crypto.crypto}}" fiat="{{ fiat }}"><p class="common-text">{{crypto.crypto}} / {{ fiat }} rate</p></div>
+          <div class="rates-switcher d-flex align-items-center">
+            <p class="common-text me-3">Source of rate:</p>
+            <select
+              name="{{crypto}}source"
+              class="rates-source-value form-select form-select-sm common-text select-rate"
+            >
+            {% for provider in rate_providers %}
+              <option value="{{provider}}" {% if provider == crypto.rate.source %} selected {% endif %} >{{provider}}</option>
+            {% endfor %}
+            </select>
+          </div>
+          <div class="rates-price coin-cost">
+            <div class="d-flex align-items-center">
+              <p class="common-text">$</p>
+              <input
+                name="{{crypto.crypto}}rate"
+                class="rates-cost-value form-control form-control-sm common-text source-manual-price mx-2"
+                type="number"
+                value="{{ crypto.rate.rate }}"
+              />
+              <p class="common-text">per coin</p>
+            </div>
+          </div>
+          <div class="rates-fee added-fee">
+            <div class="d-flex align-items-center">
+              <p class="common-text">Added fee:</p>
+              <input
+                placeholder="00"
+                name={{crypto.crypto}}fee
+                class="rates-fee-value form-control form-control-sm source-added-input common-text mx-2"
+                type="number"
+                value="{{crypto.rate.fee}}"
+              />
+              <p class="common-text">% to rates</p>
+            </div>
+          </div>
+          <div class="rates-current">
+            <p class="common-text">
+              Current rate:
+              <span class="rates-current-value" id="{{crypto.crypto}}USDT" data-bitcoin-current-rate></span>
+              per {{crypto.crypto}}
+            </p>
+          </div>
+        </div>
+        {% endfor %}
+        <div class="d-flex align-items-center w-100">
+          <div class="set-all-name" ><p class="common-text">Set all</p></div>
+          <div class="rates-switcher d-flex align-items-center">
+            <p class="common-text me-3">Source of rate:</p>
+            <select
+              id="select-all"
+              name="bitcoin-rate"
+              class="all-source-value form-select form-select-sm common-text"
+            >
+            {% for provider in rate_providers %}
+              <option value="{{provider}}" {% if provider == 'manual' %} selected {% endif %} >{{provider}}</option>
+            {% endfor %}
+            </select>
+          </div>
+          <div class=" rates-fee">
+            <div class="d-flex align-items-center">
+              <p class="common-text">Added fee:</p>
+              <input
+                id="select-fee"
+                placeholder="00"
+                name="bitcoin-added-fee"
+                class="all-fee-value form-control form-control-sm source-added-input common-text mx-2"
+                type="number"
+              />
+              <p class="common-text">% to rates</p>
+            </div>
+          </div>
+          <div class="col d-flex">
+            <button id="set-all" class="general-button btn-primary btn" type="submit">Set all</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="mt-5 col d-flex justify-content-end">
+      <button id="save-rates" class="general-button btn-primary btn" type="submit">Save changes</button>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/custom-rates.js') }}"></script>
+<script>document.getElementById("rates-link").classList.add("nav-link--active");</script>
+{% endblock %}

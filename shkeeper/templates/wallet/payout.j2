@@ -1,0 +1,122 @@
+{% extends 'wallet/page.j2' %}
+
+
+{% block content %}
+<div class="px-5 py-4 content-container">
+  <div class="row">
+    <div class="col">
+      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">Create payout</h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col ps-4 payout-wrapper">
+      <div class="autopayout-grid common-text ps-4">
+        <div><p>Available:</p></div>
+        <div>
+          <p>
+            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{(crypto.balance()|round(8)).normalize()}}</a> {{ crypto.crypto|upper }}
+          </p>
+        </div>
+        <div><p>Destination:</p></div>
+        <div class="dropdown ms-0">
+          <div class="dropdown__header d-flex flex-row align-items-center">
+            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <div class="dropdown__button">
+              <svg class="dropdown-arrow__icon" width="16" height="16">
+                <use href="{{ url_for('static', filename='images/icons.svg') }}#dropdown-menu-arrow"></use>
+              </svg>
+            </div>
+          </div>
+          <div class="dropdown__body">
+            {% for pd in pdest %}
+            <div class="dropdown__item">
+              <div class="dropdown__item-wraper">
+                <div class="dropdown__text">{{ pd.addr }}</div>
+              </div>
+              <button class="dropdown-delete-button delete-button" type="button">
+                  <svg width="10" height="10">
+                    <use href="/static/images/icons.svg#close-icon"></use>
+                  </svg>
+              </button>
+            </div>
+            {% endfor %}
+            <div class="dropdown__item-sample">
+              <div class="dropdown__item-wraper">
+                <div class="dropdown__text"></div>
+              </div>
+              <button class="dropdown-delete-button delete-button" type="button">
+                  <svg width="10" height="10">
+                    <use href="/static/images/icons.svg#close-icon"></use>
+                  </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div><p>Amount:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="fee-input form-control common-text"
+              type="text"
+              name="amount"
+            />
+            <p class="ms-2">{{ crypto.crypto|upper }}</p>
+          </div>
+        </div>
+        <div><p>Fee:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              value=""
+              class="fee-input form-control common-text"
+              type="text"
+              name="fee"
+            />
+            <p class="ms-2">Sat/b</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col d-flex justify-content-end">
+      <button type="submit" class="button btn me-3 send-payment">Send</button>
+      <button type="button" class="button btn button-secondary" onclick="location.href='/';">
+        Discard
+      </button>
+    </div>
+  </div>
+</div>
+<script src="/static/js/custom-payout.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+{#<script>
+$(function(){
+  $('button.send-payment').click(function(){
+    let destination = $('.dropdown__current').val().trim().split(' ')[0];
+    let amount = $('input[name="amount"]').val();
+    let fee = $('input[name="fee"]').val();
+
+    $.ajax({
+        type: 'POST',
+        url: "{{ url_for('api_v1.payout', crypto_name=crypto.crypto) }}",
+        data: JSON.stringify({ destination: destination, amount: amount, fee: fee }),
+        success: function(data) {
+          console.log(data);
+          // data = JSON.parse(data);
+          if (data.error) {
+            alert(data.error.message);
+          }
+          else {
+            alert(`Payment sent. TXID: ${data.result}`);
+            location.reload();
+          }
+        },
+        contentType: "application/json",
+        dataType: 'json'
+    });
+  });
+});
+</script>#}
+{% endblock %}
