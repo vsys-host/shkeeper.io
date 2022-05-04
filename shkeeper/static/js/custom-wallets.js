@@ -128,68 +128,75 @@ function APIStatus()
 {
     const activeStatus = "Enabled";
     const unactiveStatus = "Disabled";
-    let APIswitcher = document.querySelector(".apistatus");
-    function getStatus()
+    const offlineStatus = "Offline"
+    let APIswitchers = document.querySelectorAll(".apistatus");
+    for(let i = 0;i<APIswitchers.length;i++)
     {
-        const http1 = new XMLHttpRequest()
-        http1.open("GET","/api/v1/" + crypto + "/payment-gateway");
-        http1.onload = function(){
-            let data = checkAnswer(this);
-            if(data != false)
-            {
-                if(data["enabled"])
+        let APIswitcher = APIswitchers[i];
+        let crypto = APIswitcher.getAttribute('crypto');
+        getStatus();
+        function getStatus()
+        {
+            const http1 = new XMLHttpRequest()
+            http1.open("GET","/api/v1/" + crypto + "/payment-gateway");
+            http1.onload = function(){
+                let data = checkAnswer(this);
+                if(data != false)
                 {
-                    setStatus(activeStatus);
+                    if(data["enabled"])
+                    {
+                        setStatus(activeStatus);
+                    }
+                    else
+                    {
+                        setStatus(unactiveStatus);
+                    }
                 }
-                else
-                {
-                    setStatus(unactiveStatus);
+                else{
+                setStatus(offlineStatus);
                 }
             }
+            http1.send();
         }
-        http1.send();
-    }
-    function setStatus(status)
-    {
-        if(status == activeStatus)
+        function setStatus(status)
         {
-            let status = document.getElementById('API-status');
-            APIswitcher.innerText = unactiveStatus;
-            status.classList.add('API-status-active');
-            status.classList.remove('API-status-inactive');
-            status.innerHTML = "Enabled";
-        }
-        else
-        {
-            let status = document.getElementById('API-status');
-            APIswitcher.innerText = activeStatus;
-            status.classList.add('API-status-inactive');
-            status.classList.remove('API-status-active');
-            status.innerHTML = "Disabled";
-        }
-    }
-    function checkAnswer(response)
-    {
-        if(response.status == 200)
-        {
-            let data = JSON.parse(response.responseText);
-            if(data['status'] != "success")
+            if(status == activeStatus)
             {
-                alert(data['message']);
-                return false;
+                APIswitcher.innerText = activeStatus;
+                APIswitcher.style.color="#198754";
+            }
+            else if(status == unactiveStatus)
+            {
+                APIswitcher.innerText = unactiveStatus;
+                APIswitcher.style.color="#e92b18";
             }
             else
             {
-                return data;
+                APIswitcher.innerText = offlineStatus;
+                APIswitcher.style.color="#e92b18";
             }
         }
-        alert("Response stauts: " + response.status);
-        return false;
+        function checkAnswer(response)
+        {
+            if(response.status == 200)
+            {
+                let data = JSON.parse(response.responseText);
+                if(data['status'] != "success")
+                {
+                    alert(data['message']);
+                    return false;
+                }
+                else
+                {
+                    return data;
+                }
+            }
+            return false;
+        }
     }
-    window.addEventListener('DOMContentLoaded',getStatus);
 }
-APIStatus();
 window.addEventListener('DOMContentLoaded',function(){
+    APIStatus();
     refreshRates();
     refreshWalletInfo();
     setPolicyStatus();
