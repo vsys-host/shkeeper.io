@@ -31,6 +31,7 @@ def send_notification(tx):
         "balance_fiat": str(round(tx.invoice.balance_fiat.normalize(), 2)),
         "balance_crypto": str(round(tx.invoice.balance_crypto.normalize(), 8)),
         "paid": tx.invoice.status in (InvoiceStatus.PAID, InvoiceStatus.OVERPAID),
+        "status": tx.invoice.status.name,
         "transactions": transactions,
     }
 
