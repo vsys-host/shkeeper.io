@@ -35,6 +35,9 @@ def send_notification(tx):
         "transactions": transactions,
     }
 
+    overpaid_fiat = tx.invoice.balance_fiat - (tx.invoice.amount_fiat * ( tx.invoice.wallet.ulimit / 100))
+    notification['overpaid_fiat'] = str(round(overpaid_fiat.normalize(), 2)) if overpaid_fiat > 0 else "0.00"
+
     apikey = Crypto.instances[tx.crypto].wallet.apikey
     app.logger.warning(f'[{tx.crypto}/{tx.txid}] Posting {notification} to {tx.invoice.callback_url} with api key {apikey}')
     try:
