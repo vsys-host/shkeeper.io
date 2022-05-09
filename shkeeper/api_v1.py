@@ -204,7 +204,13 @@ def walletnotify(crypto_name, txid):
         app.logger.warning("Wrong backend key")
         return {"status": "error", "message": 'Wrong backend key'}, 403
 
-    addr, amount, confirmations = crypto.getaddrbytx(txid)
+    addr, amount, confirmations, category = crypto.getaddrbytx(txid)
+
+    if category == "send":
+        Transaction.add_outgoing(crypto, txid)
+        return {"status": "success"}
+
+
     if confirmations == 0:
         app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
         return {"status": "success"}

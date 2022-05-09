@@ -98,15 +98,15 @@ class Crypto(metaclass=ABCMeta):
         confirmations = response['result']['confirmations']
 
         for i in response['result']['details']:
-            if i['category'] != 'receive': continue
+            # if i['category'] != 'receive': continue
             address = i['address']
             amount = i['amount']
-            return (address, amount, confirmations)
+            return (address, amount, confirmations, i['category'])
 
         raise Exception(f"failed to find details in txid {txid}: {response['result']}")
 
     def get_confirmations_by_txid(self, txid):
-        _, _, confirmations = self.getaddrbytx(txid)
+        _, _, confirmations, _ = self.getaddrbytx(txid)
         return confirmations
 
     def create_wallet(self, name="shkeeper"):

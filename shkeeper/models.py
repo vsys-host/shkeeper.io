@@ -138,6 +138,7 @@ class InvoiceStatus(enum.Enum):
     OVERPAID = enum.auto()
     CANCELLED = enum.auto()
     REFUNDED = enum.auto()
+    OUTGOING = enum.auto()
 
 
 class Invoice(db.Model):
@@ -244,6 +245,31 @@ class Transaction(db.Model):
 
     def __repr__(self):
         return f"txid={self.txid}"
+
+    @classmethod
+    def add_outgoing(cls, crypto, txid):
+        addr, amount, _, _ = crypto.getaddrbytx(txid)
+        
+        payout_invoice = Invoice(
+            addr=addr,
+            fiat="USD",
+            status=InvoiceStatus.OUTGOING
+        )
+        db.session.add(payout_invoice)
+        db.session.commit()
+
+        tx = cls()
+        tx.invoice_id = payout_invoice.id
+        tx.txid = txid
+        tx.crypto = crypto.crypto
+        tx.amount_crypto = amount
+        rate = ExchangeRate.get(payout_invoice.fiat, tx.crypto).get_rate()
+        tx.amount_fiat = tx.amount_crypto * rate
+        tx.need_more_confirmations = False
+        tx.callback_confirmed = True
+
+        db.session.add(tx)
+        db.session.commit()
 
     @classmethod
     def add(cls, crypto, tx):
