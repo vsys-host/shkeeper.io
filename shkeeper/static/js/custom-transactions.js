@@ -160,7 +160,7 @@ function filterAmountBucks()
 function filterStatus()
 {
     let statusValueArray = document.getElementsByName("statusName")[0];
-    for(let i = 1; i <= 6; i++)
+    for(let i = 1; i <= statusValueArray.length; i++)
     {
         if(statusValueArray[i].selected)
         {
