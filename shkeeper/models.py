@@ -160,7 +160,7 @@ class Invoice(db.Model):
                                         onupdate=db.func.current_timestamp())
 
     @property
-    def wallet(self):
+    def wallet(self) -> Wallet:
         return Wallet.query.filter_by(crypto=self.crypto).first()
 
     @property
@@ -227,6 +227,7 @@ class Invoice(db.Model):
             "exchange_rate": str(round(self.exchange_rate.normalize(), 2)),
             "amount": str(round(self.amount_crypto.normalize(), 8)),
             "wallet": self.addr,
+            "recalculate_after": self.wallet.recalc,
         }
 
 class Transaction(db.Model):
