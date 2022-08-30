@@ -4,7 +4,7 @@ import requests
 from flask import Blueprint
 from flask import current_app as app
 
-from shkeeper.modules.cryptos import Crypto
+from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
 
 

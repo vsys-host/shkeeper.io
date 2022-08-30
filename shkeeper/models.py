@@ -7,7 +7,7 @@ from flask import current_app as app
 
 from shkeeper import db
 from shkeeper.modules.rates import RateSource
-from shkeeper.modules.cryptos import Crypto
+from shkeeper.modules.classes.crypto import Crypto
 
 
 class User(db.Model):
@@ -194,7 +194,7 @@ class Invoice(db.Model):
     @classmethod
     def add(cls, crypto, request):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
-        invoice = cls.query.filter_by(external_id=request['external_id'], 
+        invoice = cls.query.filter_by(external_id=request['external_id'],
                                       callback_url=request['callback_url']).first()
         if invoice:
             # updating existing invoice
@@ -217,7 +217,7 @@ class Invoice(db.Model):
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
             invoice.amount_crypto, invoice.exchange_rate = rate.convert(invoice.amount_fiat)
             db.session.add(invoice)
-        
+
         db.session.commit()
         return invoice
 
@@ -250,7 +250,7 @@ class Transaction(db.Model):
     @classmethod
     def add_outgoing(cls, crypto, txid):
         addr, amount, _, _ = crypto.getaddrbytx(txid)
-        
+
         payout_invoice = Invoice(
             addr=addr,
             fiat="USD",

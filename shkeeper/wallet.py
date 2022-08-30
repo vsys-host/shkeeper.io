@@ -10,8 +10,9 @@ from flask import url_for
 from werkzeug.exceptions import abort
 
 from shkeeper.auth import login_required
+from .modules.classes.tron_token import TronToken
 from shkeeper.modules.rates import RateSource
-from shkeeper.modules.cryptos import Crypto
+from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
     PayoutDestination,
     Wallet,
@@ -39,10 +40,11 @@ def payout(crypto_name):
     crypto = Crypto.instances[crypto_name]
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name)
 
-    if request.method == "POST":
-        pass
+    tmpl = "wallet/payout.j2"
+    if isinstance(crypto, TronToken):
+        tmpl = "wallet/payout_tron.j2"
 
-    return render_template("wallet/payout.j2", crypto=crypto, pdest=pdest)
+    return render_template(tmpl, crypto=crypto, pdest=pdest)
 
 @bp.route("/wallet/<crypto_name>")
 @login_required
@@ -92,4 +94,3 @@ def transactions():
         invoice_statuses=[status.name for status in InvoiceStatus],
         txs=Transaction.query.all()
     )
-

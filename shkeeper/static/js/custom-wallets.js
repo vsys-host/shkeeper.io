@@ -20,10 +20,19 @@ function refreshRates()
 
     function getBinanceRealTRates(pairName, currentRate,totalMoney,coinAmount)
     {
+
+        if (pairName == 'usdtusdt') {
+            setInterval(function(){
+                currentRate.innerHTML = 1;
+                totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
+            }, 10000);
+            return;
+        }
+
         let url = 'wss://stream.binance.com:9443/ws/' + pairName + '@miniTicker';
         let bSocket = new WebSocket(url);
         bSocket.onmessage = function(data) {
-            console.log(data);
+            // console.log(data);
             let quotation = JSON.parse(data.data);
             let price = parseFloat(quotation['c']);
             currentRate.innerHTML = price;

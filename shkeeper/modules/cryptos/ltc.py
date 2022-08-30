@@ -1,6 +1,7 @@
-from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.modules.classes.bitcoin_like_crypto import BitcoinLikeCrypto
 
-class ltc(Crypto):
+
+class ltc(BitcoinLikeCrypto):
     def __init__(self):
         self.crypto="LTC"
     def getname(self):

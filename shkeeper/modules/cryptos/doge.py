@@ -1,6 +1,7 @@
-from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.modules.classes.bitcoin_like_crypto import BitcoinLikeCrypto
 
-class doge(Crypto):
+
+class doge(BitcoinLikeCrypto):
     def __init__(self):
         self.crypto="DOGE"
     def getname(self):

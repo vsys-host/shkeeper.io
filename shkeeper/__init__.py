@@ -91,7 +91,8 @@ def create_app(test_config=None):
         import shkeeper.modules.rates
 
         # Register crypto
-        from .modules.cryptos import Crypto
+        from .modules import cryptos
+        from .modules.classes.crypto import Crypto
         for crypto in Crypto.instances.values():
             Wallet.register_currency(crypto)
             crypto._wallet = Wallet

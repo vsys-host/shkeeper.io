@@ -20,13 +20,15 @@ function dropdown()
     dropdownBtn.forEach( item=>{
         item.addEventListener('click',toggleDropdown);
     });
- 
+
     dropdownItems.forEach( item=>{ item.addEventListener('click',chooseItem);});
 
   }
   function autocomplete()
   {
     let addressField = document.getElementById("paddress");
+    if (!addressField) return;
+
     function filterAddItems()
     {
         let dropdownItems = document.querySelectorAll('.dropdown__item');
@@ -105,8 +107,9 @@ let deleteAdd = function(){
 
 function policyFunc(){
   let policyOption = document.getElementById("ppolicy");
+  if (!policyOption) return;
   policyOption.addEventListener("click",policyChange);
-  let policyStatus = document.getElementById("pstatus"); 
+  let policyStatus = document.getElementById("pstatus");
   policyStatus.addEventListener("click",policyStatusChange);
 
   window.addEventListener('DOMContentLoaded',function(){
@@ -117,6 +120,7 @@ function policyFunc(){
   function policyChange()
   {
     let policyOption = document.getElementById("ppolicy");
+    if (!policyOption) return;
     let policyString = policyOption.parentElement;
     //let status = document.querySelector(".success-text");
     switch(policyOption.value){
@@ -177,14 +181,14 @@ function policyFunc(){
       case "Off":
       {
         policyStatus.innerHTML = "On";
-        policyStatus.style.color = "#198754"; 
+        policyStatus.style.color = "#198754";
         break;
       }
     }
   }
   function setPolicyStatus()
   {
-    let policyStatus = document.getElementById("pstatus"); 
+    let policyStatus = document.getElementById("pstatus");
     switch(policyStatus.innerHTML)
     {
       case "False":
@@ -196,7 +200,7 @@ function policyFunc(){
       case "True":
       {
         policyStatus.innerHTML = "On";
-        policyStatus.style.color = "#198754"; 
+        policyStatus.style.color = "#198754";
         break;
       }
     }
@@ -210,7 +214,7 @@ function sendAction()
 
   sendButton.addEventListener("click",function(){
       sendData();
-      
+
   });
 
   function sendData()
@@ -267,7 +271,7 @@ function sendAction()
 
     });
   }
-  
+
 
   function composeData()
   {
@@ -388,10 +392,10 @@ function sendAction()
           {
             alert("Destination Address doesn't match Valid Dogecoin address.");
             document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;    
+            check = false;
           }
         }
-        
+
       }
       else{
         document.querySelector(".dropdown__header").classList.add("red-highlight");
@@ -399,7 +403,7 @@ function sendAction()
       }
       return element.value;
     }
-    
+
     function getRecalcTermHour()
     {
         let value = validateNumValue(document.getElementById('recalculate-val'));
@@ -412,7 +416,7 @@ function sendAction()
         let value = validateNumValue(document.getElementById("poschedulud-val"));
         let term = document.getElementById("poschedulud-term").value;
         return value*term;
-    
+
     }
 
 
@@ -420,7 +424,7 @@ function sendAction()
 }
 
 function serverStatus()
-{  
+{
 
 
     function getServerInfo()
@@ -443,12 +447,12 @@ function serverStatus()
         {
             serverStatusEl.innerHTML = "Server Online";
             serverStatusEl.style.color = "#198754";
-        } 
+        }
         else if(splits[0] == "Sync")
         {
             serverStatusEl.innerHTML = "Server Syncing";
             serverStatusEl.style.color = "#198754";
-        } 
+        }
         else
         {
             serverStatusEl.innerHTML = "Server Offline";
@@ -456,7 +460,7 @@ function serverStatus()
         }
     }
     getServerInfo();
-    setInterval(function(){ 
+    setInterval(function(){
         getServerInfo();
     }, 5000);
 }
@@ -486,11 +490,11 @@ function refreshAddList()
                     addHTMLElement(item['addr']);
                 });
             }
-            
-            
+
+
         };
 
-        
+
     }
     function chooseItem()
     {

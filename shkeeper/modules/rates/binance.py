@@ -11,6 +11,9 @@ class Binance(RateSource):
 
     def get_rate(self, fiat, crypto):
 
+        if fiat == 'USD' and crypto == 'USDT':
+            return Decimal(1.0)
+
         if fiat == 'USD':
             fiat = 'USDT'
         url = f"https://api.binance.com/api/v3/ticker/price?symbol={crypto}{fiat}"

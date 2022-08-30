@@ -14,7 +14,9 @@ import requests
 
 from shkeeper import db
 from shkeeper.auth import login_required, api_key_required
-from shkeeper.modules.cryptos import Crypto
+# from shkeeper.modules.cryptos import Crypto
+from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification
@@ -61,7 +63,7 @@ def payment_request(crypto_name):
         response = {
             "status": "error",
             "message": str(e),
-            # "traceback": traceback.format_exc(),
+            "traceback": traceback.format_exc(),
         }
 
     return response
@@ -199,7 +201,7 @@ def walletnotify(crypto_name, txid):
         return {"status": "error", "message": 'No backend key provided'}, 403
 
     crypto = Crypto.instances[crypto_name]
-    bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY")
+    bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", 'shkeeper')
     if request.headers["X-Shkeeper-Backend-Key"] != bkey:
         app.logger.warning("Wrong backend key")
         return {"status": "error", "message": 'Wrong backend key'}, 403
@@ -255,6 +257,13 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     crypto = Crypto.instances[crypto_name]
+    if isinstance(crypto, TronToken):
+        filename, content = crypto.dump_wallet()
+        headers = Headers()
+        headers.add('Content-Type', 'application/json')
+        headers.add('Content-Disposition', f'attachment; filename="{filename}"')
+        return Response(content, headers=headers)
+
     url = crypto.dump_wallet()
     bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY")
     req = requests.get(url, stream=True, headers={"X-SHKEEPER-BACKEND-KEY": bkey})
@@ -278,3 +287,15 @@ def set_exchange_rate(crypto_name):
     rate_source.fee = req['fee']
     db.session.commit()
     return {"status": "success"}
+
+@bp.get("/<crypto_name>/estimate-tx-fee/<amount>")
+@login_required
+def estimate_tx_fee(crypto_name, amount):
+    crypto = Crypto.instances[crypto_name]
+    return crypto.estimate_tx_fee(amount)
+
+@bp.get("/<crypto_name>/task/<id>")
+@login_required
+def get_task(crypto_name, id):
+    crypto = Crypto.instances[crypto_name]
+    return crypto.get_task(id)

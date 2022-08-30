@@ -64,9 +64,8 @@
   <h2 class="subtitle-text mb-4">Autopayout Policy</h2>
   <div class="text-nowrap wallet-grid--wrap">
     <div class="d-flex flex-column ps-4 input-block">
-
+      {% if crypto.has_autopayout %}
       <div class="d-flex flex-row common-text align-items-center mb-3">
-
         <div class="autopayout-width">Destination:</div>
         <div class="dropdown">
           <div class="dropdown__header d-flex flex-row align-items-center">
@@ -102,10 +101,10 @@
             </div>
           </div>
         </div>
-        <button 
-          class="edit-btn btn btn-primary ms-3" 
+        <button
+          class="edit-btn btn btn-primary ms-3"
           id="manageAdd"
-          data-bs-toggle="modal" 
+          data-bs-toggle="modal"
           data-bs-target="#staticBackdrop"
           >Edit</>
       </div>
@@ -127,7 +126,7 @@
 
       <div class="d-flex flex-row common-text align-items-center mb-3">
         <div class="autopayout-width">Autopayout:</div>
-        <div class="autopayout-block"><a id="pstatus" class="accent-text success-text">{{crypto.wallet.payout}}</a></div> 
+        <div class="autopayout-block"><a id="pstatus" class="accent-text success-text">{{crypto.wallet.payout}}</a></div>
       </div>
 
       <div class="d-flex flex-row common-text align-items-center mb-3">
@@ -153,6 +152,22 @@
           </div>
         </div>
       </div>
+    {% else %}
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">
+          Autopayout is not available for this token.
+          Use <a style="display: inline;" href="{{ url_for('wallet.payout', crypto_name=crypto.crypto) }}">manual payout</a>
+        </div>
+      </div>
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">Payout fee-deposit account:</div>
+        <div class="autopayout-block">{{crypto.fee_deposit_account.addr}}</div>
+      </div>
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">Balance:</div>
+        <div class="autopayout-block">{{ crypto.fee_deposit_account.balance }} {{ crypto.network_currency }}</div>
+      </div>
+    {% endif %}
     </div>
     <div class="d-flex flex-column ps-4 input-block">
       <div class="d-flex flex-row common-text align-items-center mb-3">
