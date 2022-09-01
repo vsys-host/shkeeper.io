@@ -1,12 +1,14 @@
 import os
 import logging
 import secrets
+from decimal import Decimal
 
 from flask import Flask
 
+from .utils import format_decimal
+
 from flask_apscheduler import APScheduler
 scheduler = APScheduler()
-
 
 # from logging.config import dictConfig
 # dictConfig({
@@ -86,7 +88,7 @@ def create_app(test_config=None):
             admin = User(username=default_user)
             db.session.add(admin)
             db.session.commit()
-        
+
         # Register rate sources
         import shkeeper.modules.rates
 
@@ -98,12 +100,15 @@ def create_app(test_config=None):
             crypto._wallet = Wallet
             ExchangeRate.register_currency(crypto)
 
-            
+
 
         from . import tasks
         scheduler.start()
 
         # end of with app.app_context():
+
+    # template filters
+    app.jinja_env.filters['format_decimal'] = format_decimal
 
     # apply the blueprints to the app
     from . import auth, wallet, api_v1, callback

@@ -8,6 +8,7 @@ from flask import current_app as app
 from shkeeper import db
 from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
+from .utils import format_decimal
 
 
 class User(db.Model):
@@ -222,16 +223,10 @@ class Invoice(db.Model):
         return invoice
 
     def for_response(self):
-        exchange_rate = str(round(self.exchange_rate.normalize(), 2))
-        exchange_rate = exchange_rate.rstrip('0').rstrip('.') if '.' in exchange_rate else exchange_rate
-
-        amount = str(round(self.amount_crypto.normalize(), 8))
-        amount = amount.rstrip('0').rstrip('.') if '.' in amount else amount
-
         return {
             "id": self.id,
-            "exchange_rate": exchange_rate,
-            "amount": amount,
+            "exchange_rate": format_decimal(self.exchange_rate, 2),
+            "amount": format_decimal(self.amount_crypto),
             "wallet": self.addr,
             "recalculate_after": self.wallet.recalc,
         }
