@@ -14,7 +14,6 @@ import requests
 
 from shkeeper import db
 from shkeeper.auth import login_required, api_key_required
-# from shkeeper.modules.cryptos import Crypto
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.rates import RateSource

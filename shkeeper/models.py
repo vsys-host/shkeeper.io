@@ -222,10 +222,16 @@ class Invoice(db.Model):
         return invoice
 
     def for_response(self):
+        exchange_rate = str(round(self.exchange_rate.normalize(), 2))
+        exchange_rate = exchange_rate.rstrip('0').rstrip('.') if '.' in exchange_rate else exchange_rate
+
+        amount = str(round(self.amount_crypto.normalize(), 8))
+        amount = amount.rstrip('0').rstrip('.') if '.' in amount else amount
+
         return {
             "id": self.id,
-            "exchange_rate": str(round(self.exchange_rate.normalize(), 2)),
-            "amount": str(round(self.amount_crypto.normalize(), 8)),
+            "exchange_rate": exchange_rate,
+            "amount": amount,
             "wallet": self.addr,
             "recalculate_after": self.wallet.recalc,
         }
