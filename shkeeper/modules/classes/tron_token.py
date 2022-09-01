@@ -71,7 +71,7 @@ class TronToken(Crypto):
             f'http://{self.gethost()}/{self.crypto}/transaction/{txid}',
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
-        return response['address'], response['amount'], response['confirmations'], response['category']
+        return response['address'], Decimal(response['amount']), response['confirmations'], response['category']
 
     def dump_wallet(self):
         response = requests.post(
