@@ -8,8 +8,6 @@ import requests
 from shkeeper.modules.classes.crypto import Crypto
 
 
-requests.post = functools.partial(requests.post, timeout=1)
-
 class BitcoinLikeCrypto(Crypto):
 
     def balance(self):
@@ -38,7 +36,7 @@ class BitcoinLikeCrypto(Crypto):
                 return "Synced"
             else:
                 return "Sync In Progress (%.2f%%)" % (response['result']['verificationprogress'] * 100)
-                
+
         except Exception as e:
             return "Offline"
 
@@ -57,7 +55,7 @@ class BitcoinLikeCrypto(Crypto):
         response = requests.post(
             'http://' + self.gethost(),
             auth=self.get_rpc_credentials(),
-            json=self.build_rpc_request('sendtoaddress', destination, 
+            json=self.build_rpc_request('sendtoaddress', destination,
                                         str(amount.normalize()), '', '', subtract_fee_from_amount)
         ).json(parse_float=Decimal)
 
@@ -113,7 +111,7 @@ class BitcoinLikeCrypto(Crypto):
             auth=self.get_rpc_credentials(),
             json=self.build_rpc_request('backupwallet', f'/backup/{fname}')
         ).json(parse_float=Decimal)
-        
+
         host, port = self.gethost().split(':')
         return f"http://{host}:5555/{fname}"
 
