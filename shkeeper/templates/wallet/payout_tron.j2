@@ -29,7 +29,7 @@
         <div><p>Available:</p></div>
         <div>
           <p>
-            <a onclick="document.querySelector('.fee-input').value = this.text; document.querySelector('.fee-input').dispatchEvent(new Event('input'));" class="d-inline accent-text">{{(crypto.balance()|round(8)).normalize()}}</a> {{ crypto.crypto|upper }}
+            <a onclick="document.querySelector('.fee-input').value = this.text; document.querySelector('.fee-input').dispatchEvent(new Event('input'));" class="d-inline accent-text">{{crypto.balance()|format_decimal(6)}}</a> {{ crypto.crypto|upper }}
           </p>
         </div>
         <div><p>Destination:</p></div>

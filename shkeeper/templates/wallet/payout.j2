@@ -15,7 +15,7 @@
         <div><p>Available:</p></div>
         <div>
           <p>
-            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{(crypto.balance()|round(8)).normalize()}}</a> {{ crypto.crypto|upper }}
+            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{crypto.balance()|format_decimal(8)}}</a> {{ crypto.crypto|upper }}
           </p>
         </div>
         <div><p>Destination:</p></div>

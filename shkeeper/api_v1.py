@@ -19,6 +19,7 @@ from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification
+from shkeeper.utils import format_decimal
 
 
 
@@ -175,7 +176,7 @@ def status(crypto_name):
     crypto = Crypto.instances[crypto_name]
     return {
         "name": crypto.crypto,
-        "amount": crypto.balance().normalize() if crypto.balance() else 0,
+        "amount": format_decimal(crypto.balance()) if crypto.balance() else 0,
         "server": crypto.getstatus(),
     }
 
