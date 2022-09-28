@@ -228,6 +228,9 @@ def walletnotify(crypto_name, txid):
     except sqlalchemy.exc.IntegrityError as e:
         app.logger.warning(f'[{crypto.crypto}/{txid}] TX already exist in db')
         return {"status": "error", "message": 'Transaction already exists'}, 409
+    except Exception:
+        app.logger.exception(f'Exception while processing transaction notification: {crypto_name}/{txid}')
+        return {"status": "error", "message": 'Unknown exception, please check logs.'}, 409
 
     app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
     send_notification(tx)
