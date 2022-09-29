@@ -179,9 +179,9 @@ document.querySelector(".send-payment").addEventListener("click", e => {
 
   document.tx_complete = false;
 
-  let addr = document.querySelector("#paddress").value;
-  if (!addr.startsWith('T') || !addr.length == 34) {
-    alert('Please a valid TRON address.');
+  let addr = document.querySelector("#paddress").value.trim();
+  if (!(addr.startsWith('T') && addr.length == 34)) {
+    alert('Please enter a valid TRON address.');
     return;
   }
 
