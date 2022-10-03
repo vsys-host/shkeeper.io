@@ -13,7 +13,7 @@ from flask_sqlalchemy import sqlalchemy
 import requests
 
 from shkeeper import db
-from shkeeper.auth import login_required, api_key_required
+from shkeeper.auth import basic_auth_optional, login_required, api_key_required
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.rates import RateSource
@@ -298,7 +298,20 @@ def estimate_tx_fee(crypto_name, amount):
     return crypto.estimate_tx_fee(amount)
 
 @bp.get("/<crypto_name>/task/<id>")
+@basic_auth_optional
 @login_required
 def get_task(crypto_name, id):
     crypto = Crypto.instances[crypto_name]
     return crypto.get_task(id)
+
+@bp.post("/<crypto_name>/multipayout")
+@basic_auth_optional
+@login_required
+def multipayout(crypto_name):
+    try:
+        payout_list = request.get_json(force=True)
+        crypto = Crypto.instances[crypto_name]
+    except Exception as e:
+        app.logger.exception("Multipayout error")
+        return  {"status": "error", "message": f"Error: {e}"}
+    return crypto.multipayout(payout_list)

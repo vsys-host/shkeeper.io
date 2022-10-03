@@ -227,7 +227,7 @@ function get_task(task_id) {
         if (data.status != "SUCCESS") {
           setTimeout(() => get_task(task_id), 1000);
         } else {
-          alert(`Payment sent!\n\nTransaction IDs:\n` + data.result.map(x => x.txid).join("\n"));
+          alert(`Payment sent!\n\nTransaction IDs:\n` + data.result[0].txids.join("\n"));
           location.reload();
         }
       })

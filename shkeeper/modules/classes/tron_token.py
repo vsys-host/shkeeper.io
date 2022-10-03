@@ -117,3 +117,11 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response
+
+    def multipayout(self, payout_list):
+        response = requests.post(
+            f'http://{self.gethost()}/{self.crypto}/multipayout',
+            auth=self.get_auth_creds(),
+            json=payout_list,
+        ).json(parse_float=Decimal)
+        return response

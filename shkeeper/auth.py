@@ -19,6 +19,23 @@ from shkeeper import db
 bp = Blueprint("auth", __name__, url_prefix="/")
 
 
+def basic_auth_optional(view):
+    """View decorator that allow to authenticate using HTTP Basic Auth."""
+
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        if g.user is None:
+            auth = request.authorization
+            if auth:
+                user = User.query.filter_by(username=auth.username).first()
+                if user and user.verify_password(auth.password):
+                    g.user = user
+                else:
+                    return {"status": "error", "message": "Bad HTTP Basic Auth credentials"}
+        return view(**kwargs)
+
+    return wrapped_view
+
 def login_required(view):
     """View decorator that redirects anonymous users to the login page."""
 
@@ -39,7 +56,7 @@ def api_key_required(view):
     def wrapped_view(**kwargs):
         if "X-Shkeeper-Api-Key" not in request.headers:
             return {"status": "error", "message": "No API key"}
-        
+
         apikey = request.headers["X-Shkeeper-Api-Key"]
         crypto = request.path.split('/')[3]
         wallet = Wallet.query.filter_by(crypto=crypto, apikey=apikey).first()
