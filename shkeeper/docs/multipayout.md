@@ -42,7 +42,7 @@ On error:
 ```json
 {
     "status": "error",
-    "msg": "error description"
+    "message": "error description"
 }
 ```
 
@@ -54,7 +54,7 @@ After you submitted the payout task you should poll for the task status:
 
 The task results is an array of objects, each having the original payout request, the transaction status (`success` or `error`) and a list of transaction IDs related to the payout.
 
-If the transfer status happen to be an `error`, there will be a text description of the error in `msg` field.
+If the transfer status happen to be an `error`, there will be a text description of the error in `message` field.
 
 ### REQUEST
 
@@ -76,7 +76,7 @@ When the task is complete:
 ```json
 {
   "result": [
-    { "dest": "<addr 1>", "amount":  "100", "status": "error", "msg": "some error description" },
+    { "dest": "<addr 1>", "amount":  "100", "status": "error", "message": "some error description" },
     { "dest": "<addr 2>", "amount": "9.99", "status": "success", "txids": ["cccc"] },
     { "dest": "<addr 3>", "amount": "1500", "status": "success", "txids": ["dddd", "eeee", "ffff", "gggg"] }
   ],
