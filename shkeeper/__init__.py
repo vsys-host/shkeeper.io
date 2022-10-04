@@ -41,6 +41,8 @@ def create_app(test_config=None):
         DATABASE=os.path.join(app.instance_path, "shkeeper.sqlite"),
         SQLALCHEMY_DATABASE_URI='sqlite:///' + os.path.join(app.instance_path, "shkeeper.sqlite"),
         SUGGESTED_WALLET_APIKEY=secrets.token_urlsafe(16),
+        SESSION_TYPE='filesystem',
+        SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
     )
 
     if test_config is None:
@@ -55,6 +57,9 @@ def create_app(test_config=None):
         os.makedirs(app.instance_path)
     except OSError:
         pass
+
+    from flask_session import Session
+    Session(app)
 
     scheduler.init_app(app)
     logging.getLogger("apscheduler").setLevel(logging.INFO)
