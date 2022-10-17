@@ -8,12 +8,14 @@ from flask import render_template
 from flask import request
 from flask import url_for
 from werkzeug.exceptions import abort
+from flask import current_app as app
 
 from shkeeper.auth import login_required
 from .modules.classes.tron_token import TronToken
 from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
+    Invoice,
     PayoutDestination,
     Wallet,
     PayoutPolicy,
@@ -92,5 +94,33 @@ def transactions():
     return render_template("wallet/transactions.j2",
         cryptos=Crypto.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
-        txs=Transaction.query.all()
+    )
+
+@bp.get('/parts/transactions')
+@login_required
+def parts_transactions():
+    query = Transaction.query
+
+    # app.logger.info(dir(query))
+
+    for arg in request.args:
+        if hasattr(Transaction, arg):
+            field = getattr(Transaction, arg)
+            query = query.filter(field.contains(request.args[arg]))
+
+    if 'addr' in request.args:
+        query = query.join(Invoice).filter(Invoice.addr.contains(request.args['addr']))
+
+    if 'invoice_amount_crypto' in request.args:
+        query = query.join(Invoice).filter(Invoice.amount_crypto.contains(request.args['invoice_amount_crypto']))
+
+    if 'status' in request.args:
+        query = query.join(Invoice).filter(Invoice.status.contains(request.args['status']))
+
+    pagination = query.order_by(Transaction.id.desc()).paginate(per_page=50)
+    return render_template("wallet/transactions_table.j2",
+        cryptos=Crypto.instances.keys(),
+        invoice_statuses=[status.name for status in InvoiceStatus],
+        txs=pagination.items,
+        pagination=pagination,
     )

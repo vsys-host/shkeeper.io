@@ -1,0 +1,72 @@
+<table class="transactions-data-table w-100 common-text text-nowrap">
+  <thead>
+    <tr>
+      <th class="transactions">Transaction ID</th>
+      <th class="address table-subtitle">Adress</th>
+      <th class="crypto table-subtitle">Crypto</th>
+      <th class="amount table-subtitle">Amount</th>
+      <th class="amount-bucks table-subtitle">Amount $</th>
+      <th class="status table-subtitle">Status</th>
+      <th class="date table-subtitle">Date</th>
+      <th class="time table-subtitle">Time</th>
+      <th class="invoice table-subtitle">Invoice</th>
+      <th class="invoice-crpt table-subtitle">Invoice Coin</th>
+      <th class="invoice-bucks table-subtitle">Invoice $</th>
+      <th class="inv-date table-subtitle">Inv. Date</th>
+      <th class="inv-time table-subtitle">Inv. Time</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for tx in txs %}
+    <tr>
+      <td value="{{tx.txid}}" class="row-{{loop.index}} transactions transactions-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.txid}}" data-bs-custom-class="custom-tooltips">{{tx.txid}}</td>
+      <td value="{{tx.invoice.addr}}" class="row-{{loop.index}} address address-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.invoice.addr}}" data-bs-custom-class="custom-tooltips">{{tx.invoice.addr}}</td>
+      <td class="row-{{loop.index}} crypto">{{tx.crypto}}</td>
+      <td class="row-{{loop.index}} amount">{{tx.amount_crypto|abs|format_decimal}}</td>
+      <td class="row-{{loop.index}} amount-bucks">${{tx.amount_fiat|abs|format_decimal(2)}}</td>
+      <td class="row-{{loop.index}} status success-text">{{tx.invoice.status.name}}</td>
+      <td class="row-{{loop.index}} date convertDate">{{tx.created_at.timestamp()}}</td>
+      <td class="row-{{loop.index}} time">{{tx.created_at.strftime('%H:%M')}}</td>
+      {% if tx.invoice.status.name == "OUTGOING" %}
+        <td class="row-{{loop.index}} invoice"></td>
+        <td class="row-{{loop.index}} invoice-crpt"></td>
+        <td class="row-{{loop.index}} invoice-bucks"></td>
+        <td class="row-{{loop.index}} inv-date convertDate"></td>
+        <td class="row-{{loop.index}} inv-time"></td>
+      {% else %}
+        <td class="row-{{loop.index}} invoice">{{tx.invoice.id}}</td>
+        <td class="row-{{loop.index}} invoice-crpt">{{tx.invoice.amount_crypto|format_decimal}}</td>
+        <td class="row-{{loop.index}} invoice-bucks">${{tx.invoice.amount_fiat|format_decimal(2)}}</td>
+        <td class="row-{{loop.index}} inv-date convertDate">{{tx.invoice.created_at.timestamp()}}</td>
+        <td class="row-{{loop.index}} inv-time">{{tx.invoice.created_at.strftime('%H:%M')}}</td>
+      {% endif %}
+    </tr>
+{% endfor %}
+  </tbody>
+</table>
+
+{% block pagination %}
+<nav>
+  <ul class="pagination pagination-sm justify-content-center" style="margin-top: 30px;">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a style="font-size: 10px !important;" class="page-link" onclick="update_tx_table(page={{pagination.prev_num}})">Previous</a>
+    </li>
+
+  {%- for page in pagination.iter_pages() %}
+    {% if page %}
+      {% if page != pagination.page %}
+        <li class="page-item"><a style="font-size: 10px !important;" class="page-link" onclick="update_tx_table(page={{page}})">{{ page }}</a></li>
+      {% else %}
+        <li class="page-item active"><a style="font-size: 10px !important;" class="page-link" >{{ page }}</a></li>
+      {% endif %}
+    {% else %}
+        <li class="page-item"><a style="font-size: 10px !important;  pointer-events: none;" class="page-link">...</a></li>
+    {% endif %}
+  {%- endfor %}
+
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a style="font-size: 10px !important;" class="page-link" onclick="update_tx_table(page={{pagination.next_num}})">Next</a>
+    </li>
+  </ul>
+</nav>
+{% endblock %}

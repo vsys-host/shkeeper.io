@@ -307,7 +307,7 @@ function filterDate()
     let dateArray = document.getElementsByClassName("date");
     if(dateParse != null)
     {
-        let dateValue = dateParse[3] + "." + dateParse[2] + "." + dateParse[1]; 
+        let dateValue = dateParse[3] + "." + dateParse[2] + "." + dateParse[1];
         for(let i = 1; i < dateArray.length; i++)
         {
             if(dateArray[i].innerHTML.indexOf(dateValue) == -1)
@@ -335,7 +335,7 @@ function filterInvDate()
     let dateArray = document.getElementsByClassName("inv-date");
     if(dateParse != null)
     {
-        let dateValue = dateParse[3] + "." + dateParse[2] + "." + dateParse[1]; 
+        let dateValue = dateParse[3] + "." + dateParse[2] + "." + dateParse[1];
         for(let i = 1; i < dateArray.length; i++)
         {
             if(dateArray[i].innerHTML.indexOf(dateValue) == -1)
@@ -369,18 +369,18 @@ for(let i = 0; i < checkboxes.length; i++)
 function initialCheck()
 {
     formatTransAndAddresses();
-    filterTransactionId();
-    filterAddress();
-    filterInvoiceId();
-    filterCoinAmount();
-    filterInvoiceCoin();
-    filterAmountBucks();
-    filterStatus();
-    filterTime();
-    filterCrypto();
-    filterInvoiceTime();
-    filterDate();
-    filterInvDate();
+    // filterTransactionId();
+    // filterAddress();
+    // filterInvoiceId();
+    // filterCoinAmount();
+    // filterInvoiceCoin();
+    // filterAmountBucks();
+    // filterStatus();
+    // filterTime();
+    // filterCrypto();
+    // filterInvoiceTime();
+    // filterDate();
+    // filterInvDate();
 }
 
 function formatTransAndAddresses()
@@ -409,7 +409,7 @@ function formatTransAndAddresses()
         let startSubStr = value.substring(0,6);
         let endSubStr = value.substring(strLength-4,strLength);
         element.innerHTML =  startSubStr + "..." + endSubStr;
-        var tooltip = new bootstrap.Tooltip(element)        
+        var tooltip = new bootstrap.Tooltip(element)
     }
 
     function copyToBuffer(element)
@@ -427,16 +427,16 @@ function formatTransAndAddresses()
         function fallbackCopyTextToClipboard(text) {
             var textArea = document.createElement("textarea");
             textArea.value = text;
-            
+
             // Avoid scrolling to bottom
             textArea.style.top = "0";
             textArea.style.left = "0";
             textArea.style.position = "fixed";
-            
+
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            
+
             try {
                 var successful = document.execCommand('copy');
                 var msg = successful ? 'successful' : 'unsuccessful';
@@ -444,7 +444,7 @@ function formatTransAndAddresses()
             } catch (err) {
                 console.error('Fallback: Oops, unable to copy', err);
             }
-            
+
             document.body.removeChild(textArea);
         }
         function copyTextToClipboard(text) {
@@ -459,26 +459,79 @@ function formatTransAndAddresses()
             });
         }
     }
-    
+
 
 
 }
 
-document.getElementsByName("transactionID")[0].addEventListener("keyup", function(){filterTransactionId()});
-document.getElementsByName("address-input")[0].addEventListener("keyup", function(){filterAddress()});
-document.getElementsByName("invoiceID")[0].addEventListener("keyup", function(){filterInvoiceId()});
-document.getElementsByName("coinAmount")[0].addEventListener("keyup", function(){filterCoinAmount()});
-document.getElementsByName("invoiceCoin")[0].addEventListener("keyup", function(){filterInvoiceCoin()});
-document.getElementsByName("dollAmount")[0].addEventListener("keyup", function(){filterAmountBucks()});
-document.getElementsByName("statusName")[0].addEventListener("change", function(){filterStatus()});
-document.getElementsByName("cryptoName")[0].addEventListener("change", function(){filterCrypto()});
-document.getElementsByName("time-input")[0].addEventListener("change", function(){filterTime()});
-document.getElementsByName("invoiceTime")[0].addEventListener("change", function(){filterInvoiceTime()});
-document.getElementsByName("date-input")[0].addEventListener("change", function(){filterDate()});
-document.getElementsByName("invoiceDate")[0].addEventListener("change", function(){filterInvDate()});
-window.addEventListener('DOMContentLoaded',function(){
-    convertUnixDate();
-    initialCheck();
+function build_filter_args() {
+    let args = {};
+
+    [
+        {element_name: "transactionID", arg_name: "txid"},
+        {element_name: "address-input", arg_name: "addr"},
+        {element_name: "invoiceID", arg_name: "invoice_id"},
+        {element_name: "coinAmount", arg_name: "amount_crypto"},
+        {element_name: "invoiceCoin", arg_name: "invoice_amount_crypto"},
+        {element_name: "dollAmount", arg_name: "amount_fiat"},
+    ].forEach((e) => {
+        let value = document.getElementsByName(e.element_name)[0].value;
+        if (value.length) args[e.arg_name] = value;
+    });
+
+    [
+        {element_name: "statusName", arg_name: "status"},
+        {element_name: "cryptoName", arg_name: "crypto"},
+        {element_name: "time-input", arg_name: "created_at"},
+        {element_name: "date-input", arg_name: "created_at"},
+    ].forEach((e) => {
+        let value = document.getElementsByName(e.element_name)[0].value;
+        if (value.length) args[e.arg_name] = value;
+    })
+
+
+    return args;
+}
+
+function update_tx_table(page=1) {
+
+    document.querySelector(".transactions-table-wrapper").innerHTML = `
+
+    `;
+
+    let args = new URLSearchParams({
+        page: page,
+        ...build_filter_args(),
+    })
+    fetch(`/parts/transactions?${args}`).then(function (response) {
+        return response.text();
+    }).then(function (html) {
+        document.querySelector(".transactions-table-wrapper").innerHTML = html;
+
+        convertUnixDate();
+        initialCheck();
+    })
+}
+
+
+// fields updating tx table on keyup
+["transactionID", "address-input", "invoiceID", "coinAmount", "invoiceCoin", "dollAmount"].forEach((e) => {
+    document.getElementsByName(e)[0].addEventListener("keyup", (e) => update_tx_table());
 });
 
+// fields updating tx table on change
+["statusName", "cryptoName", "time-input", "invoiceTime", "date-input", "invoiceDate"].forEach((e) => {
+    document.getElementsByName(e)[0].addEventListener("change", (e) => update_tx_table());
+});
 
+// document.getElementsByName("statusName")[0].addEventListener("change", function(){filterStatus()});
+// document.getElementsByName("cryptoName")[0].addEventListener("change", function(){filterCrypto()});
+// document.getElementsByName("time-input")[0].addEventListener("change", function(){filterTime()});
+// document.getElementsByName("invoiceTime")[0].addEventListener("change", function(){filterInvoiceTime()});
+// document.getElementsByName("date-input")[0].addEventListener("change", function(){filterDate()});
+// document.getElementsByName("invoiceDate")[0].addEventListener("change", function(){filterInvDate()});
+
+window.addEventListener('DOMContentLoaded',function(){
+
+    update_tx_table();
+});
