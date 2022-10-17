@@ -13,7 +13,7 @@ class Crypto(abc.ABC):
         if inspect.isabstract(cls):
             return
 
-        default_off = ['usdt']
+        default_off = ['usdt', 'usdc']
         default_on = ['btc', 'ltc', 'doge']
         for symbol in default_off:
             if cls.__name__ == symbol and (f'{symbol.upper()}_WALLET' not in os.environ or

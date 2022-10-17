@@ -14,14 +14,14 @@ function refreshRates()
         for(let i = 0; i < currentRates.length; i++)
         {
             getBinanceRealTRates(currentRates[i].id, currentRates[i],totalMoney[i],coinAmount[i]);
-            
+
         }
     }
 
     function getBinanceRealTRates(pairName, currentRate,totalMoney,coinAmount)
     {
 
-        if (pairName == 'usdtusdt') {
+        if (pairName == 'usdtusdt' || pairName == 'usdcusdt') {
             setInterval(function(){
                 currentRate.innerHTML = 1;
                 totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
@@ -43,19 +43,19 @@ function refreshRates()
         }
     }
     function precise(x)
-    {   
+    {
         return x.toFixed(2);
     }
 }
 
 function refreshWalletInfo()
-{  
+{
     let serverStatus = document.getElementsByClassName("server-status");
     let walletStatus = document.getElementsByClassName("wallet-status");
     let coinAmount = document.getElementsByClassName("coin-amount-value");
 
     helperCycleWalletInfo(serverStatus,walletStatus,coinAmount);
-    setInterval(function(){ 
+    setInterval(function(){
         helperCycleWalletInfo(serverStatus,walletStatus,coinAmount);
     }, 10000);
 
@@ -94,14 +94,14 @@ function refreshWalletInfo()
             serverStatusF.style.color = "#198754";
             walletStatus.innerHTML = "Online";
             walletStatus.style.color = "#198754";
-        } 
+        }
         else if(splits[0] == "Sync")
         {
             serverStatusF.innerHTML = serverStatus;
             serverStatusF.style.color = "#198754";
             walletStatus.innerHTML = "Offline";
             walletStatus.style.color = "#E92b18";
-        } 
+        }
         else
         {
             serverStatusF.innerHTML = serverStatus;
@@ -113,7 +113,7 @@ function refreshWalletInfo()
 }
 function setPolicyStatus()
 {
-    let policyStatus = document.querySelectorAll(".pstatus"); 
+    let policyStatus = document.querySelectorAll(".pstatus");
     policyStatus.forEach(item => {
         switch(item.innerHTML)
         {
@@ -126,7 +126,7 @@ function setPolicyStatus()
         case "True":
         {
             item.innerHTML = "Enabled";
-            item.style.color = "#198754"; 
+            item.style.color = "#198754";
             break;
         }
         }

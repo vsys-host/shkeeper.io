@@ -6,6 +6,7 @@ import json
 from collections import namedtuple
 
 import requests
+from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
 
@@ -33,7 +34,8 @@ class TronToken(Crypto):
                 auth=self.get_auth_creds(),
             ).json(parse_float=Decimal)
             balance = response['balance']
-        except requests.exceptions.RequestException:
+        except Exception as e:
+            app.logger.warning(f"Response: {response} Error: {e}")
             balance = False
 
         return Decimal(balance)
