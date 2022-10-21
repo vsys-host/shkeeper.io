@@ -1,0 +1,147 @@
+{% extends 'wallet/page.j2' %}
+
+{% block content %}
+
+
+<div class="container overflow-auto px-5">
+  <div class="row">
+    <div class="col transactions-title">
+      <h1 class="title-text">Payouts</h1>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col common-text">
+      <div class="transactions-settings-table">
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="transactions"
+            checked
+          />
+          <div class="flex-grow-1 pe-5">
+            <p class="mb-1">Tx ID</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="text"
+              name="transactionID"
+              value=""
+            />
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="crypto"
+            checked
+          />
+          <select
+            name="cryptoName"
+            class="form-select common-text transactions-select"
+          >
+            <option value="" disabled>Select crypto</option>
+            <option value="" selected>Any crypto</option>
+  {% for crypto in cryptos %}
+            <option value="{{crypto}}">{{crypto}}</option>
+{% endfor %}
+          </select>
+        </div>
+
+        {# <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="status"
+            checked
+          />
+          <select
+            name="statusName"
+            class="form-select common-text transactions-select"
+          >
+            <option value="" disabled>Select status</option>
+            <option value="" selected>Any status</option>
+            {% for status in payout_statuses %}
+                      <option value="{{status}}">{{status|replace("_", " ")|title}}</option>
+          {% endfor %}
+          </select>
+        </div> #}
+
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="address"
+            checked
+          />
+          <div class="flex-grow-1 pe-5">
+            <p class="mb-1">Destination address</p>
+            <input
+              class="transactions-address-input form-control form-control-sm common-text"
+              type="text"
+              name="address-input"
+              placeholder="Destination"
+            />
+          </div>
+        </div>
+
+
+
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="date"
+            checked
+          />
+          <div class="pe-5">
+            <p class="mb-1">Payout date</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="date"
+              name="date-input"
+              placeholder="Invoice ID"
+            />
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center">
+          <input
+            class="checkbox form-check-input me-2"
+            type="checkbox"
+            name="amount"
+            checked
+          />
+          <div>
+            <p class="mb-1">Payout amount (crypto)</p>
+            <input
+              class="form-control form-control-sm common-text"
+              type="text"
+              name="coinAmount"
+              placeholder="Amount"
+            />
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col pt-4 transactions-table-wrapper">
+
+        <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
+            <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/custom-payouts.js') }}"></script>
+<script>document.getElementById("payouts-link").classList.add("nav-link--active");</script>
+
+{% endblock %}

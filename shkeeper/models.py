@@ -300,3 +300,56 @@ class Transaction(db.Model):
             self.need_more_confirmations = False
             db.session.commit()
         return self.need_more_confirmations
+
+
+class PayoutStatus(enum.Enum):
+    IN_PROGRESS = enum.auto()
+    SUCCESS = enum.auto()
+    FAIL = enum.auto()
+
+class Payout(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
+                                        onupdate=db.func.current_timestamp())
+    amount = db.Column(db.Numeric)
+    crypto = db.Column(db.String)
+    dest_addr = db.Column(db.String)
+    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
+    transactions = db.relationship('PayoutTx', backref='payout', lazy=True)
+
+    @classmethod
+    def add(cls, payout, crypto):
+        p = cls(
+            dest_addr = payout['dest'],
+            amount = payout['amount'],
+            crypto = crypto,
+        )
+        db.session.add(p)
+        db.session.commit()
+
+        for txid in payout['txids']:
+            ptx = PayoutTx(
+                payout_id = p.id,
+                txid = txid
+            )
+            db.session.add(ptx)
+
+        db.session.commit()
+
+
+class PayoutTxStatus(enum.Enum):
+    IN_PROGRESS = enum.auto()
+    SUCCESS = enum.auto()
+    FAIL = enum.auto()
+
+class PayoutTx(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    payout_id = db.Column(db.Integer, db.ForeignKey('payout.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
+                                        onupdate=db.func.current_timestamp())
+    amount = db.Column(db.Numeric)
+    crypto = db.Column(db.String)
+    txid = db.Column(db.String)
+    status = db.Column(db.Enum(PayoutTxStatus), default=PayoutTxStatus.IN_PROGRESS)

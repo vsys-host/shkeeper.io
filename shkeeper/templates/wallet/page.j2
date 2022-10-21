@@ -40,6 +40,14 @@
               </a>
             </li>
             <li class="nav-item">
+              <a id="payouts-link" href="{{ url_for('wallet.payouts') }}" class="nav-link">
+                <svg height="32" width="32" class="nav-icon">
+                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-payouts"></use>
+                </svg>
+                <span class="nav-label">Payouts</span>
+              </a>
+            </li>
+            <li class="nav-item">
               <a href="{{ url_for('auth.logout') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
                   <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-logout"></use>

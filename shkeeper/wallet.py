@@ -16,7 +16,11 @@ from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
     Invoice,
+    Payout,
     PayoutDestination,
+    PayoutStatus,
+    PayoutTx,
+    PayoutTxStatus,
     Wallet,
     PayoutPolicy,
     ExchangeRate,
@@ -122,5 +126,33 @@ def parts_transactions():
         cryptos=Crypto.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
         txs=pagination.items,
+        pagination=pagination,
+    )
+
+@bp.route("/payouts")
+@login_required
+def payouts():
+    return render_template("wallet/payouts.j2",
+        cryptos=Crypto.instances.keys(),
+        payout_statuses=[status.name for status in PayoutStatus],
+        payout_tx_statuses=[status.name for status in PayoutTxStatus],
+    )
+
+@bp.get('/parts/payouts')
+@login_required
+def parts_payouts():
+    query = Payout.query
+
+    for arg in request.args:
+        if hasattr(Payout, arg):
+            field = getattr(Payout, arg)
+            query = query.filter(field.contains(request.args[arg]))
+
+    if 'txid' in request.args:
+        query = query.join(PayoutTx).filter(PayoutTx.txid.contains(request.args['txid']))
+
+    pagination = query.order_by(Payout.id.desc()).paginate(per_page=50)
+    return render_template("wallet/payouts_table.j2",
+        payouts=pagination.items,
         pagination=pagination,
     )

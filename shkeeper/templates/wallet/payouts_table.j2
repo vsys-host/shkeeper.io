@@ -1,0 +1,56 @@
+<table class="transactions-data-table w-100 common-text text-nowrap">
+  <thead>
+    <tr>
+      <th class="transactions">Date</th>
+      <th class="address table-subtitle">Destination</th>
+      <th class="amount table-subtitle">Amount</th>
+      <th class="crypto table-subtitle">Crypto</th>
+      {# <th class="status table-subtitle">Status</th> #}
+      <th class="date table-subtitle">Tx IDs</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for payout in payouts %}
+    <tr>
+      <td class="date">{{payout.created_at.strftime('%Y-%m-%d %H:%M')}}</td>
+      <td class="address">{{payout.dest_addr}}</td>
+      <td class="amount">{{payout.amount|abs|format_decimal}}</td>
+      <td class="crypto">{{payout.crypto}}</td>
+      {# <td class="status">{{payout.status.name|replace("_", " ")|title}}</td> #}
+      <td class="transactions">
+        <ul>
+        {% for tx in payout.transactions %}
+          <li>{{tx.txid}}
+        {% endfor %}
+        <ul>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% block pagination %}
+<nav>
+  <ul class="pagination pagination-sm justify-content-center" style="margin-top: 30px;">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a style="font-size: 10px !important;" class="page-link" onclick="update_tx_table(page={{pagination.prev_num}})">Previous</a>
+    </li>
+
+  {%- for page in pagination.iter_pages() %}
+    {% if page %}
+      {% if page != pagination.page %}
+        <li class="page-item"><a style="font-size: 10px !important;" class="page-link" onclick="update_tx_table(page={{page}})">{{ page }}</a></li>
+      {% else %}
+        <li class="page-item active"><a style="font-size: 10px !important;" class="page-link" >{{ page }}</a></li>
+      {% endif %}
+    {% else %}
+        <li class="page-item"><a style="font-size: 10px !important;  pointer-events: none;" class="page-link">...</a></li>
+    {% endif %}
+  {%- endfor %}
+
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a style="font-size: 10px !important;" class="page-link" onclick="update_tx_table(page={{pagination.next_num}})">Next</a>
+    </li>
+  </ul>
+</nav>
+{% endblock %}

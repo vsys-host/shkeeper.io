@@ -43,6 +43,12 @@ def list_crypto():
       "crypto": filtered_list,
     }
 
+@bp.get("/<crypto_name>/generate-address")
+@login_required
+def generate_address(crypto_name):
+    crypto = Crypto.instances[crypto_name]
+    addr = crypto.mkaddr()
+    return {"status": "success", "addr": addr}
 
 @bp.post("/<crypto_name>/payment_request")
 @api_key_required
@@ -186,12 +192,44 @@ def status(crypto_name):
 def payout(crypto_name):
     req = request.get_json(force=True)
     crypto = Crypto.instances[crypto_name]
+    amount = Decimal(req['amount'])
     res = crypto.mkpayout(
         req['destination'],
-        req['amount'],
+        amount,
         req['fee'],
     )
+
+    if 'result' in res and res['result']:
+        Payout.add({'dest': req['destination'], 'amount': amount, 'txids': [res['result']], }, crypto_name)
+
     return res
+
+
+
+@bp.post("/payoutnotify/<crypto_name>")
+def payoutnotify(crypto_name):
+    try:
+        if "X-Shkeeper-Backend-Key" not in request.headers:
+            app.logger.warning("No backend key provided")
+            return {"status": "error", "message": 'No backend key provided'}, 403
+
+        crypto = Crypto.instances[crypto_name]
+        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", 'shkeeper')
+        if request.headers["X-Shkeeper-Backend-Key"] != bkey:
+            app.logger.warning("Wrong backend key")
+            return {"status": "error", "message": 'Wrong backend key'}, 403
+
+        data = request.get_json(force=True)
+        app.logger.info(f'Payout notification: {data}')
+
+        for p in data:
+            Payout.add(p, crypto_name)
+
+        return {"status": "success"}
+    except Exception as e:
+        app.logger.exception("Payout notify error")
+        return  {"status": "error", "message": f"Error: {e}"}
+
 
 
 @bp.post("/walletnotify/<crypto_name>/<txid>")
