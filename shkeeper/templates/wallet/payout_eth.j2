@@ -17,15 +17,10 @@
         <div>
             <p>
               {{ crypto.fee_deposit_account.addr }}
-              <span class="ms-2">(<span id="fee_depos_bal">{{ crypto.fee_deposit_account.balance }}</span> {{ crypto.network_currency }})</span>
+              <span class="ms-2">(<span id="fee_depos_bal">{{ crypto.fee_deposit_account.balance | format_decimal(6) }}</span> {{ crypto.network_currency }})</span>
             </p>
         </div>
-
-        {# <div><p>Fee-deposit balance:</p></div>
-        <div>
-            <p><span id="fee_depos_bal">{{ crypto.fee_deposit_account.balance }}</span> {{ crypto.network_currency }}</p>
-        </div> #}
-
+        
         <div><p>Available:</p></div>
         <div>
           <p>
@@ -143,7 +138,7 @@ function show_est_fee() {
     })
 }
 
-var not_en_trx_msg = `Not enought TRX to pay for transaction. Please top up the fee-deposit account.`;
+var not_en_trx_msg = `Not enought ETH to pay for transaction. Please top up the fee-deposit account.`;
 
 function check_fee() {
   let est_fee = parseFloat(document.querySelector("#est_fee").innerText);
@@ -180,10 +175,10 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   document.tx_complete = false;
 
   let addr = document.querySelector("#paddress").value.trim();
-  if (!(addr.startsWith('T') && addr.length == 34)) {
-    alert('Please enter a valid TRON address.');
-    return;
-  }
+//  if (!(addr.startsWith('T') && addr.length == 34)) {
+//    alert('Please enter a valid ETH address.');
+//    return;
+//  }
 
   let amount = document.querySelector(".fee-input").value;
   if (!amount) {

@@ -5,3 +5,4 @@ Flask-Session==0.4.0
 Flask-SQLAlchemy==2.5.1
 gunicorn==20.1.0
 requests==2.28.1
+SQLAlchemy==1.4

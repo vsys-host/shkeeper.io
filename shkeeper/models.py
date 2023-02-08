@@ -105,7 +105,7 @@ class ExchangeRate(db.Model):
         if self.source == 'manual':
             return self.rate
 
-        rs = RateSource.instances.get(self.source, list(RateSource.instances.values())[0])
+        rs = RateSource.instances.get(self.source, RateSource.instances.get('binance'))
         return rs.get_rate(self.fiat, self.crypto)
 
     def convert(self, amount):
@@ -349,7 +349,5 @@ class PayoutTx(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
                                         onupdate=db.func.current_timestamp())
-    amount = db.Column(db.Numeric)
-    crypto = db.Column(db.String)
     txid = db.Column(db.String)
     status = db.Column(db.Enum(PayoutTxStatus), default=PayoutTxStatus.IN_PROGRESS)

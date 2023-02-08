@@ -21,7 +21,7 @@ function refreshRates()
     function getBinanceRealTRates(pairName, currentRate,totalMoney,coinAmount)
     {
 
-        if (pairName == 'usdtusdt' || pairName == 'usdcusdt') {
+        if (pairName == 'usdtusdt' || pairName == 'usdcusdt' || pairName == 'eth-usdtusdt' || pairName == 'eth-usdcusdt') {
             setInterval(function(){
                 currentRate.innerHTML = 1;
                 totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));

@@ -16,6 +16,7 @@ from shkeeper import db
 from shkeeper.auth import basic_auth_optional, login_required, api_key_required
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.tron_token import TronToken
+from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification
@@ -298,7 +299,7 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    if isinstance(crypto, TronToken):
+    if (isinstance(crypto, TronToken)) or (isinstance(crypto, Ethereum)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add('Content-Type', 'application/json')

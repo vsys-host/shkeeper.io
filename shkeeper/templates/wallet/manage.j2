@@ -26,7 +26,12 @@
             name="serverKey"
             disabled
           /-->
+          {% if crypto.crypto.startswith("ETH") %}
+          <a href="#" class="common-text accent-text">Download</a>
+          {% else %}
           <a href="{{url_for('api_v1.backup', crypto_name=crypto.crypto)}}" class="common-text accent-text">Download</a>
+          {% endif %}
+
         </div>
         <div class="mb-3 d-flex align-items-center justify-content-start" >
           <p id="server-status" class="server-width common-text server-inactive">Server offline</p>
@@ -152,6 +157,13 @@
           </div>
         </div>
       </div>
+    {% elif crypto.crypto == 'ETH' %}
+      <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-2-width">
+          Autopayout is not available for this token.
+          Use <a style="display: inline;" href="{{ url_for('wallet.payout', crypto_name=crypto.crypto) }}">manual payout</a>
+        </div>
+      </div>
     {% else %}
       <div class="d-flex flex-row common-text align-items-center mb-3">
         <div class="autopayout-2-width">
@@ -165,7 +177,7 @@
       </div>
       <div class="d-flex flex-row common-text align-items-center mb-3">
         <div class="autopayout-2-width">Balance:</div>
-        <div class="autopayout-block">{{ crypto.fee_deposit_account.balance }} {{ crypto.network_currency }}</div>
+        <div class="autopayout-block">{{ crypto.fee_deposit_account.balance | format_decimal(6) }} {{ crypto.network_currency }}</div>
       </div>
     {% endif %}
     </div>

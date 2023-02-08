@@ -12,6 +12,7 @@ from flask import current_app as app
 
 from shkeeper.auth import login_required
 from .modules.classes.tron_token import TronToken
+from .modules.classes.ethereum import Ethereum
 from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
@@ -49,6 +50,12 @@ def payout(crypto_name):
     tmpl = "wallet/payout.j2"
     if isinstance(crypto, TronToken):
         tmpl = "wallet/payout_tron.j2"
+    
+    if isinstance(crypto, Ethereum) and crypto_name != "ETH":
+        tmpl = "wallet/payout_eth.j2"
+
+    if crypto_name == "ETH":
+        tmpl = "wallet/payout_eth_coin.j2"
 
     return render_template(tmpl, crypto=crypto, pdest=pdest)
 
