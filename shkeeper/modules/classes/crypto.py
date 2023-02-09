@@ -9,6 +9,8 @@ class Crypto(abc.ABC):
     has_autopayout = True
     can_set_tx_fee = True
     _display_name = None
+    fixed_fee_steps = []
+    precision = 8
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -25,7 +27,7 @@ class Crypto(abc.ABC):
             'eth_usdc',
             'eth_usdt',
         ]
-        default_on = ['btc', 'ltc', 'doge']
+        default_on = ['btc', 'ltc', 'doge','xmr']
         for symbol in default_off:
             if cls.__name__ == symbol and (f'{symbol.upper()}_WALLET' not in os.environ or
                                            os.environ[f'{symbol.upper()}_WALLET'] != 'enabled'):

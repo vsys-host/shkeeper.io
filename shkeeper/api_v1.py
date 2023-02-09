@@ -17,6 +17,7 @@ from shkeeper.auth import basic_auth_optional, login_required, api_key_required
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
+from shkeeper.modules.cryptos.monero import Monero
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification
@@ -68,6 +69,7 @@ def payment_request(crypto_name):
         }
 
     except Exception as e:
+        app.logger.exception(f"Failed to create invoice for {req}")
         response = {
             "status": "error",
             "message": str(e),
@@ -80,7 +82,6 @@ def payment_request(crypto_name):
 @login_required
 def payment_gateway_get_status(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    app.logger.warn(f"{request.path!r}")
     return {"status": "success", "enabled": crypto.wallet.enabled, "token": crypto.wallet.apikey}
 
 @bp.post("/<crypto_name>/payment-gateway")
@@ -202,7 +203,8 @@ def payout(crypto_name):
     )
 
     if 'result' in res and res['result']:
-        Payout.add({'dest': req['destination'], 'amount': amount, 'txids': [res['result']], }, crypto_name)
+        idtxs = res['result'] if isinstance(res['result'], list) else [res['result']]
+        Payout.add({'dest': req['destination'], 'amount': amount, 'txids': idtxs}, crypto_name)
 
     return res
 
@@ -306,7 +308,7 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    if (isinstance(crypto, TronToken)) or (isinstance(crypto, Ethereum)):
+    if isinstance(crypto, (TronToken, Ethereum, Monero)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add('Content-Type', 'application/json')

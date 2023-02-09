@@ -18,7 +18,7 @@ function dropdown()
     dropdownBtn.forEach( item=>{
         item.addEventListener('click',toggleDropdown);
     });
- 
+
     dropdownItems.forEach( item=>{ item.addEventListener('click',chooseItem);});
 
   }
@@ -97,11 +97,11 @@ function refreshAddList()
                     addHTMLElement(item['addr']);
                 });
             }
-            
-            
+
+
         };
 
-        
+
     }
     function chooseItem()
     {
@@ -225,10 +225,10 @@ function addAddress()
           {
             alert("Destination Address doesn't match Valid Dogecoin address.");
             document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;    
+            check = false;
           }
         }
-        
+
       }
       else{
         document.querySelector(".dropdown__header").classList.add("red-highlight");
@@ -237,7 +237,7 @@ function addAddress()
       return element.value;
     }
   }
-  
+
 }
 function sendPayment()
 {
@@ -281,7 +281,7 @@ function sendPayment()
     let check = true;
     let destinationAdd = validateAddressValue(document.querySelector('.dropdown__current'));
     let amount = validateFloatValue(document.querySelector('input[name="amount"]'));
-    let fee = validateFloatValue(document.querySelector('input[name="fee"]'));
+    let fee = validateFloatValue(document.querySelector('[name="fee"]'));
     if(check == false)
     {
       return false;
@@ -349,10 +349,10 @@ function sendPayment()
           {
             alert("Destination Address doesn't match Valid Dogecoin address.");
             document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;    
+            check = false;
           }
         }
-        
+
       }
       else{
         document.querySelector(".dropdown__header").classList.add("red-highlight");

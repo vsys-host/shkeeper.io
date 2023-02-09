@@ -92,8 +92,14 @@ class Wallet(db.Model):
         db.session.commit()
 
         crypto = Crypto.instances[self.crypto]
-        txid = crypto.mkpayout(self.pdest, crypto.balance(), self.pfee, subtract_fee_from_amount=True)
-        return txid
+        balance = crypto.balance()
+        res = crypto.mkpayout(self.pdest, balance, self.pfee, subtract_fee_from_amount=True)
+
+        if 'result' in res and res['result']:
+            idtxs = res['result'] if isinstance(res['result'], list) else [res['result']]
+            Payout.add({'dest': self.pdest, 'amount': balance, 'txids': idtxs}, crypto.crypto)
+
+        return res
 
 
 class ExchangeRate(db.Model):

@@ -15,7 +15,7 @@
         <div><p>Available:</p></div>
         <div>
           <p>
-            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{crypto.balance()|format_decimal(8)}}</a> {{ crypto.crypto|upper }}
+            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{crypto.balance()|format_decimal(crypto.precision)}}</a> {{ crypto.crypto|upper }}
           </p>
         </div>
         <div><p>Destination:</p></div>
@@ -68,6 +68,15 @@
         <div><p>Fee:</p></div>
         <div>
           <div class="d-flex align-items-center">
+            {% if crypto.fixed_fee_steps %}
+              <select name="fee">
+              {% for step in crypto.fixed_fee_steps%}
+                <option value="{{ step }}" {% if step == crypto.default_fee %} selected {% endif %}>
+                  {{ crypto.fixed_fee_steps[step] }}
+                </option>
+              {% endfor %}
+              </select>
+            {% else %}
             <input
               value=""
               class="fee-input form-control common-text"
@@ -75,6 +84,7 @@
               name="fee"
             />
             <p class="ms-2">Sat/b</p>
+            {% endif %}
           </div>
         </div>
       </div>
