@@ -97,7 +97,7 @@ class TronToken(Crypto):
         ).json(parse_float=Decimal)
 
         FeeDepositAccount = namedtuple('FeeDepositAccount', 'addr balance')
-        return FeeDepositAccount(response['account'], response['balance'])
+        return FeeDepositAccount(response['account'], Decimal(response['balance']))
 
     def estimate_tx_fee(self, amount):
         response = requests.post(

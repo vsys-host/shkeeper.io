@@ -17,14 +17,9 @@
         <div>
             <p>
               {{ crypto.fee_deposit_account.addr }}
-              <span class="ms-2">(<span id="fee_depos_bal">{{ crypto.fee_deposit_account.balance }}</span> {{ crypto.network_currency }})</span>
+              <span class="ms-2">(<span id="fee_depos_bal">{{ crypto.fee_deposit_account.balance | format_decimal(8) }}</span> {{ crypto.network_currency }})</span>
             </p>
         </div>
-
-        {# <div><p>Fee-deposit balance:</p></div>
-        <div>
-            <p><span id="fee_depos_bal">{{ crypto.fee_deposit_account.balance }}</span> {{ crypto.network_currency }}</p>
-        </div> #}
 
         <div><p>Available:</p></div>
         <div>
