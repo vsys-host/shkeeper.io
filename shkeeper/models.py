@@ -9,6 +9,7 @@ from shkeeper import db
 from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from .utils import format_decimal
+from .exceptions import NotRelatedToAnyInvoice
 
 
 class User(db.Model):
@@ -277,7 +278,7 @@ class Transaction(db.Model):
     def add(cls, crypto, tx):
         invoice = Invoice.query.filter_by(addr=tx['addr']).first()
         if not invoice:
-            raise Exception(f'{tx["addr"]} is not related to any invoice')
+            raise NotRelatedToAnyInvoice(f'{tx["addr"]} is not related to any invoice')
 
         t = cls()
         t.invoice_id = invoice.id

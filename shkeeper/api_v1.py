@@ -21,6 +21,7 @@ from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification
 from shkeeper.utils import format_decimal
+from shkeeper.exceptions import NotRelatedToAnyInvoice
 
 
 
@@ -235,28 +236,28 @@ def payoutnotify(crypto_name):
 
 @bp.post("/walletnotify/<crypto_name>/<txid>")
 def walletnotify(crypto_name, txid):
-    if "X-Shkeeper-Backend-Key" not in request.headers:
-        app.logger.warning("No backend key provided")
-        return {"status": "error", "message": 'No backend key provided'}, 403
-
-    crypto = Crypto.instances[crypto_name]
-    bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", 'shkeeper')
-    if request.headers["X-Shkeeper-Backend-Key"] != bkey:
-        app.logger.warning("Wrong backend key")
-        return {"status": "error", "message": 'Wrong backend key'}, 403
-
-    addr, amount, confirmations, category = crypto.getaddrbytx(txid)
-
-    if category == "send":
-        Transaction.add_outgoing(crypto, txid)
-        return {"status": "success"}
-
-
-    if confirmations == 0:
-        app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
-        return {"status": "success"}
-
     try:
+        if "X-Shkeeper-Backend-Key" not in request.headers:
+            app.logger.warning("No backend key provided")
+            return {"status": "error", "message": 'No backend key provided'}, 403
+
+        crypto = Crypto.instances[crypto_name]
+        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", 'shkeeper')
+        if request.headers["X-Shkeeper-Backend-Key"] != bkey:
+            app.logger.warning("Wrong backend key")
+            return {"status": "error", "message": 'Wrong backend key'}, 403
+
+        addr, amount, confirmations, category = crypto.getaddrbytx(txid)
+
+        if category == "send":
+            Transaction.add_outgoing(crypto, txid)
+            return {"status": "success"}
+
+
+        if confirmations == 0:
+            app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
+            return {"status": "success"}
+
         tx = Transaction.add(crypto, {
             "txid": txid,
             "addr": addr,
@@ -264,12 +265,14 @@ def walletnotify(crypto_name, txid):
             "confirmations": confirmations,
         })
         tx.invoice.update_with_tx(tx)
+    except NotRelatedToAnyInvoice:
+        return {"status": "success", "message": 'Transaction is not related to any invoice'}
     except sqlalchemy.exc.IntegrityError as e:
         app.logger.warning(f'[{crypto.crypto}/{txid}] TX already exist in db')
         return {"status": "error", "message": 'Transaction already exists'}, 409
-    except Exception:
+    except Exception as e:
         app.logger.exception(f'Exception while processing transaction notification: {crypto_name}/{txid}')
-        return {"status": "error", "message": 'Unknown exception, please check logs.'}, 409
+        return {"status": "error", "message": f'Exception while processing transaction notification: {traceback.format_exc()}.'}, 409
 
     app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
     send_notification(tx)
