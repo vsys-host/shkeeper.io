@@ -269,7 +269,7 @@ def walletnotify(crypto_name, txid):
         return {"status": "success", "message": 'Transaction is not related to any invoice'}
     except sqlalchemy.exc.IntegrityError as e:
         app.logger.warning(f'[{crypto.crypto}/{txid}] TX already exist in db')
-        return {"status": "error", "message": 'Transaction already exists'}, 409
+        return {"status": "success", "message": 'Transaction already exists'}
     except Exception as e:
         app.logger.exception(f'Exception while processing transaction notification: {crypto_name}/{txid}')
         return {"status": "error", "message": f'Exception while processing transaction notification: {traceback.format_exc()}.'}, 409
