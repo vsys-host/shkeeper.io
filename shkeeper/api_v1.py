@@ -241,7 +241,11 @@ def walletnotify(crypto_name, txid):
             app.logger.warning("No backend key provided")
             return {"status": "error", "message": 'No backend key provided'}, 403
 
-        crypto = Crypto.instances[crypto_name]
+        try:
+            crypto = Crypto.instances[crypto_name]
+        except KeyError:
+            return {"status": "success", "message": f'Ignoring notification for {crypto_name}: crypto is not available for processing'}
+
         bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", 'shkeeper')
         if request.headers["X-Shkeeper-Backend-Key"] != bkey:
             app.logger.warning("Wrong backend key")
