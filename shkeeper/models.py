@@ -77,7 +77,10 @@ class Wallet(db.Model):
             wallet = cls(crypto=crypto.crypto)
             db.session.add(wallet)
         if not wallet.apikey:
-            wallet.apikey = app.config['SUGGESTED_WALLET_APIKEY']
+            if wallet_with_apikey := cls.query.filter(cls.apikey != None).first():
+                wallet.apikey = wallet_with_apikey.apikey
+            else:
+                wallet.apikey = app.config['SUGGESTED_WALLET_APIKEY']
         db.session.commit()
         return wallet
 
