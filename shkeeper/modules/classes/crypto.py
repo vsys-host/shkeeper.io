@@ -7,6 +7,7 @@ class Crypto(abc.ABC):
     instances = {}
     wallet_created = False
     has_autopayout = True
+    _display_name = None
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -69,3 +70,7 @@ class Crypto(abc.ABC):
     @property
     def wallet(self):
         return self._wallet.query.filter_by(crypto=self.crypto).first()
+
+    @property
+    def display_name(self):
+        return self._display_name or self.getname()
