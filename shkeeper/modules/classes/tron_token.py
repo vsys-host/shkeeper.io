@@ -13,7 +13,7 @@ from shkeeper.modules.classes.crypto import Crypto
 
 class TronToken(Crypto):
 
-    has_autopayout = False
+    can_set_tx_fee = False
     network_currency = 'TRX'
     account_activation_fee = 1.1  # https://developers.tron.network/docs/account#account-activation
 
@@ -106,7 +106,13 @@ class TronToken(Crypto):
         ).json(parse_float=Decimal)
         return response
 
-    def mkpayout(self, destination, amount, fee):
+    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
+        if self.crypto == self.network_currency and subtract_fee_from_amount:
+            fee = Decimal(self.estimate_tx_fee(amount)['fee'])
+            if fee >= amount:
+                return f"Payout failed: not enought TRX to pay for transaction. Need {fee}, balance {amount}"
+            else:
+                amount -= fee
         response = requests.post(
             f'http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}',
             auth=self.get_auth_creds(),

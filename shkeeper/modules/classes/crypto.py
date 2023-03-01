@@ -7,6 +7,7 @@ class Crypto(abc.ABC):
     instances = {}
     wallet_created = False
     has_autopayout = True
+    can_set_tx_fee = True
     _display_name = None
 
     def __init_subclass__(cls, **kwargs):
