@@ -26,12 +26,13 @@ class Crypto(abc.ABC):
             'eth',
             'eth_usdc',
             'eth_usdt',
+            # Monero
+            'Monero',
         ]
-        default_on = ['btc', 'ltc', 'doge','xmr']
+        default_on = ['btc', 'ltc', 'doge']
         for symbol in default_off:
             if cls.__name__ == symbol and (f'{symbol.upper()}_WALLET' not in os.environ or
                                            os.environ[f'{symbol.upper()}_WALLET'] != 'enabled'):
-
                 return
 
         for symbol in default_on:
