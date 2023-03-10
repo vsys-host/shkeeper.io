@@ -39,7 +39,7 @@ class Monero(Crypto):
         self.MONERO_DAEMON_PASS = os.environ.get('MONERO_DAEMON_PASS', 'monerod')
 
         self.MONERO_WALLET_RPC_HOST = os.environ.get('MONERO_WALLET_RPC_HOST', 'monero-wallet-rpc')
-        self.MONERO_WALLET_RPC_PORT = os.environ.get('MONERO_WALLET_RPC_PORT', '2222')
+        self.MONERO_WALLET_RPC_PORT = '2222'  # fix env clash with k8s env
         self.MONERO_WALLET_RPC_USER = os.environ.get('MONERO_WALLET_RPC_USER', 'shkeeper')
         self.MONERO_WALLET_RPC_PASS = os.environ.get('MONERO_WALLET_RPC_PASS', 'shkeeper')
 
