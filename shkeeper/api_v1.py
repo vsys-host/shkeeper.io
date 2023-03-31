@@ -38,12 +38,15 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 @bp.route("/crypto")
 def list_crypto():
     filtered_list = []
+    crypto_list = []
     for crypto in Crypto.instances.values():
         if crypto.wallet.enabled and (crypto.getstatus() != "Offline"):
             filtered_list.append(crypto.crypto)
+            crypto_list.append({'name': crypto.crypto, 'display_name': crypto.display_name})
     return {
       "status": "success",
       "crypto": filtered_list,
+      "crypto_list": crypto_list,
     }
 
 @bp.get("/<crypto_name>/generate-address")

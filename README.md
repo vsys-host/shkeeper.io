@@ -1,4 +1,4 @@
-# shkeeper.io<!-- omit in toc --> 
+# shkeeper.io<!-- omit in toc -->
 
 - [API for plugins](#api-for-plugins)
   - [Auth](#auth)
@@ -36,7 +36,8 @@ Response:
 ```jsonc
 {
   "status": "success",
-  "crypto": ["BTC", "LTC", "DOGE"]
+  "crypto": ["BTC", "LTC", "DOGE"],
+  "crypto_list": [{"name": "BTC", "display_name": "Bitcoin"}, ...]
 }
 ```
 
@@ -46,7 +47,7 @@ Request format:
 
 ```jsonc
 {
-  "external_id": "1",  // an invoice or an order ID 
+  "external_id": "1",  // an invoice or an order ID
   "fiat": "USD",       // fiat currency
   "amount": 100,       // fiat currency amount
   "callback_url": "https://my-billing-system/callback.php"  // URL where shkeeper.io should send a payment notification
@@ -97,7 +98,7 @@ Once shkeeper.io receives a payment it will send a payment notification to the `
                  // false -- when only a partial payment received
   "transactions": [  // list of transactions related to the payment request
     {
-      "txid": "ZZZZZZZZZZZZZZZZZZZ",  // blockchain transaction ID 
+      "txid": "ZZZZZZZZZZZZZZZZZZZ",  // blockchain transaction ID
       "date": "2022-04-01 11:22:33",  // transaction date
       "amount_crypto": "0.0025",      // transaction amount in crypto currency
       "amount_fiat": "100",           // transaction amount in fiat currency
