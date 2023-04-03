@@ -366,3 +366,40 @@ def multipayout(crypto_name):
         app.logger.exception("Multipayout error")
         return  {"status": "error", "message": f"Error: {e}"}
     return crypto.multipayout(payout_list)
+
+@bp.get("/<crypto_name>/addresses")
+@api_key_required
+def list_addresses(crypto_name):
+    try:
+        return {
+            "status": "success",
+            "addresses": [inv.addr for inv in Invoice.query.filter_by(crypto=crypto_name).all()]
+        }
+    except Exception as e:
+        app.logger.exception(f"Failed to list addresses for {crypto_name}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+        }
+
+@bp.get("/<crypto_name>/payouts")
+@api_key_required
+def list_payouts(crypto_name):
+    try:
+        amount = request.args.get('amount')
+
+        if not amount:
+            raise Exception('No amount provided.')
+
+        if Payout.query.filter_by(amount=amount).all():
+            return { "status": "success" }
+        else:
+            return { "status": "error", "message": f"No payouts for {amount} {crypto_name} found." }
+    except Exception as e:
+        app.logger.exception(f"Failed to check payouts for {amount} {crypto_name}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+        }
