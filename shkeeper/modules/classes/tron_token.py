@@ -133,3 +133,17 @@ class TronToken(Crypto):
             json=payout_list,
         ).json(parse_float=Decimal)
         return response
+
+    def servers_status(self):
+        response = requests.get(
+            f'http://{self.gethost()}/{self.crypto}/multiserver/status',
+            auth=self.get_auth_creds(),
+        ).json(parse_float=Decimal)
+        return response['statuses']
+
+    def multiserver_set_server(self, server_id):
+        response = requests.post(
+            f'http://{self.gethost()}/{self.crypto}/multiserver/change/{server_id}',
+            auth=self.get_auth_creds(),
+        ).json(parse_float=Decimal)
+        return response

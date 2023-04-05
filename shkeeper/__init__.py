@@ -43,6 +43,7 @@ def create_app(test_config=None):
         SUGGESTED_WALLET_APIKEY=secrets.token_urlsafe(16),
         SESSION_TYPE='filesystem',
         SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
+        TRON_MULTISERVER_GUI=bool(os.environ.get('TRON_MULTISERVER_GUI')),
     )
 
     if test_config is None:

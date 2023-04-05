@@ -1,0 +1,53 @@
+<table class="table table-sm table-borderless common-text tron-status-table">
+    <thead>
+        <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Status</th>
+            <th scope="col">Lag</th>
+            <th scope="col">Version</th>
+            <th scope="col"></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for server in servers_status %}
+            <tr>
+                {# Name #}
+                <td title="{{server.url}}">{{server.name}}</td>
+            {% if server.status == "success" %}
+                {# Status #}
+                <td><span style="color: #198754;">Online{% if server.is_active %}, Active{% endif %}</span></td>
+                {# Lag #}
+                <td>{{server.node_info.lag}}</td>
+                {# Version #}
+                <td>{{server.node_info.configNodeInfo.codeVersion}}</td>
+                {# Actions #}
+                <td>
+                    {% if not server.is_active %}
+                    <a href="#" class="common-text accent-text tron-server-activate"
+                        onclick="tron_make_active('{{server.id}}')">Make active</a>
+                    {% endif %}
+                </td>
+            {% else %}
+                {# Status #}
+                <td><span style="color: rgb(220, 53, 69);" title="{{server.error}}">Offline{% if server.is_active %}, Active{% endif %}</span></td>
+                {# Lag #}
+                <td></td>
+                {# Version #}
+                <td></td>
+                {# Actions #}
+                <td>
+                    {% if not server.is_active %}
+                    <a href="#" class="common-text accent-text tron-server-activate"
+                        onclick="tron_make_active('{{server.id}}')">Make active</a>
+                    {% endif %}
+                </td>
+            {% endif %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<style>
+.tron-status-table > th, td {
+  padding: 7px !important;
+}
+</style>

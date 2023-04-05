@@ -1,0 +1,18 @@
+<div class="input-block">
+    <h2 class="subtitle-text mb-4">Tron Multiserver</h2>
+    <div class="mb-3 ps-4 d-flex align-items-center justify-content-start">
+        <p class="server-width common-text">Blockchain key:</p>
+        <a href="{{url_for('api_v1.backup', crypto_name=crypto.crypto)}}" class="common-text accent-text">Download</a>
+    </div>
+    <div class="d-flex ps-4 input-block status-table-wrapper">
+        <div class="w-100">
+            <div class="mb-3 d-flex  justify-content-center align-items-center flex-wrap">
+                <div class="spinner-grow spinner-grow-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div>&nbsp;
+                <div class="spinner-grow spinner-grow-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div>&nbsp;
+                <div class="spinner-grow spinner-grow-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/tron_multiserver.js') }}"></script>

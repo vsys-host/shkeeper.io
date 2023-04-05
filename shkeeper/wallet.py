@@ -50,7 +50,7 @@ def payout(crypto_name):
     tmpl = "wallet/payout.j2"
     if isinstance(crypto, TronToken):
         tmpl = "wallet/payout_tron.j2"
-    
+
     if isinstance(crypto, Ethereum) and crypto_name != "ETH":
         tmpl = "wallet/payout_eth.j2"
 
@@ -65,6 +65,11 @@ def manage(crypto_name):
     crypto = Crypto.instances[crypto_name]
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name).all()
     wallet = Wallet.query.filter_by(crypto=crypto_name).first()
+
+    server_templates = [f"wallet/manage_server_{cls.__name__.lower()}.j2" for cls in crypto.__class__.mro()][:-2]
+
+    if not app.config['TRON_MULTISERVER_GUI']:
+        server_templates = filter(lambda x: 'trontoken' not in x, server_templates)
 
     def f(h):
         if not h: return 0, 1
@@ -81,7 +86,7 @@ def manage(crypto_name):
     recalc['num'], recalc['multiplier'] = f(crypto.wallet.recalc)
 
     return render_template("wallet/manage.j2",
-        crypto=crypto, pdest=pdest, ppolicy=[i.value for i in PayoutPolicy], recalc=recalc)
+        crypto=crypto, pdest=pdest, ppolicy=[i.value for i in PayoutPolicy], recalc=recalc, server_templates=server_templates)
 
 
 @bp.route('/rates', defaults={'fiat': 'USD'})
@@ -163,3 +168,17 @@ def parts_payouts():
         payouts=pagination.items,
         pagination=pagination,
     )
+
+@bp.route('/parts/tron-multiserver', methods=("GET", "POST"))
+@login_required
+def parts_tron_multiserver():
+    if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
+        any_tron_crypto = next(cryptos)
+    else:
+        return "No Tron crypto found."
+
+    if request.method == 'POST':
+        any_tron_crypto.multiserver_set_server(request.args['server_id'])
+
+    servers_status = any_tron_crypto.servers_status()
+    return render_template("wallet/manage_server_trontoken_status.j2", servers_status=servers_status)

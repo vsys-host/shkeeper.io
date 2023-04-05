@@ -443,20 +443,22 @@ function serverStatus()
     {
         let serverStatusEl = document.getElementById("server-status");
         let splits = serverStatus.split(" ", 1);
-        if(splits[0] == "Synced")
-        {
-            serverStatusEl.innerHTML = "Server Online";
-            serverStatusEl.style.color = "#198754";
-        }
-        else if(splits[0] == "Sync")
-        {
-            serverStatusEl.innerHTML = "Server Syncing";
-            serverStatusEl.style.color = "#198754";
-        }
-        else
-        {
-            serverStatusEl.innerHTML = "Server Offline";
-            serverStatusEl.style.color = "#E92b18";
+        if (serverStatusEl) {
+          if(splits[0] == "Synced")
+          {
+              serverStatusEl.innerHTML = "Server Online";
+              serverStatusEl.style.color = "#198754";
+          }
+          else if(splits[0] == "Sync")
+          {
+              serverStatusEl.innerHTML = "Server Syncing";
+              serverStatusEl.style.color = "#198754";
+          }
+          else
+          {
+              serverStatusEl.innerHTML = "Server Offline";
+              serverStatusEl.style.color = "#E92b18";
+          }
         }
     }
     getServerInfo();
