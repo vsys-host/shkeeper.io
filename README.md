@@ -94,6 +94,7 @@ Once shkeeper.io receives a payment it will send a payment notification to the `
   "fiat":   "USD",  // fiat currency (provided during payment request creation)
   "balance_fiat":      "100",  // amount in fiat currency
   "balance_crypto": "0.0025",  // amount in crypto currency
+  "fee_percent": "2",  // fee percent added to invoice amount
   "paid": true,  // true  -- if the payment request is fully paid
                  // false -- when only a partial payment received
   "transactions": [  // list of transactions related to the payment request

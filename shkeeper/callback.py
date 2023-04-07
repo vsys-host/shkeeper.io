@@ -33,6 +33,7 @@ def send_notification(tx):
         "paid": tx.invoice.status in (InvoiceStatus.PAID, InvoiceStatus.OVERPAID),
         "status": tx.invoice.status.name,
         "transactions": transactions,
+        "fee_percent": str(tx.invoice.rate.fee.normalize()),
     }
 
     overpaid_fiat = tx.invoice.balance_fiat - (tx.invoice.amount_fiat * ( tx.invoice.wallet.ulimit / 100))
