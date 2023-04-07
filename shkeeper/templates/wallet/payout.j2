@@ -5,7 +5,7 @@
 <div class="px-5 py-4 content-container">
   <div class="row">
     <div class="col">
-      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">Create payout</h1>
+      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
     </div>
   </div>
 
@@ -15,7 +15,7 @@
         <div><p>Available:</p></div>
         <div>
           <p>
-            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{crypto.balance()|format_decimal(crypto.precision)}}</a> {{ crypto.crypto|upper }}
+            <a onclick="$(`input[name='amount']`).val(this.text)" class="d-inline accent-text">{{crypto.balance()|format_decimal(crypto.precision)}}</a> {{crypto.display_name}}
           </p>
         </div>
         <div><p>Destination:</p></div>
@@ -62,7 +62,7 @@
               type="text"
               name="amount"
             />
-            <p class="ms-2">{{ crypto.crypto|upper }}</p>
+            <p class="ms-2">{{crypto.display_name}}</p>
           </div>
         </div>
         <div><p>Fee:</p></div>

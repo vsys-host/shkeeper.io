@@ -20,19 +20,23 @@ function refreshRates()
 
     function getBinanceRealTRates(pairName, currentRate,totalMoney,coinAmount)
     {
-
-        if (pairName == 'usdtusdt' || pairName == 'usdcusdt' || pairName == 'eth-usdtusdt' || pairName == 'eth-usdcusdt') {
-            setInterval(function(){
-                currentRate.innerHTML = 1;
-                totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
-            }, 10000);
+        if (['usdtusdt', 'eth-usdtusdt'].includes(pairName)) {
+            currentRate.innerHTML = "1";
+            setInterval(() => {
+                if (coinAmount.innerHTML != "--") {
+                    totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
+                }
+            }, 1000);
             return;
+        }
+
+        if (['eth-usdcusdt'].includes(pairName)) {
+            pairName = 'usdcusdt';
         }
 
         let url = 'wss://stream.binance.com:9443/ws/' + pairName + '@miniTicker';
         let bSocket = new WebSocket(url);
         bSocket.onmessage = function(data) {
-            // console.log(data);
             let quotation = JSON.parse(data.data);
             let price = parseFloat(quotation['c']);
             currentRate.innerHTML = price;

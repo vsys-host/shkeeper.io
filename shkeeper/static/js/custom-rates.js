@@ -2,7 +2,7 @@ function changeSource(ind)
 {
     let coinCostArray = document.getElementsByClassName("coin-cost");
     let ratesCurArray = document.getElementsByClassName("rates-current");
-    
+
     let sourceType = selectArray[ind].value;
     if(sourceType == "manual")
     {
@@ -20,7 +20,7 @@ function saveRates()
     let cryptos = document.querySelectorAll('.rates-name');
     cryptos.forEach( item => {
         let parent = item.parentNode;
-        
+
         let crypto = parent.querySelector(".rates-name").getAttribute('crypto');
         let data = composeData(parent);
 
@@ -82,7 +82,7 @@ function saveRates()
                 alert("Please input valid value for " + crypto);
             }
         }
-        
+
 
         function checkAnswer(response)
         {
@@ -103,8 +103,8 @@ function saveRates()
             return false;
         }
     }
-    
-    
+
+
 }
 
 function refreshRates()
@@ -126,15 +126,24 @@ function helperCycleBinanceRates(currentRates)
 }
 
 function getBinanceRealTRates(pairName, currentRate)
-    {
-        let url = 'wss://stream.binance.com:9443/ws/' + pairName + '@miniTicker';
-        let bSocket = new WebSocket(url);
-        bSocket.onmessage = function(data) {
-            let quotation = JSON.parse(data.data);
-            let price = parseFloat(quotation['c']);
-            currentRate.innerHTML = price;
-        }
+{
+    if (['usdtusdt', 'eth-usdtusdt'].includes(pairName)) {
+        currentRate.innerHTML = "1";
+        return;
     }
+
+    if (['eth-usdcusdt'].includes(pairName)) {
+        pairName = 'usdcusdt';
+    }
+
+    let url = 'wss://stream.binance.com:9443/ws/' + pairName + '@miniTicker';
+    let bSocket = new WebSocket(url);
+    bSocket.onmessage = function(data) {
+        let quotation = JSON.parse(data.data);
+        let price = parseFloat(quotation['c']);
+        currentRate.innerHTML = price;
+    }
+}
 
 function setAll()
 {
@@ -172,7 +181,7 @@ function formatInitValue()
         element.value = parseFloat(element.value);
         return element.value;
     }
-    
+
     let rates = document.querySelectorAll('.rates-cost-value');
     rates.forEach(item => {
         representVal(item);
@@ -190,4 +199,3 @@ document.getElementById("save-rates").addEventListener("click",function(){saveRa
 document.getElementById("set-all").addEventListener("click",function(){setAll()});
 
 window.addEventListener('DOMContentLoaded',function(){refreshRates()});
-

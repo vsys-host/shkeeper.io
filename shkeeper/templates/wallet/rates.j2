@@ -13,7 +13,7 @@
 
         {% for crypto in cryptos %}
         <div class="d-flex align-items-center w-100">
-          <div class="rates-name" crypto="{{crypto.crypto}}" fiat="{{ fiat }}"><p class="common-text">{{crypto.crypto}} / {{ fiat }} rate</p></div>
+          <div class="rates-name" crypto="{{crypto.crypto}}" fiat="{{ fiat }}"><p class="common-text">{{crypto.display_name}}</p></div>
           <div class="rates-switcher d-flex align-items-center">
             <p class="common-text me-3">Source of rate:</p>
             <select
@@ -41,7 +41,6 @@
             <div class="d-flex align-items-center">
               <p class="common-text">Added fee:</p>
               <input
-                placeholder="00"
                 name={{crypto.crypto}}fee
                 class="rates-fee-value form-control form-control-sm source-added-input common-text mx-2"
                 type="number"
@@ -53,8 +52,8 @@
           <div class="rates-current">
             <p class="common-text">
               Current rate:
-              <span class="rates-current-value" id="{{crypto.crypto}}USDT" data-bitcoin-current-rate></span>
-              per {{crypto.crypto}}
+              $<span class="rates-current-value" id="{{crypto.crypto}}USDT" data-bitcoin-current-rate></span>
+              {# per 1 {{crypto.display_name}} #}
             </p>
           </div>
         </div>
@@ -78,7 +77,6 @@
               <p class="common-text">Added fee:</p>
               <input
                 id="select-fee"
-                placeholder="00"
                 name="bitcoin-added-fee"
                 class="all-fee-value form-control form-control-sm source-added-input common-text mx-2"
                 type="number"
