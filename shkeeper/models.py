@@ -292,9 +292,13 @@ class Transaction(db.Model):
         t = cls()
         t.invoice_id = invoice.id
         t.txid = tx['txid']
-        t.crypto = invoice.crypto
+        t.crypto = crypto.crypto
         t.amount_crypto = tx['amount']
-        t.amount_fiat = t.amount_crypto * invoice.exchange_rate
+        if invoice.crypto != crypto.crypto:
+            rate = ExchangeRate.get(invoice.fiat, crypto.crypto).get_rate()
+            t.amount_fiat = t.amount_crypto * rate
+        else:
+            t.amount_fiat = t.amount_crypto * invoice.exchange_rate
 
         if tx['confirmations'] >= crypto.wallet.confirmations:
             t.need_more_confirmations = False
