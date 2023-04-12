@@ -258,6 +258,10 @@ def walletnotify(crypto_name, txid):
 
         addr, amount, confirmations, category = crypto.getaddrbytx(txid)
 
+        if category not in ('send', 'receive'):
+            app.logger.warning(f'[{crypto.crypto}/{txid}] ignoring unknown category: {category}')
+            return {"status": "success"}
+
         if category == "send":
             Transaction.add_outgoing(crypto, txid)
             return {"status": "success"}
