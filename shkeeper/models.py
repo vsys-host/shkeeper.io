@@ -120,11 +120,9 @@ class ExchangeRate(db.Model):
 
     def convert(self, amount):
         rate = self.get_rate()
-        app.logger.warning(type(amount))
-        app.logger.warning(type(rate))
-        app.logger.warning(type(self.fee))
-
         converted = (amount / rate) * (1 + (self.fee / 100))
+        crypto = Crypto.instances[self.crypto]
+        converted = round(converted, crypto.precision)
         return (converted, rate)
 
     @classmethod

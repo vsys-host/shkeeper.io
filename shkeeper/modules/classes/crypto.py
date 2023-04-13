@@ -1,10 +1,11 @@
 import abc
 import inspect
 import os
+from typing import Dict
 
 class Crypto(abc.ABC):
 
-    instances = {}
+    instances: Dict[str, 'Crypto'] = {}
     wallet_created = False
     has_autopayout = True
     can_set_tx_fee = True
