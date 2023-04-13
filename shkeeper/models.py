@@ -237,6 +237,7 @@ class Invoice(db.Model):
             "amount": format_decimal(self.amount_crypto),
             "wallet": self.addr,
             "recalculate_after": self.wallet.recalc,
+            "display_name": Crypto.instances[self.crypto].display_name,
         }
 
 class Transaction(db.Model):
