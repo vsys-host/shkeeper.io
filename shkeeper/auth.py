@@ -1,4 +1,5 @@
 import functools
+import os
 
 from flask import Blueprint
 from flask import flash
@@ -18,6 +19,20 @@ from shkeeper import db
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
+
+def metrics_basic_auth(view):
+
+    @functools.wraps(view)
+    def wrapped_view(**kwargs):
+        metrics_username = os.environ.get('METRICS_USERNAME', 'shkeeper')
+        metrics_password = os.environ.get('METRICS_PASSWORD', 'shkeeper')
+        auth = request.authorization
+        if not (auth and auth.username == metrics_username
+                     and auth.password == metrics_password):
+            return {'status': 'error', 'msg': 'authorization requred'}, 401
+        return view(**kwargs)
+
+    return wrapped_view
 
 def basic_auth_optional(view):
     """View decorator that allow to authenticate using HTTP Basic Auth."""

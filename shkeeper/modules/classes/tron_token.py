@@ -147,3 +147,6 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response
+
+    def metrics(self):
+        return requests.get(f'http://{self.gethost()}/metrics', auth=self.get_auth_creds()).text

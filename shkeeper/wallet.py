@@ -1,4 +1,6 @@
 import copy
+import inspect
+import itertools
 
 from flask import Blueprint
 from flask import flash
@@ -9,8 +11,9 @@ from flask import request
 from flask import url_for
 from werkzeug.exceptions import abort
 from flask import current_app as app
+import prometheus_client
 
-from shkeeper.auth import login_required
+from shkeeper.auth import login_required, metrics_basic_auth
 from .modules.classes.tron_token import TronToken
 from .modules.classes.ethereum import Ethereum
 from shkeeper.modules.rates import RateSource
@@ -28,6 +31,11 @@ from shkeeper.models import (
     InvoiceStatus,
     Transaction,
 )
+
+
+prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
+prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
+prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp = Blueprint("wallet", __name__)
 
@@ -182,3 +190,24 @@ def parts_tron_multiserver():
 
     servers_status = any_tron_crypto.servers_status()
     return render_template("wallet/manage_server_trontoken_status.j2", servers_status=servers_status)
+
+@bp.get('/metrics')
+@metrics_basic_auth
+def metrics():
+
+    metrics = ''
+
+    # Crypto metrics
+    seen = set()
+    for crypto in Crypto.instances.values():
+        if crypto.__class__.__base__ not in seen:
+            try:
+                metrics += crypto.metrics()
+                seen.add(crypto.__class__.__base__)
+            except AttributeError:
+                continue
+
+    # Shkeeper metrics
+    metrics += prometheus_client.generate_latest().decode()
+
+    return metrics
