@@ -104,7 +104,7 @@
             {% else %}
               <input value="{% if not crypto.can_set_tx_fee %}1{% else %}{{ crypto.wallet.pfee if crypto.wallet.pfee is not none }}{% endif %}"
                      class="fee-input form-control common-text" type="text" id="pfee" />
-              <p class="ms-2">sat/b</p>
+              <p class="ms-2">{{ crypto.fee_description }}</p>
             {% endif %}
           </div>
         </div>

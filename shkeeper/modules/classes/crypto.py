@@ -12,6 +12,7 @@ class Crypto(abc.ABC):
     _display_name = None
     fixed_fee_steps = []
     precision = 8
+    fee_description = "sat/Byte"
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
