@@ -16,12 +16,10 @@
                     name="serverKey"
                     disabled
                 /-->
-                    {% if crypto.crypto.startswith("ETH") %}
-                    <a href="#" class="common-text accent-text">Download</a>
-                    {% else %}
+
                     <a href="{{url_for('api_v1.backup', crypto_name=crypto.crypto)}}"
                         class="common-text accent-text">Download</a>
-                    {% endif %}
+
 
                 </div>
                 <div class="mb-3 d-flex align-items-center justify-content-start">

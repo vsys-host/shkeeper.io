@@ -11,7 +11,6 @@ from shkeeper.modules.classes.crypto import Crypto
 
 class Ethereum(Crypto):
 
-    has_autopayout = False
     network_currency = 'ETH'
 
     def gethost(self):
@@ -105,10 +104,14 @@ class Ethereum(Crypto):
 
 
     def dump_wallet(self): 
+        response = requests.post(
+            f'http://{self.gethost()}/{self.crypto}/dump',
+            auth=self.get_auth_creds(),
+        ).json(parse_float=Decimal)
         now = datetime.datetime.now().strftime("%F_%T")
         filename = f"{now}_{self.crypto}_shkeeper_wallet.json"
         #content = json.dumps(response['accounts'], indent=4)
-        content = json.dumps({'error': "Not implemented yet"}, indent=4)
+        content = json.dumps(response, indent=4)
         return filename, content
             
     
@@ -117,6 +120,12 @@ class Ethereum(Crypto):
 
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False): 
+        if self.crypto == self.network_currency and subtract_fee_from_amount:
+            fee = Decimal(self.estimate_tx_fee(amount)['fee'])
+            if fee >= amount:
+                return f"Payout failed: not enought ETH to pay for transaction. Need {fee}, balance {amount}"
+            else:
+                amount -= fee
         response = requests.post(
             f'http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}',
             auth=self.get_auth_creds(),
