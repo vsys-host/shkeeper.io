@@ -277,7 +277,7 @@ function sendAction()
   {
     let check = true;
     let payoutAdd = validateAddressValue(document.getElementById("paddress"));
-    let payoutFee = document.getElementById("pfee");
+    let payoutFee = document.getElementById("pfee").value.trim();
     let policyStatus = document.getElementById('pstatus');
     switch(policyStatus.innerHTML)
     {
