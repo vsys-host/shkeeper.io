@@ -168,8 +168,10 @@ def autopayout(crypto_name):
         return {"status": "error", "message": f"Unknown payout policy: {req['policy']}"}
 
     w = Wallet.query.filter_by(crypto=crypto_name).first()
-    w.pdest = req['add']
-    w.pfee = req['fee']
+    if autopayout_destination := req.get('add'):
+        w.pdest = autopayout_destination
+    if autopayout_fee := req.get('fee'):
+        w.pfee = autopayout_fee
     w.ppolicy = PayoutPolicy(req['policy'])
     w.pcond = req['policyValue']
     w.payout = req.get('policyStatus', True)

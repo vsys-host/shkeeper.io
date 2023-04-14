@@ -46,7 +46,7 @@
         <div class="autopayout-width">Destination:</div>
         <div class="dropdown">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <input class="dropdown__current" value="{{ crypto.wallet.pdest if crypto.wallet.pdest is not none }}" id="paddress">
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.svg') }}#dropdown-menu-arrow"></use>
@@ -102,7 +102,7 @@
               {% endfor %}
               </select>
             {% else %}
-              <input value="{% if not crypto.can_set_tx_fee %}1{% else %}{{ crypto.wallet.pfee }}{% endif %}"
+              <input value="{% if not crypto.can_set_tx_fee %}1{% else %}{{ crypto.wallet.pfee if crypto.wallet.pfee is not none }}{% endif %}"
                      class="fee-input form-control common-text" type="text" id="pfee" />
               <p class="ms-2">sat/b</p>
             {% endif %}
@@ -173,7 +173,7 @@
           <input
             class="form-control common-text autopayout-input"
             type="number"
-            value="{{ crypto.wallet.llimit }}"
+            value="{{ crypto.wallet.llimit | format_decimal }}"
             id="llimit"
           />
           <p class="ps-2 common-text">%</p>
@@ -189,7 +189,7 @@
           <input
             class="form-control common-text autopayout-input"
             type="number"
-            value="{{ crypto.wallet.ulimit }}"
+            value="{{ crypto.wallet.ulimit | format_decimal }}"
             id="ulimit"
           />
           <p class="ps-2 common-text">%</p>

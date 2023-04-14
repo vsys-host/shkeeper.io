@@ -277,7 +277,7 @@ function sendAction()
   {
     let check = true;
     let payoutAdd = validateAddressValue(document.getElementById("paddress"));
-    let payoutFee = validateFloatValue(document.getElementById("pfee"));
+    let payoutFee = document.getElementById("pfee");
     let policyStatus = document.getElementById('pstatus');
     switch(policyStatus.innerHTML)
     {
@@ -397,10 +397,10 @@ function sendAction()
         }
 
       }
-      else{
-        document.querySelector(".dropdown__header").classList.add("red-highlight");
-        check = false;
-      }
+      // else{
+      //   document.querySelector(".dropdown__header").classList.add("red-highlight");
+      //   check = false;
+      // }
       return element.value;
     }
 
