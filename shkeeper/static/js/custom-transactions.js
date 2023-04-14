@@ -470,7 +470,7 @@ function build_filter_args() {
     [
         {element_name: "transactionID", arg_name: "txid"},
         {element_name: "address-input", arg_name: "addr"},
-        {element_name: "invoiceID", arg_name: "invoice_id"},
+        {element_name: "invoiceID", arg_name: "external_id"},
         {element_name: "coinAmount", arg_name: "amount_crypto"},
         {element_name: "invoiceCoin", arg_name: "invoice_amount_crypto"},
         {element_name: "dollAmount", arg_name: "amount_fiat"},

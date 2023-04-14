@@ -141,6 +141,9 @@ def parts_transactions():
     if 'status' in request.args:
         query = query.join(Invoice).filter(Invoice.status.contains(request.args['status']))
 
+    if 'external_id' in request.args:
+        query = query.join(Invoice).filter(Invoice.external_id.contains(request.args['external_id']))
+
     pagination = query.order_by(Transaction.id.desc()).paginate(per_page=50)
     return render_template("wallet/transactions_table.j2",
         cryptos=Crypto.instances.keys(),

@@ -9,7 +9,7 @@
       <th class="status table-subtitle">Status</th>
       <th class="date table-subtitle">Date</th>
       <th class="time table-subtitle">Time</th>
-      <th class="invoice table-subtitle">Invoice</th>
+      <th class="invoice table-subtitle">External ID</th>
       <th class="invoice-crpt table-subtitle">Invoice Coin</th>
       <th class="invoice-bucks table-subtitle">Invoice $</th>
       <th class="inv-date table-subtitle">Inv. Date</th>
@@ -34,7 +34,7 @@
         <td class="row-{{loop.index}} inv-date convertDate"></td>
         <td class="row-{{loop.index}} inv-time"></td>
       {% else %}
-        <td class="row-{{loop.index}} invoice">{{tx.invoice.id}}</td>
+        <td class="row-{{loop.index}} invoice">{{tx.invoice.external_id}}</td>
         <td class="row-{{loop.index}} invoice-crpt">{{tx.invoice.amount_crypto|format_decimal}}</td>
         <td class="row-{{loop.index}} invoice-bucks">${{tx.invoice.amount_fiat|format_decimal(2)}}</td>
         <td class="row-{{loop.index}} inv-date convertDate">{{tx.invoice.created_at.timestamp()}}</td>
