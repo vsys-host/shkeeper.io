@@ -140,4 +140,7 @@ class Ethereum(Crypto):
             json=payout_list,
         ).json(parse_float=Decimal)
         return response
+    
+    def metrics(self):
+        return requests.get(f'http://{self.gethost()}/metrics', auth=self.get_auth_creds()).text
         
