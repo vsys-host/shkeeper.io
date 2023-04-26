@@ -12,8 +12,8 @@ CMD gunicorn \
     --access-logfile - \
     --reload \
     --workers 1 \
-    --threads 16 \
+    --threads 32 \
     --worker-class gthread \
-    --timeout 600 \
+    --timeout 30 \
     -b 0.0.0.0:5000 \
     "shkeeper:create_app()"
