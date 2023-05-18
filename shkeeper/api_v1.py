@@ -409,3 +409,23 @@ def list_payouts(crypto_name):
             "message": str(e),
             "traceback": traceback.format_exc(),
         }
+
+@bp.get("/tx-info/<txid>")
+@api_key_required
+def get_txid_info(txid):
+    try:
+        info = {}
+        if tx := Transaction.query.filter_by(txid=txid).first():
+            info = {
+                'crypto': tx.crypto,
+                'amount': format_decimal(tx.amount_fiat),
+                'addr': tx.invoice.addr,
+            }
+        return { "status": "success", "info": info }
+    except Exception as e:
+        app.logger.exception(f"Oops!")
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+        }

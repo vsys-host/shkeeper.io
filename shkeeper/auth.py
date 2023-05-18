@@ -73,8 +73,7 @@ def api_key_required(view):
             return {"status": "error", "message": "No API key"}
 
         apikey = request.headers["X-Shkeeper-Api-Key"]
-        crypto = request.path.split('/')[3]
-        wallet = Wallet.query.filter_by(crypto=crypto, apikey=apikey).first()
+        wallet = Wallet.query.filter_by(apikey=apikey).first()
         if wallet:
             return view(**kwargs)
         else:
