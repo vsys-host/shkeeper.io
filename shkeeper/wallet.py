@@ -14,6 +14,7 @@ from flask import current_app as app
 import prometheus_client
 
 from shkeeper.auth import login_required, metrics_basic_auth
+from shkeeper.wallet_encryption import wallet_encryption, WalletEncryptionRuntimeStatus, WalletEncryptionPersistentStatus
 from .modules.classes.tron_token import TronToken
 from .modules.classes.ethereum import Ethereum
 from shkeeper.modules.rates import RateSource
@@ -214,3 +215,60 @@ def metrics():
     metrics += prometheus_client.generate_latest().decode()
 
     return metrics
+
+@bp.get("/unlock")
+@login_required
+def show_unlock():
+    if wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.pending:
+        return render_template("wallet/unlock_setup.j2", wallet_password=wallet_encryption)
+    if wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.disabled:
+        return redirect(url_for("wallet.wallets"))
+    if wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.enabled:
+
+        if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.pending:
+            # render key input form
+            return render_template("wallet/unlock_key_input.j2", wallet_password=wallet_encryption)
+        if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.fail:
+            # render key input form with invalid key error
+            flash('Invalid wallet encryption password, try again.', category='warning')
+            return render_template("wallet/unlock_key_input.j2", wallet_password=wallet_encryption)
+        if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.success:
+            # render 'wallets unlocked & redirect to /wallets after 2s'
+            return render_template("wallet/unlock_unlocked.j2", wallet_password=wallet_encryption)
+
+    app.logger.info(f"show_unlock wallet_encryption.persistent_status: {wallet_encryption.persistent_status()}, wallet_encryption.runtime_status: {wallet_encryption.runtime_status()}")
+
+@bp.post("/unlock")
+@login_required
+def process_unlock():
+    if wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.pending:
+        if request.form.get('encryption'):
+
+            if not (key := request.form.get('key')):
+                flash('No password provided.', 'warning')
+                return redirect(url_for("wallet.show_unlock"))
+
+            if request.form.get('key') != request.form.get('key2'):
+                flash('Encryption password and its confirmatios does not match.', 'warning')
+                return redirect(url_for("wallet.show_unlock"))
+
+            if 'confirmation' not in request.form:
+                flash('Yoy must confirm that you saved the encryption password.', 'warning')
+                return redirect(url_for("wallet.show_unlock"))
+
+            wallet_encryption.set_key(key)
+            hash = wallet_encryption.get_hash(key)
+            wallet_encryption.save_hash(hash)
+            wallet_encryption.set_persistent_status(WalletEncryptionPersistentStatus.enabled)
+        else:
+            wallet_encryption.set_persistent_status(WalletEncryptionPersistentStatus.disabled)
+        return redirect(url_for("wallet.show_unlock"))
+
+    if wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.enabled:
+        key = request.form.get('key')
+        if key_matches := wallet_encryption.test_key(key):
+            wallet_encryption.set_key(key)
+            wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.success)
+        else:
+            wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.fail)
+        return redirect(url_for("wallet.show_unlock"))

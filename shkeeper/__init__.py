@@ -2,6 +2,7 @@ import os
 import logging
 import secrets
 from decimal import Decimal
+import shutil
 
 from flask import Flask
 
@@ -59,6 +60,9 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    # clear all session on app restart
+    if sess_dir := app.config.get('SESSION_FILE_DIR'):
+        shutil.rmtree(sess_dir, ignore_errors=True)
     from flask_session import Session
     Session(app)
 
@@ -85,7 +89,7 @@ def create_app(test_config=None):
     with app.app_context():
 
         # Create tables according to models
-        from .models import Wallet, User, PayoutDestination, Invoice, ExchangeRate, Invoice
+        from .models import Wallet, User, PayoutDestination, Invoice, ExchangeRate, Setting
         db.create_all()
 
         # Create default user
@@ -107,6 +111,20 @@ def create_app(test_config=None):
             ExchangeRate.register_currency(crypto)
 
 
+        from .wallet_encryption import WalletEncryptionPersistentStatus
+        if setting := Setting.query.get('WalletEncryptionPersistentStatus'):
+            app.logger.info(f'WalletEncryptionPersistentStatus: {WalletEncryptionPersistentStatus(int(setting.value))}')
+        else: # this is a fresh instance or upgrade
+            admin = User.query.get(1)
+            if not admin.passhash:
+                # this is a fresh instance
+                status = WalletEncryptionPersistentStatus.pending
+            else: # this is not a fresh instance, disabling wallet encryption
+                status = WalletEncryptionPersistentStatus.disabled
+            setting = Setting(name='WalletEncryptionPersistentStatus', value=status.value)
+            db.session.add(setting)
+            db.session.commit()
+            app.logger.info(f'WalletEncryptionPersistentStatus is set to {WalletEncryptionPersistentStatus(int(setting.value))}')
 
         from . import tasks
         scheduler.start()

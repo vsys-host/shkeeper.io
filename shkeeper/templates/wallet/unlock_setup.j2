@@ -1,0 +1,45 @@
+
+{% extends 'base.j2' %}
+
+
+{% block body %}
+    <div class="container login-container">
+      <div class="row align-items-center h-100">
+          <div class="col d-flex flex-column align-items-center justify-content-center col-md-4 offset-md-4">
+            <img class="big-logo" src="{{ url_for('static', filename='images/vsys-logo.png') }}" alt="logo" />
+            {% for message in get_flashed_messages() %}
+              <div class="alert alert-danger" role="alert">{{ message }}</div>
+            {% endfor %}
+            <h5>Wallet encryption setup</h5>
+            <br />
+            <p>You can increase security of your wallets by encrypting them with a password. The password stored only in RAM and it should be re-typed again after app restart.</p>
+            <br />
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+              <svg class="bi flex-shrink-0 me-2" width="24" height="24" role="img" aria-label="Warning:">
+                <use xlink:href="#exclamation-triangle-fill" />
+              </svg>
+              <div>
+                <strong>Be careful!</strong> If you forgot the password, you loss acceess to all funds stored in Shkeeper. <strong>No one can restore it.</strong>
+              </div>
+            </div>
+            <form class="d-flex flex-column align-items-center mt-4" method="post">
+              <input type="hidden" name="encryption" value="yes" />
+              <input placeholder="encryption password" type="password" name="key" class="form-control mb-4" id="pw1" requred />
+              <input placeholder="repeat encryption password" type="password" name="key2" class="form-control mb-4" id="pw2" required />
+
+              <div class="form-check mb-4 mt-4">
+                <input class="form-check-input" type="checkbox" value="yes" name="confirmation" required >
+                <label class="form-check-label">I confirm that I saved the encryption password</label>
+              </div>
+
+              <button type="submit" class="btn button">Encrypt wallets</button>
+            </form>
+            <br />
+            <form method="post">
+              <input type="hidden" name="encryption" value="" />
+              <button type="submit" class="btn link-danger btn-link fs-6">Continue without encryption</button>
+            </form>
+          </div>
+      </div>
+    </div>
+{% endblock %}

@@ -22,6 +22,7 @@ from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification
 from shkeeper.utils import format_decimal
+from shkeeper.wallet_encryption import wallet_encryption, WalletEncryptionPersistentStatus, WalletEncryptionRuntimeStatus
 from shkeeper.exceptions import NotRelatedToAnyInvoice
 
 
@@ -292,6 +293,31 @@ def walletnotify(crypto_name, txid):
     app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
     send_notification(tx)
     return {"status": "success"}
+
+@bp.get("/<crypto_name>/decrypt")
+def decrypt_key(crypto_name):
+    try:
+        if "X-Shkeeper-Backend-Key" not in request.headers:
+            app.logger.warning("No backend key provided")
+            return {"status": "error", "message": 'No backend key provided'}, 403
+
+        try:
+            crypto = Crypto.instances[crypto_name]
+        except KeyError:
+            return {"status": "success", "message": f'Ignoring notification for {crypto_name}: crypto is not available for processing'}
+
+        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", 'shkeeper')
+        if request.headers["X-Shkeeper-Backend-Key"] != bkey:
+            app.logger.warning("Wrong backend key")
+            return {"status": "error", "message": 'Wrong backend key'}, 403
+    except Exception as e:
+        return {"status": "error", "message": f'Exception while processing transaction notification: {traceback.format_exc()}.'}, 409
+
+    return {
+        'persistent_status': wallet_encryption.persistent_status().name,
+        'runtime_status': wallet_encryption.runtime_status().name,
+        'key': wallet_encryption.key(),
+    }
 
 @bp.get("/<crypto_name>/server")
 @login_required

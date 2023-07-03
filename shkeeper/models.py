@@ -364,3 +364,8 @@ class PayoutTx(db.Model):
                                         onupdate=db.func.current_timestamp())
     txid = db.Column(db.String)
     status = db.Column(db.Enum(PayoutTxStatus), default=PayoutTxStatus.IN_PROGRESS)
+
+
+class Setting(db.Model):
+    name = db.Column(db.String, primary_key=True)
+    value = db.Column(db.String)
