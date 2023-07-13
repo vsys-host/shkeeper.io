@@ -1,11 +1,141 @@
 # shkeeper.io<!-- omit in toc -->
 
+- [Installation](#installation)
 - [API for plugins](#api-for-plugins)
   - [Auth](#auth)
   - [List available cryptos with GET `/api/v1/crypto`](#list-available-cryptos-with-get-apiv1crypto)
   - [Create a payment request with POST `/api/v1/<crypto>/payment_request`](#create-a-payment-request-with-post-apiv1cryptopayment_request)
   - [Payment notifications format](#payment-notifications-format)
 
+
+## Installation
+
+Install k3s and helm on a fresh server (tested on Ubuntu 22):
+
+```
+# curl -sfL https://get.k3s.io | sh -
+# mkdir /root/.kube && ln -s /etc/rancher/k3s/k3s.yaml /root/.kube/config
+# curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+Create Shkeeper chart configuration file `values.yaml` with BTC, LTC, DOGE, XMR enbaled:
+
+```
+# cat << EOF > values.yaml
+
+#
+# General
+#
+
+storageClassName: local-path
+
+#
+# BTC and forks
+#
+
+btc:
+  enabled: true
+ltc:
+  enabled: true
+doge:
+  enabled: true
+
+#
+# Monero
+#
+
+monero:
+  enabled: true
+  fullnode:
+    enabled: true
+EOF
+```
+
+Install Shkepeer helm chart:
+
+```
+# helm repo add vsys-host https://vsys-host.github.io/helm-charts
+# helm install -f values.yaml shkeeper vsys-host/shkeeper
+```
+
+Login to Shkeeper: http://<ip>:5000/
+
+### Install auto SSL
+
+Install cert-manager:
+
+```
+# helm repo add jetstack https://charts.jetstack.io
+# helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.9.1 \
+  --set installCRDs=true
+```
+
+Create CRDs, replace "demo.shkeeper.io" and "support@v-sys.org" with your own domain and email address:
+
+```
+cat << EOF > ssl.yaml
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: shkeeper-cert
+  namespace: shkeeper
+spec:
+  commonName: demo.shkeeper.io
+  secretName: shkeeper-cert
+  dnsNames:
+    - demo.shkeeper.io
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    email: support@v-sys.org
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: your-own-very-secretive-key
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: shkeeper
+  namespace: shkeeper
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`demo.shkeeper.io`)
+      kind: Rule
+      services:
+        - name: shkeeper
+          port: 5000
+          namespace: shkeeper
+  tls:
+    secretName: shkeeper-cert
+EOF
+```
+
+Apply CRDS:
+
+```
+# kubectl apply -f ssl.yaml
+```
+
+After a few minutes your Shkeeper should be reachable on https://<your domain> and have a valid SSL.
 
 ## API for plugins
 
