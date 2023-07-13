@@ -18,7 +18,7 @@ Install k3s and helm on a fresh server (tested on Ubuntu 22):
 # curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-Create Shkeeper chart configuration file `values.yaml` with BTC, LTC, DOGE, XMR enbaled:
+Create Shkeeper chart configuration file `values.yaml` with BTC, LTC, DOGE, XMR enabled:
 
 ```
 # cat << EOF > values.yaml
