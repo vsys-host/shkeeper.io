@@ -489,6 +489,11 @@ function build_filter_args() {
         if (value.length) args[e.arg_name] = value;
     })
 
+    var el = document.getElementsByName("daterange")[0];
+    if (el.value.length) {
+        args['from_date'] = el.dataset['from_date'];
+        args['to_date'] = el.dataset['to_date'];
+    }
 
     return args;
 }
@@ -499,9 +504,17 @@ function update_tx_table(page=1) {
 
     `;
 
+    let filter_args = build_filter_args();
+
+    let report_download_args = new URLSearchParams({
+        download: 'csv',
+        ...filter_args,
+    })
+    document.querySelector('#report-download').href = `/parts/transactions?${report_download_args}`;
+
     let args = new URLSearchParams({
         page: page,
-        ...build_filter_args(),
+        ...filter_args,
     })
     fetch(`/parts/transactions?${args}`).then(function (response) {
         return response.text();

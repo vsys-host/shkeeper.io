@@ -148,6 +148,53 @@ def parts_transactions():
     if 'external_id' in request.args:
         query = query.join(Invoice).filter(Invoice.external_id.contains(request.args['external_id']))
 
+    if 'from_date' in request.args:
+        query = query.filter(Transaction.created_at >= f"{request.args['from_date']} 00:00:00" , Transaction.created_at <= f"{request.args['to_date']} 24:00:00")
+
+    if 'download' in request.args:
+        if 'csv' == request.args['download']:
+            def generate():
+                data = StringIO()
+                w = csv.writer(data)
+                w.writerow(['Transaction ID','Adress','Crypto','Amount','Amount $','Status','Date','External ID','Invoice Coin','Invoice $','Invoice Date'])
+                records = query.order_by(Transaction.id.desc()).all()
+                for r in records:
+                    if r.invoice.status.name == "OUTGOING":
+                        w.writerow([
+                            r.txid,
+                            r.invoice.addr,
+                            r.crypto,
+                            r.amount_crypto,
+                            r.amount_fiat,
+                            r.invoice.status.name,
+                            r.created_at,
+                            '',
+                            '',
+                            '',
+                            '',
+                        ])
+                    else:
+                        w.writerow([
+                            r.txid,
+                            r.invoice.addr,
+                            r.crypto,
+                            r.amount_crypto,
+                            r.amount_fiat,
+                            r.invoice.status.name,
+                            r.created_at,
+                            r.invoice.external_id,
+                            r.invoice.amount_crypto,
+                            r.invoice.amount_fiat,
+                            r.invoice.created_at,
+                        ])
+                    yield data.getvalue()
+                    data.seek(0)
+                    data.truncate(0)
+            response = Response(generate(), mimetype='text/csv')
+            response.headers.set("Content-Disposition", "attachment", filename="transactions.csv")
+
+        return response
+
     pagination = query.order_by(Transaction.id.desc()).paginate(per_page=50)
     return render_template("wallet/transactions_table.j2",
         cryptos=Crypto.instances.keys(),
@@ -176,7 +223,7 @@ def parts_payouts():
             query = query.filter(field.contains(request.args[arg]))
 
     if 'from_date' in request.args:
-        query = query.filter(Payout.created_at >= request.args['from_date'], Payout.created_at <= request.args['to_date'])
+        query = query.filter(Payout.created_at >= f"{request.args['from_date']} 00:00:00", Payout.created_at <= f"{request.args['to_date']} 24:00:00")
 
     if 'txid' in request.args:
         query = query.join(PayoutTx).filter(PayoutTx.txid.contains(request.args['txid']))

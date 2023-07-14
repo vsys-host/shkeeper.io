@@ -161,10 +161,9 @@
 <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/daterangepicker.css') }}" />
 <script>
   $(function () {
-
     $('#daterange').daterangepicker({
       locale: { cancelLabel: 'Clear' },
-      {# "autoApply": true, #}
+      autoUpdateInput: false,
       ranges: {
         'Today': [moment(), moment()],
         'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
@@ -176,17 +175,15 @@
       "alwaysShowCalendars": true,
       "opens": "left"
     }, function (start, end, label) {
+      $(this.element[0]).val(start.format('YYYY-MM-DD') + ' - ' + end.format('YYYY-MM-DD'));
       this.element[0].dataset['from_date'] = start.format('YYYY-MM-DD');
-      this.element[0].dataset['to_date'] =  end.format('YYYY-MM-DD');
+      this.element[0].dataset['to_date'] = end.format('YYYY-MM-DD');
       update_tx_table();
     });
-
     $('#daterange').on('cancel.daterangepicker', function (ev, picker) {
       $('#daterange').val('');
       update_tx_table();
     });
-
-
   });
 </script>
 
