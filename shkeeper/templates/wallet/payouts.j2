@@ -124,6 +124,17 @@
           </div>
         </div>
 
+        <div class="d-flex align-items-center">
+                  <input class="checkbox form-check-input me-2" type="checkbox" style="visibility: hidden;" />
+          <div >
+            <p class="mb-1">Date range</p>
+            <div class="d-flex" style="align-items: center;">
+              <input id="daterange" name="daterange" class="form-control form-control-sm common-text me-2" type="text"  />
+              <a id="report-download" class="common-text accent-text">Download</a>
+            </div>
+          </div>
+        </div>
+
 
       </div>
     </div>
@@ -143,5 +154,40 @@
 
 <script src="{{ url_for('static', filename='js/custom-payouts.js') }}"></script>
 <script>document.getElementById("payouts-link").classList.add("nav-link--active");</script>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='js/daterangepicker.min.js') }}"></script>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/daterangepicker.css') }}" />
+<script>
+  $(function () {
+
+    $('#daterange').daterangepicker({
+      locale: { cancelLabel: 'Clear' },
+      {# "autoApply": true, #}
+      ranges: {
+        'Today': [moment(), moment()],
+        'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+        'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+        'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+        'This Month': [moment().startOf('month'), moment().endOf('month')],
+        'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+      },
+      "alwaysShowCalendars": true,
+      "opens": "left"
+    }, function (start, end, label) {
+      this.element[0].dataset['from_date'] = start.format('YYYY-MM-DD');
+      this.element[0].dataset['to_date'] =  end.format('YYYY-MM-DD');
+      update_tx_table();
+    });
+
+    $('#daterange').on('cancel.daterangepicker', function (ev, picker) {
+      $('#daterange').val('');
+      update_tx_table();
+    });
+
+
+  });
+</script>
 
 {% endblock %}

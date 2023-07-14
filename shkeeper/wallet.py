@@ -1,5 +1,7 @@
 import copy
+import csv
 import inspect
+from io import StringIO
 import itertools
 
 from flask import Blueprint
@@ -10,6 +12,7 @@ from flask import render_template
 from flask import request
 from flask import url_for
 from werkzeug.exceptions import abort
+from werkzeug.wrappers import Response
 from flask import current_app as app
 import prometheus_client
 
@@ -172,8 +175,28 @@ def parts_payouts():
             field = getattr(Payout, arg)
             query = query.filter(field.contains(request.args[arg]))
 
+    if 'from_date' in request.args:
+        query = query.filter(Payout.created_at >= request.args['from_date'], Payout.created_at <= request.args['to_date'])
+
     if 'txid' in request.args:
         query = query.join(PayoutTx).filter(PayoutTx.txid.contains(request.args['txid']))
+
+    if 'download' in request.args:
+        if 'csv' == request.args['download']:
+            def generate():
+                data = StringIO()
+                w = csv.writer(data)
+                w.writerow(['Date', 'Destination', 'Amount', 'Crypto', 'Tx ID'])
+                records = query.order_by(Payout.id.desc()).all()
+                for r in records:
+                    w.writerow([r.created_at, r.dest_addr, r.amount, r.crypto, ' '.join([tx.txid for tx in r.transactions])])
+                    yield data.getvalue()
+                    data.seek(0)
+                    data.truncate(0)
+            response = Response(generate(), mimetype='text/csv')
+            response.headers.set("Content-Disposition", "attachment", filename="payouts.csv")
+
+        return response
 
     pagination = query.order_by(Payout.id.desc()).paginate(per_page=50)
     return render_template("wallet/payouts_table.j2",
