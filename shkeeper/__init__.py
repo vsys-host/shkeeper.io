@@ -45,6 +45,7 @@ def create_app(test_config=None):
         SESSION_TYPE='filesystem',
         SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
         TRON_MULTISERVER_GUI=bool(os.environ.get('TRON_MULTISERVER_GUI')),
+        FORCE_WALLET_ENCRYPTION=bool(os.environ.get('FORCE_WALLET_ENCRYPTION')),
     )
 
     if test_config is None:
@@ -116,8 +117,8 @@ def create_app(test_config=None):
             app.logger.info(f'WalletEncryptionPersistentStatus: {WalletEncryptionPersistentStatus(int(setting.value))}')
         else: # this is a fresh instance or upgrade
             admin = User.query.get(1)
-            if not admin.passhash:
-                # this is a fresh instance
+            if not admin.passhash or app.config.get('FORCE_WALLET_ENCRYPTION'):
+                # this is a fresh instance or FORCE_WALLET_ENCRYPTION is set
                 status = WalletEncryptionPersistentStatus.pending
             else: # this is not a fresh instance, disabling wallet encryption
                 status = WalletEncryptionPersistentStatus.disabled
