@@ -6,6 +6,7 @@
   - [List available cryptos with GET `/api/v1/crypto`](#list-available-cryptos-with-get-apiv1crypto)
   - [Create a payment request with POST `/api/v1/<crypto>/payment_request`](#create-a-payment-request-with-post-apiv1cryptopayment_request)
   - [Payment notifications format](#payment-notifications-format)
+  - [Wallet encryption](#wallet-encryption)
 
 
 ## Installation
@@ -241,3 +242,30 @@ Once shkeeper.io receives a payment it will send a payment notification to the `
 ```
 
 If a payment notification was successfuly processed by your server, it should return HTTP code `202 Accepted`. Any other response or connection failure will cause shkeeper.io to send a payment notification again in 60 seconds.
+
+### Wallet encryption
+
+#### Enter decryption key
+
+```
+curl -d 'key=<decryption_key>' \
+     -H "X-Shkeeper-API-Key: wvoNQaHswSBk9rZu" \
+     https://<shkeeper.io_url>/api/v1/decryption-key
+```
+
+Response (on success):
+
+```jsonc
+{
+  "status": "success"
+}
+```
+
+Response (on error):
+
+```jsonc
+{
+    "status":"error",
+    "message":"error description"
+}
+```

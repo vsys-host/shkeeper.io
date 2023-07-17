@@ -455,3 +455,20 @@ def get_txid_info(txid):
             "message": str(e),
             "traceback": traceback.format_exc(),
         }
+
+@bp.post("/decryption-key")
+@api_key_required
+def decryption_key():
+    if not (key := request.form.get('key')):
+        return { "status": "error", "message": "Decryption key is requred" }
+    if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.success:
+        return { "status": "success", "message": "Decryption key was already entered" }
+    if wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.enabled:
+        if wallet_encryption.test_key(key):
+            wallet_encryption.set_key(key)
+            wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.success)
+            return { "status": "success" }
+        else:
+            return { "status": "error", "message": "Invalid decryption key" }
+    else:
+        return { "status": "error", "message": "Wallet is not encrypted" }
