@@ -158,6 +158,10 @@ class Monero(Crypto):
         content = self.monero_rpc_wallet.raw_request('query_key', {"key_type": "mnemonic"})['key']
         return filename, content
 
+    def get_all_addresses(self) -> str:
+        res = self.monero_rpc_wallet.raw_request('get_address')
+        return [addr['address'] for addr in res['addresses']]
+
     @property
     def wallet(self):
         return self._wallet.query.filter_by(crypto=self.crypto).first()
