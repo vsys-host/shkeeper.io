@@ -115,6 +115,14 @@ class BitcoinLikeCrypto(Crypto):
         host, port = self.gethost().split(':')
         return f"http://{host}:5555/{fname}"
 
+    def get_all_addresses(self):
+        response = requests.post(
+            'http://' + self.gethost(),
+            auth=self.get_rpc_credentials(),
+            json=self.build_rpc_request('listreceivedbyaddress', 0, True)
+        ).json(parse_float=Decimal)
+        return [addr['address'] for addr in response['result']] if response['result'] else []
+
     @property
     def wallet(self):
         return self._wallet.query.filter_by(crypto=self.crypto).first()
