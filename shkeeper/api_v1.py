@@ -403,9 +403,10 @@ def multipayout(crypto_name):
 @api_key_required
 def list_addresses(crypto_name):
     try:
+        addresses = Crypto.instances[crypto_name].get_all_addresses()
         return {
             "status": "success",
-            "addresses": [inv.addr for inv in Invoice.query.filter_by(crypto=crypto_name).all()]
+            "addresses": addresses
         }
     except Exception as e:
         app.logger.exception(f"Failed to list addresses for {crypto_name}")

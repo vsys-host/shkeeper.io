@@ -150,3 +150,10 @@ class TronToken(Crypto):
 
     def metrics(self):
         return requests.get(f'http://{self.gethost()}/metrics', auth=self.get_auth_creds()).text
+
+    def get_all_addresses(self):
+        response = requests.get(
+            f'http://{self.gethost()}/{self.crypto}/addresses',
+            auth=self.get_auth_creds(),
+        ).json(parse_float=Decimal)
+        return response

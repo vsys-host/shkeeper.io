@@ -73,6 +73,9 @@ class Crypto(abc.ABC):
     @abc.abstractmethod
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False): pass
 
+    @abc.abstractmethod
+    def get_all_addresses(self): pass
+
     @property
     def wallet(self):
         return self._wallet.query.filter_by(crypto=self.crypto).first()
