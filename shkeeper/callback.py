@@ -22,6 +22,7 @@ def send_notification(tx):
           "amount_crypto": str(round(t.amount_crypto.normalize(), 8)),
           "amount_fiat": str(round(t.amount_fiat.normalize(), 2)),
           "trigger": tx.id == t.id,
+          "crypto": t.crypto,
         })
 
     notification = {

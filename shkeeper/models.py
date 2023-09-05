@@ -187,7 +187,8 @@ class Invoice(db.Model):
 
         # add tx to invoice balance
         tx.invoice.balance_fiat += tx.amount_fiat
-        tx.invoice.balance_crypto += tx.amount_crypto
+        if tx.crypto == tx.invoice.crypto:  # do not add different tokens e.g. TRX and TRC20 USDT
+            tx.invoice.balance_crypto += tx.amount_crypto
 
         # change invoice status according to its new balance
         if tx.invoice.balance_fiat < (tx.invoice.amount_fiat * (tx.invoice.wallet.llimit / 100)):
