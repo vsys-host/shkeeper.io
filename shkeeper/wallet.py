@@ -66,7 +66,7 @@ def payout(crypto_name):
     if isinstance(crypto, Ethereum) and crypto_name != "ETH":
         tmpl = "wallet/payout_eth.j2"
 
-    if crypto_name == "ETH":
+    if crypto_name == "ETH" or crypto_name == "BNB":
         tmpl = "wallet/payout_eth_coin.j2"
 
     return render_template(tmpl, crypto=crypto, pdest=pdest)
