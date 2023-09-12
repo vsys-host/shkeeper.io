@@ -127,7 +127,7 @@ function helperCycleBinanceRates(currentRates)
 
 function getBinanceRealTRates(pairName, currentRate)
 {
-    if (['usdtusdt', 'eth-usdtusdt'].includes(pairName)) {
+    if (['usdtusdt', 'eth-usdtusdt', 'bnb-usdtusdt'].includes(pairName)) {
         currentRate.innerHTML = "1";
         return;
     }

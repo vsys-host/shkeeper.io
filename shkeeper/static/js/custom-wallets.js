@@ -20,7 +20,7 @@ function refreshRates()
 
     function getBinanceRealTRates(pairName, currentRate,totalMoney,coinAmount)
     {
-        if (['usdtusdt', 'eth-usdtusdt'].includes(pairName)) {
+        if (['usdtusdt', 'eth-usdtusdt', 'bnb-usdtusdt'].includes(pairName)) {
             currentRate.innerHTML = "1";
             setInterval(() => {
                 if (coinAmount.innerHTML != "--") {
