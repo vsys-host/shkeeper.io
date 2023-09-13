@@ -66,8 +66,12 @@ def list_unconfirmed():
 
 def send_callbacks():
     for tx in Transaction.query.filter_by(callback_confirmed=False, need_more_confirmations=False):
-        app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification is pending')
-        send_notification(tx)
+        if tx.invoice.status == InvoiceStatus.OUTGOING:
+            tx.callback_confirmed = True
+            db.session.commit()
+        else:
+            app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification is pending')
+            send_notification(tx)
 
 def update_confirmations():
     for tx in Transaction.query.filter_by(callback_confirmed=False, need_more_confirmations=True):
