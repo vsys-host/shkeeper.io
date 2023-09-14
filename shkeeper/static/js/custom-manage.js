@@ -369,7 +369,7 @@ function sendAction()
         }
         else if(crypto == LTC)
         {
-          let BTCRegExp = new RegExp('^[LM3][a-km-zA-HJ-NP-Z1-9]{26,33}$');
+          let BTCRegExp = new RegExp('^([LM3][a-km-zA-HJ-NP-Z1-9]{26,33}|ltc1[a-z0-9]{39,59})$');
           if(BTCRegExp.test(element.value))
           {
             document.querySelector(".dropdown__header").classList.remove("red-highlight");
