@@ -132,7 +132,7 @@ function getBinanceRealTRates(pairName, currentRate)
         return;
     }
 
-    if (['eth-usdcusdt'].includes(pairName)) {
+    if (['eth-usdcusdt', 'bnb-usdcusdt'].includes(pairName)) {
         pairName = 'usdcusdt';
     }
 
