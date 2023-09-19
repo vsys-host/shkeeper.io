@@ -11,10 +11,10 @@ class Binance(RateSource):
 
     def get_rate(self, fiat, crypto):
 
-        if fiat == 'USD' and crypto in {'USDT', 'ETH-USDT'}:
+        if fiat == 'USD' and crypto in {'USDT', 'ETH-USDT', 'BNB-USDT'}:
             return Decimal(1.0)
 
-        if crypto in {'ETH-USDC'}:
+        if crypto in {'ETH-USDC', 'BNB-USDC'}:
             crypto = 'USDC'
 
         if fiat == 'USD':
