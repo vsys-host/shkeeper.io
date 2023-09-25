@@ -61,9 +61,12 @@ def generate_address(crypto_name):
 @api_key_required
 def payment_request(crypto_name):
     try:
-        crypto = Crypto.instances[crypto_name]
+        try:
+            crypto = Crypto.instances[crypto_name]
+        except KeyError:
+            return {"status": "error", "message": f"{crypto_name} payment gateway is unavailable"}
         if not crypto.wallet.enabled:
-            raise Exception(f"{crypto_name} payment gateway is disabled")
+            return {"status": "error", "message": f"{crypto_name} payment gateway is unavailable"}
 
         req = request.get_json(force=True)
         invoice = Invoice.add(crypto=crypto, request=req)
