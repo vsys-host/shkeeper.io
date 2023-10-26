@@ -156,4 +156,4 @@ class TronToken(Crypto):
             f'http://{self.gethost()}/{self.crypto}/addresses',
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
-        return response
+        return response['accounts']
