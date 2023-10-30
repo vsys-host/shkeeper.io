@@ -1,7 +1,18 @@
 {% extends 'base.j2' %}
 
 {% block body %}
-    <div class="d-flex">
+    <div class="d-flex page-container">
+
+        <!-- Theme switcher -->
+
+       <div class="theme-switch__box">
+         <input type="checkbox" id="themeSwitch" name="theme-switch" class="theme-switch__input" />
+	<label for="themeSwitch" class="theme-switch__label">
+	<span></span>
+	</label>
+       </div>
+
+
       <aside
         data-menu
         class="side-menu is-open d-flex flex-column justify-content-between"
@@ -13,8 +24,11 @@
             </svg>
           </button>
         </div>
+
         <nav>
           <ul class="nav-list">
+
+
             <li class="nav-item">
               <a id="wallet-link" href="{{ url_for('wallet.wallets') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
