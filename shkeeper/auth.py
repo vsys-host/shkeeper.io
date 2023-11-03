@@ -19,6 +19,9 @@ from shkeeper import db
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
+@bp.context_processor
+def inject_theme():
+    return {'theme': request.cookies.get('theme', 'light')}
 
 def metrics_basic_auth(view):
 

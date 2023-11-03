@@ -43,6 +43,10 @@ prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp = Blueprint("wallet", __name__)
 
+@bp.context_processor
+def inject_theme():
+    return {'theme': request.cookies.get('theme', 'light')}
+
 @bp.route("/")
 def index():
     return redirect(url_for("wallet.wallets"))

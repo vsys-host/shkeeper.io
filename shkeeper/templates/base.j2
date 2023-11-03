@@ -17,8 +17,8 @@
       integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.min.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-main.css') }}" />
+    <link id="css1" rel="stylesheet" href="{{ url_for('static', filename='css/main.min.' + theme + '.css') }}" />
+    <link id="css2" rel="stylesheet" href="{{ url_for('static', filename='css/custom-main.' + theme + '.css') }}" />
   </head>
   <body>
 
@@ -29,5 +29,53 @@
       integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
       crossorigin="anonymous"
     ></script>
+    <script>
+      window.matchMedia('(prefers-color-scheme: dark)')?.addEventListener('change', () => {
+        useMediaRequestColorScheme();
+      });
+      document.getElementById("themeSwitch")?.addEventListener('change', (e) => {
+        is_dark = e.target.checked;
+        forceColorScheme(is_dark);
+      });
+
+      function setDark() {
+        document.cookie = "theme=dark;";
+        document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.dark.css') }}";
+        document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.dark.css') }}";
+        document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
+        document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
+        document.querySelectorAll('img .big-logo, img .menu-logo-big, img .menu-logo-small').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
+      }
+
+      function setLight() {
+        document.cookie = "theme=light;";
+        document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.light.css') }}";
+        document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.light.css') }}";
+        document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
+        document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
+        document.querySelectorAll('img .big-logo, img .menu-logo-big, img .menu-logo-small').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
+      }
+
+      function forceColorScheme(is_dark) {
+        if (is_dark) {
+          setDark();
+        } else {
+          setLight();
+        }
+      }
+
+      function useMediaRequestColorScheme() {
+          if (document.cookie.match(/theme=(dark|light)/)) return;
+          let is_dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          document.getElementById("themeSwitch")?.setAttribute('checked', is_dark);
+          if (is_dark) {
+            setDark();
+          } else {
+            setLight();
+          }
+      }
+
+      useMediaRequestColorScheme();
+    </script>
   </body>
 </html>

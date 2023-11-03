@@ -33,7 +33,7 @@
             <input class="dropdown__current" value="{% if crypto.wallet.pdest %}}{{ crypto.wallet.pdest }}{% endif %}" id="paddress">
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
-                <use href="{{ url_for('static', filename='images/icons.svg') }}#dropdown-menu-arrow"></use>
+                <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
               </svg>
             </div>
           </div>

@@ -263,7 +263,7 @@
 <script type="text/javascript" src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
 <script type="text/javascript" src="{{ url_for('static', filename='js/daterangepicker.min.js') }}"></script>
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/daterangepicker.css') }}" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/daterangepicker.' + theme + '.css') }}" />
 <script>
   $(function () {
     $('#daterange').daterangepicker({

@@ -1,7 +1,18 @@
 {% extends 'base.j2' %}
 
 {% block body %}
-    <div class="d-flex">
+    <div class="d-flex page-container">
+
+        <!-- Theme switcher -->
+
+       <div class="theme-switch__box">
+         <input type="checkbox" id="themeSwitch" name="theme-switch" class="theme-switch__input" {{'checked' if theme == 'dark'}}/>
+	<label for="themeSwitch" class="theme-switch__label">
+	<span></span>
+	</label>
+       </div>
+
+
       <aside
         data-menu
         class="side-menu is-open d-flex flex-column justify-content-between"
@@ -9,7 +20,7 @@
         <div class="arrow-button-wrapper w-100">
           <button data-menu-button type="button" class="arrow-button btn">
             <svg width="32" height="32" class="arrow">
-              <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-arrow"></use>
+              <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-arrow"></use>
             </svg>
           </button>
         </div>
@@ -18,7 +29,7 @@
             <li class="nav-item">
               <a id="wallet-link" href="{{ url_for('wallet.wallets') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
-                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-wallets"></use>
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-wallets"></use>
                 </svg>
                 <span class="nav-label">Wallets</span>
               </a>
@@ -26,7 +37,7 @@
             <li class="nav-item">
               <a id="rates-link" href="{{ url_for('wallet.rates') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
-                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-source-rates"></use>
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-source-rates"></use>
                 </svg>
                 <span class="nav-label">Source of rates</span>
               </a>
@@ -34,7 +45,7 @@
             <li class="nav-item">
               <a id="transactions-link" href="{{ url_for('wallet.transactions') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
-                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-transactions"></use>
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-transactions"></use>
                 </svg>
                 <span class="nav-label">Transactions</span>
               </a>
@@ -42,7 +53,7 @@
             <li class="nav-item">
               <a id="payouts-link" href="{{ url_for('wallet.payouts') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
-                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-payouts"></use>
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-payouts"></use>
                 </svg>
                 <span class="nav-label">Payouts</span>
               </a>
@@ -50,7 +61,7 @@
             <li class="nav-item">
               <a href="{{ url_for('auth.logout') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
-                  <use href="{{ url_for('static', filename='images/icons.svg') }}#menu-logout"></use>
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-logout"></use>
                 </svg>
                 <span class="nav-label">Log out</span>
               </a>
@@ -61,13 +72,13 @@
           <img
             class="menu-logo-big menu-logo align-self-center"
             width="151"
-            src="/static/images/vsys-logo.png"
+            src="/static/images/vsys-logo.{{theme}}.png"
             alt=""
           />
           <img
             class="menu-logo-small menu-logo align-self-center"
             width="80"
-            src="/static/images/vsys-logo-small.png"
+            src="/static/images/vsys-logo-small.{{theme}}.png"
             alt=""
           />
         </div>

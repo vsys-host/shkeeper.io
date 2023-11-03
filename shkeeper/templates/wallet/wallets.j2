@@ -20,7 +20,7 @@
                     <div class="card">
                       <div class="card-body card-box">
                         <svg class="currency-logo" width="48" height="48">
-                          <use href="{{ url_for('static', filename='images/icons.svg') }}#wallets-{{ crypto.getname()|lower }}"></use>
+                          <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#wallets-{{ crypto.getname()|lower }}"></use>
                         </svg>
                         <div class="d-flex justify-content-between info-content">
                           <p class="common-text">Crypto:</p>
@@ -64,13 +64,13 @@
                         <div class="d-flex justify-content-between">
                           <a href="./wallet/{{crypto.crypto}}" class="card-link common-text">
                             <svg class="card-icon" width="16" height="16">
-                              <use href="{{ url_for('static', filename='images/icons.svg') }}#gearsix-icon"></use>
+                              <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#gearsix-icon"></use>
                             </svg>
                             Manage
                           </a>
                           <a href="./payout/{{crypto.crypto}}" class="card-link common-text">
                             <svg class="card-icon" width="16" height="16">
-                              <use href="{{ url_for('static', filename='images/icons.svg') }}#circledollar-icon"></use>
+                              <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#circledollar-icon"></use>
                             </svg>
                             Payout
                           </a>
