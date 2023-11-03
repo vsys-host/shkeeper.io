@@ -892,6 +892,11 @@ input {
     padding: 14px 16px
 }
 
+.transactions-data-table td:hover {
+    background-color: var(--accent-color);
+    color: var(--background-color);
+}
+
 .transactions-data-table .table-subtitle {
     color: var(--input-placeholder-color-grey05)
 }
@@ -1107,9 +1112,44 @@ select option {
     color: var(--focus-btn-color);
 }
 
+.page-item {
+    display: flex;
+    justify-content: center;
+    width: 30px;
+    align-items: center;
+    height: 30px;
+}
+
+.pagination .page-item a {
+    padding: 6px 13px;
+    width: 100%;
+    height: 100%;
+}
+
+.page-item.disabled {
+    width: fit-content;
+}
+
+.page-item .page-link {
+    border-radius: 100%;
+}
+
+.page-item .page-link {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--accent-color);
+}
+
+.page-item .page-link:hover {
+    border-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
 .page-item.active .page-link {
+
     background-color: var(--accent-color);
     border-color: var(--accent-color);
+    color: var(--background-color);
 }
 
 nav .nav-item:last-child {
@@ -1122,4 +1162,15 @@ nav .nav-item:last-child {
 
 .page-container {
     position: relative;
+}
+
+.page-item.disabled .page-link {
+    color: var(--accent-color);
+    pointer-events: none;
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.pagination {
+    margin-bottom: 30px;
 }

@@ -8,7 +8,7 @@
         <div
           class="col d-flex flex-column align-items-center justify-content-center"
         >
-          <img class="big-logo" src="{{ url_for('static', filename='images/vsys-logo.' + theme + '.png') }}" alt="logo" />
+          <img class="big-logo" width="280" src="{{ url_for('static', filename='images/vsys-logo.' + theme + '.png') }}" alt="logo" />
 
           {% for message in get_flashed_messages() %}
             <div class="alert alert-danger" role="alert">{{ message }}</div>
