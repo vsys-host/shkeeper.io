@@ -15,7 +15,7 @@
                 <td title="{{server.url}}">{{server.name}}</td>
             {% if server.status == "success" %}
                 {# Status #}
-                <td><span style="color: #198754;">Online{% if server.is_active %}, Active{% endif %}</span></td>
+                <td><span style="color: var(--success-color)">Online{% if server.is_active %}, Active{% endif %}</span></td>
                 {# Lag #}
                 <td>{{server.node_info.lag}}</td>
                 {# Version #}
@@ -29,7 +29,7 @@
                 </td>
             {% else %}
                 {# Status #}
-                <td><span style="color: rgb(220, 53, 69);" title="{{server.error}}">Offline{% if server.is_active %}, Active{% endif %}</span></td>
+                <td><span style="color: var(--danger-color)" title="{{server.error}}">Offline{% if server.is_active %}, Active{% endif %}</span></td>
                 {# Lag #}
                 <td></td>
                 {# Version #}

@@ -95,23 +95,23 @@ function refreshWalletInfo()
         if(splits[0] == "Synced")
         {
             serverStatusF.innerHTML = serverStatus;
-            serverStatusF.style.color = "#198754";
+            serverStatusF.style.color = "var(--success-color)";
             walletStatus.innerHTML = "Online";
-            walletStatus.style.color = "#198754";
+            walletStatus.style.color = "var(--success-color)";
         }
         else if(splits[0] == "Sync")
         {
             serverStatusF.innerHTML = serverStatus;
-            serverStatusF.style.color = "#198754";
+            serverStatusF.style.color = "var(--success-color)";
             walletStatus.innerHTML = "Offline";
-            walletStatus.style.color = "#E92b18";
+            walletStatus.style.color = "var(--danger-color)";
         }
         else
         {
             serverStatusF.innerHTML = serverStatus;
-            serverStatusF.style.color = "#E92b18";
+            serverStatusF.style.color = "var(--danger-color)";
             walletStatus.innerHTML = "Offline";
-            walletStatus.style.color = "#E92b18";
+            walletStatus.style.color = "var(--danger-color)";
         }
     }
 }
@@ -124,13 +124,13 @@ function setPolicyStatus()
         case "False":
         {
             item.innerHTML = "Disabled";
-            item.style.color = "#dc3545";
+            item.style.color = "var(--danger-color)";
             break;
         }
         case "True":
         {
             item.innerHTML = "Enabled";
-            item.style.color = "#198754";
+            item.style.color = "var(--success-color)";
             break;
         }
         }
@@ -176,17 +176,17 @@ function APIStatus()
             if(status == activeStatus)
             {
                 APIswitcher.innerText = activeStatus;
-                APIswitcher.style.color="#198754";
+                APIswitcher.style.color="var(--success-color)";
             }
             else if(status == unactiveStatus)
             {
                 APIswitcher.innerText = unactiveStatus;
-                APIswitcher.style.color="#e92b18";
+                APIswitcher.style.color="var(--danger-color)";
             }
             else
             {
                 APIswitcher.innerText = offlineStatus;
-                APIswitcher.style.color="#e92b18";
+                APIswitcher.style.color="var(--danger-color)";
             }
         }
         function checkAnswer(response)

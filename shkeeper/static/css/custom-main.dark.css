@@ -343,5 +343,6 @@
 }
 
 .apistatus {
-    color: rgb(233, 43, 24);
+    /* color: rgb(233, 43, 24); */
+    color: var(--main-text-color-grey07);
 }

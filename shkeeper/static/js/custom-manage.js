@@ -128,14 +128,14 @@ function policyFunc(){
         policyString.children[1].classList.add("policy-element-hide");
         policyString.children[2].classList.add("policy-element-hide");
         policyString.children[3].classList.add("policy-element-hide");
-        //status.style.color = "#E92b18";
+        //status.style.color = "var(--danger-color)";
         //status.innerText = "Off";
         break;
       case "scheduled":
         policyString.children[1].classList.remove("policy-element-hide");
         policyString.children[2].classList.remove("policy-element-hide");
         policyString.children[3].classList.add("policy-element-hide");
-        //status.style.color = "#198754";
+        //status.style.color = "var(--success-color)";
         //status.innerText = "On";
         setSheduledParam();
         break;
@@ -143,7 +143,7 @@ function policyFunc(){
         policyString.children[1].classList.remove("policy-element-hide");
         policyString.children[2].classList.add("policy-element-hide");
         policyString.children[3].classList.remove("policy-element-hide");
-        //status.style.color = "#198754";
+        //status.style.color = "var(--success-color)";
         //status.innerText = "On";
         break;
     }
@@ -175,13 +175,13 @@ function policyFunc(){
       case "On":
       {
         policyStatus.innerHTML = "Off";
-        policyStatus.style.color = "#dc3545";
+        policyStatus.style.color = "var(--danger-color)";
         break;
       }
       case "Off":
       {
         policyStatus.innerHTML = "On";
-        policyStatus.style.color = "#198754";
+        policyStatus.style.color = "var(--success-color)";
         break;
       }
     }
@@ -194,13 +194,13 @@ function policyFunc(){
       case "False":
       {
         policyStatus.innerHTML = "Off";
-        policyStatus.style.color = "#dc3545";
+        policyStatus.style.color = "var(--danger-color)";
         break;
       }
       case "True":
       {
         policyStatus.innerHTML = "On";
-        policyStatus.style.color = "#198754";
+        policyStatus.style.color = "var(--success-color)";
         break;
       }
     }
@@ -447,17 +447,17 @@ function serverStatus()
           if(splits[0] == "Synced")
           {
               serverStatusEl.innerHTML = "Server Online";
-              serverStatusEl.style.color = "#198754";
+              serverStatusEl.style.color = "var(--success-color)";
           }
           else if(splits[0] == "Sync")
           {
               serverStatusEl.innerHTML = "Server Syncing";
-              serverStatusEl.style.color = "#198754";
+              serverStatusEl.style.color = "var(--success-color)";
           }
           else
           {
               serverStatusEl.innerHTML = "Server Offline";
-              serverStatusEl.style.color = "#E92b18";
+              serverStatusEl.style.color = "var(--danger-color)";
           }
         }
     }
