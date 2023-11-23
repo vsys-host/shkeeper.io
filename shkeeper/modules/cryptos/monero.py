@@ -1,6 +1,6 @@
 import os
 from decimal import Decimal
-from typing import Literal, Tuple
+from typing import List, Literal, Tuple
 
 from flask import current_app as app
 
@@ -109,20 +109,23 @@ class Monero(Crypto):
         address = self.monero_wallet.new_address()[0]
         return str(address)
 
-    def getaddrbytx(self, txid) -> Tuple[str, Decimal, int, Literal['send', 'receive']]:
+    def getaddrbytx(self, txid) -> List[Tuple[str, Decimal, int, Literal['send', 'receive']]]:
         res = self.monero_rpc_wallet.raw_request('get_transfer_by_txid', {"txid": txid})
         app.logger.debug(f"getaddrbytx: {res}")
         confirmations = res['transfer'].get('confirmations', 0)
-        address = res['transfer']['address']
-        amount = from_atomic(res['transfer']['amount'])
-        transfer_type = res['transfer']['type']
-        if transfer_type == 'in':
-            operation = 'receive'
-        elif transfer_type == 'out':
-            operation = 'send'
-        else:
-            operation = transfer_type
-        return address, amount, confirmations, operation
+        details = []
+        for transfer in res['transfers']:
+            address = transfer['address']
+            amount = from_atomic(transfer['amount'])
+            transfer_type = transfer['type']
+            if transfer_type == 'in':
+                operation = 'receive'
+            elif transfer_type == 'out':
+                operation = 'send'
+            else:
+                operation = transfer_type
+            details.append((address, amount, confirmations, operation))
+        return details
 
     def get_confirmations_by_txid(self, txid) -> int:
         _, _, confirmations, _ = self.getaddrbytx(txid)

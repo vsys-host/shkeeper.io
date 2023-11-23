@@ -23,7 +23,7 @@ class Ethereum(Crypto):
         password = environ.get(f"ETH_PASSWORD", "shkeeper")
         return (username, password)
 
-    
+
     def estimate_tx_fee(self, amount):
         response = requests.post(
         f'http://{self.gethost()}/{self.crypto}/calc-tx-fee/{amount}',
@@ -31,7 +31,7 @@ class Ethereum(Crypto):
     ).json(parse_float=Decimal)
         return response
 
-        
+
     @property
     def fee_deposit_account(self):
         response = requests.post(
@@ -41,7 +41,7 @@ class Ethereum(Crypto):
 
         FeeDepositAccount = namedtuple('FeeDepositAccount', 'addr balance')
         return FeeDepositAccount(response['account'], Decimal(response['balance']))
-  
+
 
     def balance(self):
         try:
@@ -54,7 +54,7 @@ class Ethereum(Crypto):
             app.logger.warning( f"Error: {e}")
             balance = False
 
-        return Decimal(balance)  
+        return Decimal(balance)
 
 
     def get_task(self, id):
@@ -62,9 +62,9 @@ class Ethereum(Crypto):
             f'http://{self.gethost()}/{self.crypto}/task/{id}',
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
-        return response          
+        return response
 
-  
+
     def getstatus(self):
         try:
             response = requests.post(
@@ -100,10 +100,13 @@ class Ethereum(Crypto):
             f'http://{self.gethost()}/{self.crypto}/transaction/{tx}',
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
-        return response['address'], Decimal(response['amount']), response['confirmations'], response['category']
+        result = []
+        for i in response:
+            result.append((i['address'], Decimal(i['amount']), i['confirmations'], i['category']))
+        return result
 
 
-    def dump_wallet(self): 
+    def dump_wallet(self):
         response = requests.post(
             f'http://{self.gethost()}/{self.crypto}/dump',
             auth=self.get_auth_creds(),
@@ -113,13 +116,13 @@ class Ethereum(Crypto):
         #content = json.dumps(response['accounts'], indent=4)
         content = json.dumps(response, indent=4)
         return filename, content
-            
-    
+
+
     def create_wallet(self, *args, **kwargs):
         return {'error': None}
 
 
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False): 
+    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)['fee'])
             if fee >= amount:
@@ -140,11 +143,11 @@ class Ethereum(Crypto):
             json=payout_list,
         ).json(parse_float=Decimal)
         return response
-    
+
     def metrics(self):
         return requests.get(f'http://{self.gethost()}/metrics', auth=self.get_auth_creds()).text
-        
-    def get_all_addresses(self): 
+
+    def get_all_addresses(self):
         response = requests.post(
             f'http://{self.gethost()}/{self.crypto}/get_all_addresses',
             auth=self.get_auth_creds()

@@ -9,3 +9,4 @@ requests==2.28.1
 SQLAlchemy==1.4
 monero==1.1.1
 prometheus-client==0.16.0
+Flask-Migrate==4.0.5

@@ -80,15 +80,18 @@ class BitcoinLikeCrypto(Crypto):
         if (response['error']):
             raise Exception(f"failed to get details of txid {txid}: {response['error']=}")
 
-        confirmations = response['result']['confirmations']
-
+        details = []
         for i in response['result']['details']:
-            # if i['category'] != 'receive': continue
-            address = i['address']
-            amount = i['amount']
-            return (address, amount, confirmations, i['category'])
-
-        raise Exception(f"failed to find details in txid {txid}: {response['result']}")
+            details.append([
+                i['address'],
+                i['amount'],
+                response['result']['confirmations'],
+                i['category'],
+            ])
+        if details:
+            return details
+        else:
+            raise Exception(f"failed to find details in txid {txid}: {response['result']}")
 
     def get_confirmations_by_txid(self, txid):
         _, _, confirmations, _ = self.getaddrbytx(txid)

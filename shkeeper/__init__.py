@@ -11,26 +11,20 @@ from .utils import format_decimal
 from flask_apscheduler import APScheduler
 scheduler = APScheduler()
 
-# from logging.config import dictConfig
-# dictConfig({
-#     'version': 1,
-#     'formatters': {'default': {
-#         'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-#     }},
-#     'handlers': {'wsgi': {
-#         'class': 'logging.StreamHandler',
-#         'stream': 'ext://flask.logging.wsgi_errors_stream',
-#         'formatter': 'default'
-#     }},
-#     'root': {
-#         'level': 'INFO',
-#         'handlers': ['wsgi']
-#     }
-# })
-
+from sqlalchemy import MetaData
 import flask_sqlalchemy
-db = flask_sqlalchemy.SQLAlchemy()
+convention = {
+    "ix": 'ix_%(column_0_label)s',
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+metadata = MetaData(naming_convention=convention)
+db = flask_sqlalchemy.SQLAlchemy(metadata=metadata)
 
+import flask_migrate
+migrate = flask_migrate.Migrate()
 
 def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
@@ -87,7 +81,9 @@ def create_app(test_config=None):
     app.json_encoder = ShkeeperJSONEncoder
 
     db.init_app(app)
+    migrate.init_app(app, db)
     with app.app_context():
+        flask_migrate.upgrade()
 
         # Create tables according to models
         from .models import Wallet, User, PayoutDestination, Invoice, ExchangeRate, Setting

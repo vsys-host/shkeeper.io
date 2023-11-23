@@ -253,7 +253,7 @@ class Transaction(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
                                         onupdate=db.func.current_timestamp())
-    __table_args__ = (db.UniqueConstraint('crypto', 'txid'), )
+    __table_args__ = (db.UniqueConstraint('crypto', 'txid', 'invoice_id'), )
 
     def __repr__(self):
         return f"txid={self.txid}"

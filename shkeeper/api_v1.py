@@ -262,40 +262,38 @@ def walletnotify(crypto_name, txid):
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": 'Wrong backend key'}, 403
 
-        addr, amount, confirmations, category = crypto.getaddrbytx(txid)
+        for addr, amount, confirmations, category in crypto.getaddrbytx(txid):
+            try:
+                if category not in ('send', 'receive'):
+                    app.logger.warning(f'[{crypto.crypto}/{txid}] ignoring unknown category: {category}')
+                    continue
 
-        if category not in ('send', 'receive'):
-            app.logger.warning(f'[{crypto.crypto}/{txid}] ignoring unknown category: {category}')
-            return {"status": "success"}
+                if category == "send":
+                    Transaction.add_outgoing(crypto, txid)
+                    continue
 
-        if category == "send":
-            Transaction.add_outgoing(crypto, txid)
-            return {"status": "success"}
+                if confirmations == 0:
+                    app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
+                    continue
 
-
-        if confirmations == 0:
-            app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
-            return {"status": "success"}
-
-        tx = Transaction.add(crypto, {
-            "txid": txid,
-            "addr": addr,
-            "amount": amount,
-            "confirmations": confirmations,
-        })
-        tx.invoice.update_with_tx(tx)
+                tx = Transaction.add(crypto, {
+                    "txid": txid,
+                    "addr": addr,
+                    "amount": amount,
+                    "confirmations": confirmations,
+                })
+                tx.invoice.update_with_tx(tx)
+                app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
+                send_notification(tx)
+            except sqlalchemy.exc.IntegrityError as e:
+                app.logger.warning(f'[{crypto.crypto}/{txid}] TX already exist in db')
+        return {"status": "success"}
     except NotRelatedToAnyInvoice:
         return {"status": "success", "message": 'Transaction is not related to any invoice'}
-    except sqlalchemy.exc.IntegrityError as e:
-        app.logger.warning(f'[{crypto.crypto}/{txid}] TX already exist in db')
-        return {"status": "success", "message": 'Transaction already exists'}
     except Exception as e:
         app.logger.exception(f'Exception while processing transaction notification: {crypto_name}/{txid}')
         return {"status": "error", "message": f'Exception while processing transaction notification: {traceback.format_exc()}.'}, 409
 
-    app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
-    send_notification(tx)
-    return {"status": "success"}
 
 @bp.get("/<crypto_name>/decrypt")
 def decrypt_key(crypto_name):
@@ -440,12 +438,12 @@ def list_payouts(crypto_name):
             "traceback": traceback.format_exc(),
         }
 
-@bp.get("/tx-info/<txid>")
+@bp.get("/tx-info/<txid>/<external_id>")
 @api_key_required
-def get_txid_info(txid):
+def get_txid_info(txid, external_id):
     try:
         info = {}
-        if tx := Transaction.query.filter_by(txid=txid).first():
+        if tx := Transaction.query.join(Invoice).filter(Transaction.txid==txid, Invoice.external_id==external_id).first():
             info = {
                 'crypto': tx.crypto,
                 'amount': format_decimal(tx.amount_fiat),

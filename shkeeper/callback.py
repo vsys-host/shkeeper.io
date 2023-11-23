@@ -28,6 +28,7 @@ def send_notification(tx):
     notification = {
         "external_id": tx.invoice.external_id,
         "crypto": tx.invoice.crypto,
+        "addr": tx.invoice.addr,
         "fiat": tx.invoice.fiat,
         "balance_fiat": str(round(tx.invoice.balance_fiat.normalize(), 2)),
         "balance_crypto": str(round(tx.invoice.balance_crypto.normalize(), 8)),
