@@ -100,7 +100,10 @@ class Ethereum(Crypto):
             f'http://{self.gethost()}/{self.crypto}/transaction/{tx}',
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
-        return response
+        result = []
+        for address, amount, confirmations, category in response:
+            result.append([address, Decimal(amount), confirmations, category])
+        return result
 
 
     def dump_wallet(self):
