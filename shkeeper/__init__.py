@@ -83,11 +83,12 @@ def create_app(test_config=None):
     db.init_app(app)
     migrate.init_app(app, db)
     with app.app_context():
-        flask_migrate.upgrade()
 
         # Create tables according to models
         from .models import Wallet, User, PayoutDestination, Invoice, ExchangeRate, Setting
         db.create_all()
+
+        flask_migrate.upgrade()
 
         # Create default user
         default_user = 'admin'
