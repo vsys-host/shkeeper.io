@@ -74,6 +74,7 @@ def payment_request(crypto_name):
             "status": "success",
             **invoice.for_response(),
         }
+        app.logger.info({'request': req, 'response': response})
 
     except Exception as e:
         app.logger.exception(f"Failed to create invoice for {req}")
