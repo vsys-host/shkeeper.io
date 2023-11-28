@@ -448,7 +448,7 @@ def get_txid_info(txid, external_id):
             info = {
                 'crypto': tx.crypto,
                 'amount': format_decimal(tx.amount_fiat),
-                'addr': tx.invoice.addr,
+                'addr': tx.addr,
             }
         return { "status": "success", "info": info }
     except Exception as e:

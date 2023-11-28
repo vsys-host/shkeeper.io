@@ -153,6 +153,7 @@ class InvoiceStatus(enum.Enum):
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     transactions = db.relationship('Transaction', backref='invoice', lazy=True)
+    addresses = db.relationship('InvoiceAddress', backref='invoice', lazy=True)
     crypto = db.Column(db.String)
     addr = db.Column(db.String)
     external_id = db.Column(db.String)
@@ -210,7 +211,19 @@ class Invoice(db.Model):
             # updating existing invoice
             if invoice.crypto != crypto.crypto:
                 invoice.crypto = crypto.crypto
-                invoice.addr = crypto.mkaddr()
+
+                # if address for new crypto already exist, use it instead of generating a new one
+                invoice_address = InvoiceAddress.query.filter_by(invoice_id=invoice.id, crypto=crypto.crypto).first()
+                if invoice_address:
+                    invoice.addr = invoice_address.addr
+                else:
+                    invoice.addr = crypto.mkaddr()
+                    invoice_address = InvoiceAddress()
+                    invoice_address.invoice_id = invoice.id
+                    invoice_address.crypto = invoice.crypto
+                    invoice_address.addr = invoice.addr
+                    db.session.add(invoice_address)
+
             invoice.fiat = request['fiat']
             invoice.amount_fiat = Decimal(request['amount'])
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
@@ -227,6 +240,13 @@ class Invoice(db.Model):
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
             invoice.amount_crypto, invoice.exchange_rate = rate.convert(invoice.amount_fiat)
             db.session.add(invoice)
+            db.session.commit()
+
+            invoice_address = InvoiceAddress()
+            invoice_address.invoice_id = invoice.id
+            invoice_address.crypto = invoice.crypto
+            invoice_address.addr = invoice.addr
+            db.session.add(invoice_address)
 
         db.session.commit()
         return invoice
@@ -258,6 +278,13 @@ class Transaction(db.Model):
     def __repr__(self):
         return f"txid={self.txid}"
 
+    @property
+    def addr(self):
+        if invoice_address := InvoiceAddress.query.filter_by(crypto=self.crypto, invoice_id=self.invoice_id).first():
+            return invoice_address.addr
+        else:
+            return self.invoice.addr
+
     @classmethod
     def add_outgoing(cls, crypto, txid):
         for addr, amount, _, _ in crypto.getaddrbytx(txid):
@@ -284,7 +311,14 @@ class Transaction(db.Model):
 
     @classmethod
     def add(cls, crypto, tx):
-        invoice = Invoice.query.filter_by(addr=tx['addr']).first()
+        invoice_address = InvoiceAddress.query.filter_by(crypto=crypto.crypto, addr=tx['addr']).first()
+
+        if not invoice_address:
+            # Check address in Invoice table in case the instance was upgraded from older version that does not have InvoiceAddress table
+            invoice = Invoice.query.filter_by(addr=tx['addr']).first()
+        else:
+            invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
+
         if not invoice:
             raise NotRelatedToAnyInvoice(f'{tx["addr"]} is not related to any invoice')
 
@@ -369,3 +403,12 @@ class PayoutTx(db.Model):
 class Setting(db.Model):
     name = db.Column(db.String, primary_key=True)
     value = db.Column(db.String)
+
+
+class InvoiceAddress(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    crypto = db.Column(db.String)
+    addr = db.Column(db.String)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    __table_args__ = (db.UniqueConstraint('invoice_id', 'crypto', 'addr'), )

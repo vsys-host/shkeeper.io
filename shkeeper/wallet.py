@@ -24,6 +24,7 @@ from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
     Invoice,
+    InvoiceAddress,
     Payout,
     PayoutDestination,
     PayoutStatus,
@@ -138,10 +139,15 @@ def parts_transactions():
     for arg in request.args:
         if hasattr(Transaction, arg):
             field = getattr(Transaction, arg)
-            query = query.filter(field.contains(request.args[arg]))
+            if isinstance(field, property):
+                continue
+            else:
+                query = query.filter(field.contains(request.args[arg]))
 
     if 'addr' in request.args:
-        query = query.join(Invoice).filter(Invoice.addr.contains(request.args['addr']))
+        query = query.join(Invoice) \
+                     .join(InvoiceAddress, isouter=True) \
+                     .filter(Invoice.addr.contains(request.args['addr']) | InvoiceAddress.addr.contains(request.args['addr']))
 
     if 'invoice_amount_crypto' in request.args:
         query = query.join(Invoice).filter(Invoice.amount_crypto.contains(request.args['invoice_amount_crypto']))
