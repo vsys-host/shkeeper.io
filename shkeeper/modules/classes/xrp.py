@@ -39,6 +39,7 @@ class Xrp(Ethereum):
         ).json(parse_float=Decimal)
         return response
     
+    
     def getstatus(self):
         try:
             response = requests.post(
