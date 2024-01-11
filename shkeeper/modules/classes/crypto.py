@@ -34,6 +34,8 @@ class Crypto(abc.ABC):
             'bnb',
             'bnb_usdt',
             'bnb_usdc',
+            #XRP
+            'xrp',
             
         ]
         default_on = ['btc', 'ltc', 'doge']

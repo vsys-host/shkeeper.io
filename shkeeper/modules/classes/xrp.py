@@ -10,21 +10,19 @@ from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.ethereum import Ethereum
 
 
+class Xrp(Ethereum):
 
-
-class Bnb(Ethereum):
-
-    network_currency = 'BNB'
+    network_currency = 'XRP'
 
     def gethost(self):
-        host = environ.get('BNB_API_SERVER_HOST', 'bnb-shkeeper')
-        port = environ.get('BNB_SERVER_PORT', '6000')
+        host = environ.get('XRP_API_SERVER_HOST', 'xrp-shkeeper')
+        port = environ.get('XRP_SERVER_PORT', '6000')
         return f'{host}:{port}'
 
 
     def get_auth_creds(self):
-        username = environ.get(f"BNB_USERNAME", "shkeeper")
-        password = environ.get(f"BNB_PASSWORD", "shkeeper")
+        username = environ.get(f"XRP_USERNAME", "shkeeper")
+        password = environ.get(f"XRP_PASSWORD", "shkeeper")
         return (username, password)
 
 
@@ -32,9 +30,9 @@ class Bnb(Ethereum):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)['fee'])
             if fee >= amount:
-                return f"Payout failed: not enought BNB to pay for transaction. Need {fee}, balance {amount}"
+                return f"Payout failed: not enought XRP to pay for transaction. Need {fee}, balance {amount}"
             else:
-                amount -= fee
+                amount = amount - fee - 10 # 10XRP need to keep the fee-deposit account active
         response = requests.post(
             f'http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}',
             auth=self.get_auth_creds(),
@@ -47,11 +45,12 @@ class Bnb(Ethereum):
                 f'http://{self.gethost()}/{self.crypto}/status',
                 auth=self.get_auth_creds(),
             ).json(parse_float=Decimal)
-            block_ts =  response['last_block_timestamp']
+
+            block_ts =  int(response['last_block_timestamp']) + 946684800 # close_time in ledger comes from 01.01.2000 00:00
             now_ts = int(datetime.datetime.now().timestamp())
 
             delta = abs(now_ts - block_ts)
-            block_interval = 12
+            block_interval = 4
             if delta < block_interval * 10:
                 return "Synced"
             else:
@@ -59,4 +58,5 @@ class Bnb(Ethereum):
 
         except Exception as e:
             return "Offline"
+    
 

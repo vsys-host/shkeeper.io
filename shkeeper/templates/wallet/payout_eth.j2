@@ -138,7 +138,7 @@ function show_est_fee() {
     })
 }
 
-var not_en_trx_msg = `Not enought ETH to pay for transaction. Please top up the fee-deposit account.`;
+var not_en_trx_msg = `Not enough {{ crypto.network_currency }} to pay for transaction. Please top up the fee-deposit account.`;
 
 function check_fee() {
   let est_fee = parseFloat(document.querySelector("#est_fee").innerText);
