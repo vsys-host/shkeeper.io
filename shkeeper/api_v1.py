@@ -74,6 +74,7 @@ def payment_request(crypto_name):
             "status": "success",
             **invoice.for_response(),
         }
+        app.logger.info({'request': req, 'response': response})
 
     except Exception as e:
         app.logger.exception(f"Failed to create invoice for {req}")
@@ -447,7 +448,7 @@ def get_txid_info(txid, external_id):
             info = {
                 'crypto': tx.crypto,
                 'amount': format_decimal(tx.amount_fiat),
-                'addr': tx.invoice.addr,
+                'addr': tx.addr,
             }
         return { "status": "success", "info": info }
     except Exception as e:
