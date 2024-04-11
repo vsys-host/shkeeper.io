@@ -20,7 +20,7 @@ from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.monero import Monero
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
-from shkeeper.callback import send_notification
+from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import wallet_encryption, WalletEncryptionPersistentStatus, WalletEncryptionRuntimeStatus
 from shkeeper.exceptions import NotRelatedToAnyInvoice
@@ -34,7 +34,6 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 #         super().__init__(*args, parse_float=Decimal, **kwargs)
 
 # bp.json_decoder = DecimalJSONDecoder
-
 
 @bp.route("/crypto")
 def list_crypto():
@@ -275,6 +274,10 @@ def walletnotify(crypto_name, txid):
 
                 if confirmations == 0:
                     app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
+
+                    if app.config.get('UNCONFIRMED_TX_NOTIFICATION'):
+                        send_unconfirmed_notification(crypto_name, txid, addr, amount)
+
                     continue
 
                 tx = Transaction.add(crypto, {

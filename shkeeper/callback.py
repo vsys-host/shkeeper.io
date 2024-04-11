@@ -10,6 +10,30 @@ from shkeeper.models import *
 
 bp = Blueprint('callback', __name__)
 
+def send_unconfirmed_notification(crypto_name, txid, addr, amount):
+    app.logger.info(f'send_unconfirmed_notification started for {crypto_name} {txid}, {addr}, {amount}')
+
+    invoice_address = InvoiceAddress.query.filter_by(crypto=crypto_name, addr=addr).first()
+    invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
+    crypto = Crypto.instances[crypto_name]
+    apikey = crypto.wallet.apikey
+
+    notification = {
+        "status": "unconfirmed",
+        "external_id": invoice.external_id,
+        "crypto": crypto_name,
+        "addr": addr,
+        "txid": txid,
+        "amount": format_decimal(amount, precision=crypto.precision),
+    }
+
+    app.logger.warning(f'[{crypto_name}/{txid}] Posting {notification} to {invoice.callback_url} with api key {apikey}')
+    try:
+        r = requests.post(invoice.callback_url, json=notification, headers={"X-Shkeeper-Api-Key": apikey})
+    except Exception as e:
+        app.logger.error(f'[{crypto_name}/{txid}] Unconfirmed TX notification failed: {e}')
+        return False
+    return True
 
 def send_notification(tx):
     app.logger.info(f'[{tx.crypto}/{tx.txid}] Notificator started')

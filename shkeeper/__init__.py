@@ -40,6 +40,7 @@ def create_app(test_config=None):
         SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
         TRON_MULTISERVER_GUI=bool(os.environ.get('TRON_MULTISERVER_GUI')),
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get('FORCE_WALLET_ENCRYPTION')),
+        UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get('UNCONFIRMED_TX_NOTIFICATION')),
     )
 
     if test_config is None:
