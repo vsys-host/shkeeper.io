@@ -3,7 +3,7 @@ import traceback
 from os import environ
 
 from werkzeug.datastructures import Headers
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from flask import request
 from flask import Response
 from flask import stream_with_context
@@ -415,6 +415,40 @@ def list_addresses(crypto_name):
         }
     except Exception as e:
         app.logger.exception(f"Failed to list addresses for {crypto_name}")
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+        }
+
+@bp.get("/all-transactions")
+@api_key_required
+def list_all_transactions():
+    try:
+        transactions = Transaction.query.all()
+        return jsonify(
+            status="success",
+            transactions=[tx.to_json() for tx in transactions]
+        )
+    except Exception as e:
+        app.logger.exception(f"Failed to list all transactions")
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+        }
+
+@bp.get("/all-invoices")
+@api_key_required
+def list_all_invoices():
+    try:
+        invoices = Invoice.query.all()
+        return jsonify(
+            status="success",
+            invoices=[i.to_json() for i in invoices]
+        )
+    except Exception as e:
+        app.logger.exception(f"Failed to list all invoices")
         return {
             "status": "error",
             "message": str(e),

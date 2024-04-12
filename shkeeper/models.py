@@ -169,6 +169,16 @@ class Invoice(db.Model):
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
                                         onupdate=db.func.current_timestamp())
 
+    def to_json(self):
+        return {
+            'txs': [tx.to_json() for tx in self.transactions],
+            'external_id': self.external_id,
+            'balance_fiat': self.balance_fiat,
+            'fiat': self.fiat,
+            'amount_fiat': self.amount_fiat,
+            'status': self.status.name,
+        }
+
     @property
     def wallet(self) -> Wallet:
         return Wallet.query.filter_by(crypto=self.crypto).first()
@@ -277,6 +287,14 @@ class Transaction(db.Model):
 
     def __repr__(self):
         return f"txid={self.txid}"
+
+    def to_json(self):
+        return {
+            'amount': self.amount_crypto,
+            'crypto': self.crypto,
+            'addr': self.addr,
+            'txid': self.txid,
+        }
 
     @property
     def addr(self):
