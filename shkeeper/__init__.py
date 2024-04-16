@@ -1,3 +1,4 @@
+import functools
 import os
 import logging
 import secrets
@@ -5,6 +6,7 @@ from decimal import Decimal
 import shutil
 
 from flask import Flask
+import requests
 
 from .utils import format_decimal
 
@@ -41,6 +43,8 @@ def create_app(test_config=None):
         TRON_MULTISERVER_GUI=bool(os.environ.get('TRON_MULTISERVER_GUI')),
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get('FORCE_WALLET_ENCRYPTION')),
         UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get('UNCONFIRMED_TX_NOTIFICATION')),
+        REQUESTS_TIMEOUT=int(os.environ.get('REQUESTS_TIMEOUT', 10)),
+        REQUESTS_NOTIFICATION_TIMEOUT=int(os.environ.get('REQUESTS_NOTIFICATION_TIMEOUT', 30)),
     )
 
     if test_config is None:
@@ -80,6 +84,13 @@ def create_app(test_config=None):
 
     app.json_decoder = ShkeeperJSONDecoder
     app.json_encoder = ShkeeperJSONEncoder
+
+    for method in ("get", "options", "head", "post", "put", "patch", "delete"):
+        setattr(
+            requests,
+            method,
+            functools.partial(getattr(requests, method), timeout=app.config.get('REQUESTS_TIMEOUT')),
+        )
 
     db.init_app(app)
     migrate.init_app(app, db)

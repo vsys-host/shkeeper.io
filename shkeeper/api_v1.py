@@ -10,7 +10,7 @@ from flask import stream_with_context
 from flask import current_app as app
 from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
-import requests
+from shkeeper import requests
 
 from shkeeper import db
 from shkeeper.auth import basic_auth_optional, login_required, api_key_required

@@ -4,7 +4,7 @@ from os import environ
 import datetime
 import functools
 
-import requests
+from shkeeper import requests
 from shkeeper.modules.classes.crypto import Crypto
 
 

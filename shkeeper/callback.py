@@ -1,5 +1,5 @@
 import click
-import requests
+from shkeeper import requests
 
 from flask import Blueprint
 from flask import current_app as app
@@ -29,7 +29,12 @@ def send_unconfirmed_notification(crypto_name, txid, addr, amount):
 
     app.logger.warning(f'[{crypto_name}/{txid}] Posting {notification} to {invoice.callback_url} with api key {apikey}')
     try:
-        r = requests.post(invoice.callback_url, json=notification, headers={"X-Shkeeper-Api-Key": apikey})
+        r = requests.post(
+            invoice.callback_url,
+            json=notification,
+            headers={"X-Shkeeper-Api-Key": apikey},
+            timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
+        )
     except Exception as e:
         app.logger.error(f'[{crypto_name}/{txid}] Unconfirmed TX notification failed: {e}')
         return False
@@ -68,8 +73,12 @@ def send_notification(tx):
     apikey = Crypto.instances[tx.crypto].wallet.apikey
     app.logger.warning(f'[{tx.crypto}/{tx.txid}] Posting {notification} to {tx.invoice.callback_url} with api key {apikey}')
     try:
-        r = requests.post(tx.invoice.callback_url,
-            json=notification, headers={"X-Shkeeper-Api-Key": apikey})
+        r = requests.post(
+            tx.invoice.callback_url,
+            json=notification,
+            headers={"X-Shkeeper-Api-Key": apikey},
+            timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
+        )
     except Exception as e:
         app.logger.error(f'[{tx.crypto}/{tx.txid}] Notification failed: {e}')
         return False

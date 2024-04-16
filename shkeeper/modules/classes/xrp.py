@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from os import environ
 import json
-import requests
+from shkeeper import requests
 import datetime
 from collections import namedtuple
 from decimal import Decimal
@@ -26,7 +26,7 @@ class Xrp(Ethereum):
         return (username, password)
 
 
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False): 
+    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)['fee'])
             if fee >= amount:
@@ -38,8 +38,8 @@ class Xrp(Ethereum):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response
-    
-    
+
+
     def getstatus(self):
         try:
             response = requests.post(
@@ -59,5 +59,3 @@ class Xrp(Ethereum):
 
         except Exception as e:
             return "Offline"
-    
-

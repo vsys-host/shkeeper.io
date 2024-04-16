@@ -5,7 +5,7 @@ import datetime
 import json
 from collections import namedtuple
 
-import requests
+from shkeeper import requests
 from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto

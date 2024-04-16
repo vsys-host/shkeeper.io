@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal
 
-import requests
+from shkeeper import requests
 
 from shkeeper.modules.classes.rate_source import RateSource
 
