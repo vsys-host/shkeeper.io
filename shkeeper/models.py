@@ -271,6 +271,62 @@ class Invoice(db.Model):
             "display_name": Crypto.instances[self.crypto].display_name,
         }
 
+class UnconfirmedTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    addr = db.Column(db.String)
+    txid = db.Column(db.String)
+    crypto = db.Column(db.String)
+    amount_crypto = db.Column(db.Numeric)
+    callback_confirmed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+    __table_args__ = (db.UniqueConstraint('crypto', 'txid', 'invoice_id'), )
+
+    def to_json(self):
+        return {
+            'amount': self.amount_crypto,
+            'crypto': self.crypto,
+            'addr': self.addr,
+            'txid': self.txid,
+            'status': 'unconfirmed',
+        }
+
+    @classmethod
+    def add(cls, crypto_name, txid, addr, amount):
+        app.logger.info(f'Add unconfirmed transaction {txid} for {amount} {crypto_name} -> {addr}')
+
+        invoice_address = InvoiceAddress.query.filter_by(crypto=crypto_name, addr=addr).first()
+        if not invoice_address:
+            # Check address in Invoice table in case the instance was upgraded from older version that does not have InvoiceAddress table
+            invoice = Invoice.query.filter_by(addr=addr).first()
+        else:
+            invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
+
+        if not invoice:
+            raise NotRelatedToAnyInvoice(f'{addr} is not related to any invoice')
+
+        t = UnconfirmedTransaction(
+            txid=txid,
+            invoice_id=invoice.id,
+            amount_crypto=amount,
+            crypto=crypto_name,
+            addr=addr,
+        )
+        db.session.add(t)
+        db.session.commit()
+        return t
+
+    @classmethod
+    def delete(cls, crypto_name, txid):
+        app.logger.info(f'Delete unconfirmed transaction {crypto_name} {txid}')
+
+        db.session.execute(
+            db.delete(UnconfirmedTransaction).filter_by(crypto=crypto_name, txid=txid)
+        )
+        db.session.commit()
+
+
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)

@@ -276,7 +276,8 @@ def walletnotify(crypto_name, txid):
                     app.logger.info(f'[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)')
 
                     if app.config.get('UNCONFIRMED_TX_NOTIFICATION'):
-                        send_unconfirmed_notification(crypto_name, txid, addr, amount)
+                        utx = UnconfirmedTransaction.add(crypto_name, txid, addr, amount)
+                        send_unconfirmed_notification(utx)
 
                     continue
 
@@ -287,6 +288,7 @@ def walletnotify(crypto_name, txid):
                     "confirmations": confirmations,
                 })
                 tx.invoice.update_with_tx(tx)
+                UnconfirmedTransaction.delete(crypto_name, txid)
                 app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
                 send_notification(tx)
             except sqlalchemy.exc.IntegrityError as e:

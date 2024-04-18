@@ -10,24 +10,24 @@ from shkeeper.models import *
 
 bp = Blueprint('callback', __name__)
 
-def send_unconfirmed_notification(crypto_name, txid, addr, amount):
-    app.logger.info(f'send_unconfirmed_notification started for {crypto_name} {txid}, {addr}, {amount}')
+def send_unconfirmed_notification(utx: UnconfirmedTransaction):
+    app.logger.info(f'send_unconfirmed_notification started for {utx.crypto} {utx.txid}, {utx.addr}, {utx.amount_crypto}')
 
-    invoice_address = InvoiceAddress.query.filter_by(crypto=crypto_name, addr=addr).first()
+    invoice_address = InvoiceAddress.query.filter_by(crypto=utx.crypto, addr=utx.addr).first()
     invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
-    crypto = Crypto.instances[crypto_name]
+    crypto = Crypto.instances[utx.crypto]
     apikey = crypto.wallet.apikey
 
     notification = {
         "status": "unconfirmed",
         "external_id": invoice.external_id,
-        "crypto": crypto_name,
-        "addr": addr,
-        "txid": txid,
-        "amount": format_decimal(amount, precision=crypto.precision),
+        "crypto": utx.crypto,
+        "addr": utx.addr,
+        "txid": utx.txid,
+        "amount": format_decimal(utx.amount_crypto, precision=crypto.precision),
     }
 
-    app.logger.warning(f'[{crypto_name}/{txid}] Posting {notification} to {invoice.callback_url} with api key {apikey}')
+    app.logger.warning(f'[{utx.crypto}/{utx.txid}] Posting {notification} to {invoice.callback_url} with api key {apikey}')
     try:
         r = requests.post(
             invoice.callback_url,
@@ -36,8 +36,17 @@ def send_unconfirmed_notification(crypto_name, txid, addr, amount):
             timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
         )
     except Exception as e:
-        app.logger.error(f'[{crypto_name}/{txid}] Unconfirmed TX notification failed: {e}')
+        app.logger.error(f'[{utx.crypto}/{utx.txid}] Unconfirmed TX notification failed: {e}')
         return False
+
+    if r.status_code != 202:
+        app.logger.warning(f'[{utx.crypto}/{utx.txid}] Unconfirmed TX notification failed with HTTP code {r.status_code}')
+        return False
+
+    utx.callback_confirmed = True
+    db.session.commit()
+    app.logger.info(f'[{utx.crypto}/{utx.txid}] Unconfirmed TX notification has been accepted')
+
     return True
 
 def send_notification(tx):
@@ -99,6 +108,9 @@ def list_unconfirmed():
         print("No unconfirmed transactions found!")
 
 def send_callbacks():
+    for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
+        send_unconfirmed_notification(utx)
+
     for tx in Transaction.query.filter_by(callback_confirmed=False, need_more_confirmations=False):
         if tx.invoice.status == InvoiceStatus.OUTGOING:
             tx.callback_confirmed = True
