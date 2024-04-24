@@ -423,34 +423,52 @@ def list_addresses(crypto_name):
             "traceback": traceback.format_exc(),
         }
 
-@bp.get("/all-transactions")
+@bp.get("/transactions", defaults={'crypto': None, 'addr': None})
+@bp.get("/transactions/<crypto>/<addr>")
 @api_key_required
-def list_all_transactions():
+def list_transactions(crypto, addr):
     try:
-        transactions = Transaction.query.all()
+        if crypto is None or addr is None:
+            transactions = (*Transaction.query.all(), *UnconfirmedTransaction.query.all())
+        else:
+            confirmed = (
+                Transaction.query
+                     .join(Invoice)
+                     .join(InvoiceAddress, isouter=True)
+                     .filter(Transaction.crypto == crypto)
+                     .filter((Invoice.addr == addr) | (InvoiceAddress.addr == addr))
+            )
+            transactions = (
+                *confirmed,
+                *UnconfirmedTransaction.query.filter_by(crypto=crypto, addr=addr)
+            )
         return jsonify(
             status="success",
             transactions=[tx.to_json() for tx in transactions]
         )
     except Exception as e:
-        app.logger.exception(f"Failed to list all transactions")
+        app.logger.exception(f"Failed to list transactions")
         return {
             "status": "error",
             "message": str(e),
             "traceback": traceback.format_exc(),
         }
 
-@bp.get("/all-invoices")
+@bp.get('/invoices', defaults={'external_id': None})
+@bp.get("/invoices/<external_id>")
 @api_key_required
-def list_all_invoices():
+def list_invoices(external_id):
     try:
-        invoices = Invoice.query.all()
+        if external_id is None:
+            invoices = Invoice.query.filter(Invoice.status != "OUTGOING").all()
+        else:
+            invoices = Invoice.query.filter_by(external_id=external_id)
         return jsonify(
             status="success",
             invoices=[i.to_json() for i in invoices]
         )
     except Exception as e:
-        app.logger.exception(f"Failed to list all invoices")
+        app.logger.exception(f"Failed to list invoices")
         return {
             "status": "error",
             "message": str(e),

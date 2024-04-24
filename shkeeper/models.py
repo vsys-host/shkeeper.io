@@ -153,6 +153,7 @@ class InvoiceStatus(enum.Enum):
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     transactions = db.relationship('Transaction', backref='invoice', lazy=True)
+    unconfirmed_transactions = db.relationship('UnconfirmedTransaction', backref='invoice', lazy=True)
     addresses = db.relationship('InvoiceAddress', backref='invoice', lazy=True)
     crypto = db.Column(db.String)
     addr = db.Column(db.String)
@@ -171,7 +172,7 @@ class Invoice(db.Model):
 
     def to_json(self):
         return {
-            'txs': [tx.to_json() for tx in self.transactions],
+            'txs': [tx.to_json() for tx in (*self.transactions, *self.unconfirmed_transactions)],
             'external_id': self.external_id,
             'balance_fiat': self.balance_fiat,
             'fiat': self.fiat,
@@ -289,7 +290,7 @@ class UnconfirmedTransaction(db.Model):
             'crypto': self.crypto,
             'addr': self.addr,
             'txid': self.txid,
-            'status': 'unconfirmed',
+            'status': 'UNCONFIRMED',
         }
 
     @classmethod
@@ -350,6 +351,7 @@ class Transaction(db.Model):
             'crypto': self.crypto,
             'addr': self.addr,
             'txid': self.txid,
+            'status': 'CONFIRMED',
         }
 
     @property
