@@ -49,7 +49,7 @@ class Fiat:
 
     @classmethod
     def list(cls):
-        return ['USD', 'EUR']
+        return ['USD', 'EUR', 'GBP', 'AUD']
 
 
 class Wallet(db.Model):
