@@ -170,12 +170,13 @@ def update_confirmations():
             if (itx.created_at + timedelta(hours=itx.wallet.recalc)) < datetime.now():
                 app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status: expired')
                 itx.status = InvoiceStatus.EXPIRED
-                Transaction.add(Crypto.instances[itx.crypto], {
+                utx = Transaction.add(Crypto.instances[itx.crypto], {
                     "txid": "",
                     "addr": itx.addr,
                     "amount": 0,
-                    "confirmations": 0,
+                    "confirmations": 0
                 })
+                utx.callback_confirmed = True
                 expired_invoices.append(itx)
                 db.session.commit()
 
