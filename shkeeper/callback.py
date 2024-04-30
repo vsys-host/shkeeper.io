@@ -170,6 +170,14 @@ def update_confirmations():
         else:
             app.logger.info(f'[{tx.crypto}/{tx.txid}] Not enough confirmations yet')
 
+    for itx in Invoice.query.filter_by(status=InvoiceStatus.UNPAID):
+        app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status')
+        if itx.invoice.wallet.recalc > 0:
+            if (itx.invoice.created_at + timedelta(hours=itx.invoice.wallet.recalc)) < datetime.now():
+                app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status: expired')
+                itx.invoice.status = InvoiceStatus.EXPIRED
+                db.session.commit()
+
 @bp.cli.command()
 def list():
     """Shows list of transaction notifications to be sent"""
