@@ -111,7 +111,7 @@ def send_expired_notification(utx):
         "fiat": utx.fiat,
         "balance_fiat": str(round(utx.balance_fiat.normalize(), 2)),
         "balance_crypto": str(round(utx.balance_crypto.normalize(), 8)),
-        "paid": utx.status in (InvoiceStatus.EXPIRED),
+        "paid": False,
         "status": utx.status.name
     }
 
