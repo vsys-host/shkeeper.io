@@ -402,7 +402,7 @@ class Transaction(db.Model):
         t.invoice_id = invoice.id
         t.txid = tx['txid']
         t.crypto = crypto.crypto
-        t.amount_crypto = tx['amount']
+        t.amount_crypto = float(tx['amount'])
         if invoice.crypto != crypto.crypto:
             rate = ExchangeRate.get(invoice.fiat, crypto.crypto).get_rate()
             t.amount_fiat = t.amount_crypto * rate

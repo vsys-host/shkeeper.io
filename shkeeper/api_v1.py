@@ -74,7 +74,7 @@ def payment_request(crypto_name):
             **invoice.for_response(),
         }
 
-        invData = invoice.for_response();
+        invData = invoice.for_response()
 
         tx = Transaction.add(crypto=crypto, tx={
             "txid": '',
