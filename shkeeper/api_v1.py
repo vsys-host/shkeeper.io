@@ -74,9 +74,11 @@ def payment_request(crypto_name):
             **invoice.for_response(),
         }
 
+        invData = invoice.for_response();
+
         tx = Transaction.add(crypto=crypto, tx={
-            "addr": invoice.for_response().wallet,
-            "amount": invoice.for_response().amount,
+            "addr": invData['wallet'],
+            "amount": invData['amount'],
             "confirmations": 0,
         })
         send_notification(tx)
