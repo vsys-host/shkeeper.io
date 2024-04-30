@@ -101,37 +101,39 @@ def send_notification(tx):
     app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification has been accepted by {tx.invoice.callback_url}')
     return True
 
-def send_expired_notification(utx):
-    app.logger.info(f'[{utx.crypto}/{utx.external_id}] Expired Notificator started')
+def send_expired_notification(utxs):
+    for utx in utxs:
+        app.logger.info(f'[{utx.crypto}/{utx.external_id}] Expired Notificator started')
 
-    notification = {
-        "external_id": utx.external_id,
-        "crypto": utx.crypto,
-        "addr": utx.addr,
-        "status": utx.status.name
-    }
+        notification = {
+            "external_id": utx.external_id,
+            "crypto": utx.crypto,
+            "addr": utx.addr,
+            "status": utx.status.name
+        }
 
-    apikey = Crypto.instances[utx.crypto].wallet.apikey
-    app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Posting {notification} to {utx.callback_url} with api key {apikey}')
+        apikey = Crypto.instances[utx.crypto].wallet.apikey
+        app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Posting {notification} to {utx.callback_url} with api key {apikey}')
 
-    try:
-        r = requests.post(
-            utx.callback_url,
-            json=notification,
-            headers={"X-Shkeeper-Api-Key": apikey},
-            timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
-        )
-    except Exception as e:
-        app.logger.error(f'[{utx.crypto}/{utx.external_id}] Notification failed: {e}')
-        return False
+        try:
+            r = requests.post(
+                utx.callback_url,
+                json=notification,
+                headers={"X-Shkeeper-Api-Key": apikey},
+                timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
+            )
+        except Exception as e:
+            app.logger.error(f'[{utx.crypto}/{utx.external_id}] Notification failed: {e}')
+            return False
 
-    if r.status_code != 202:
-        app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Notification failed by {utx.callback_url} with HTTP code {r.status_code}')
-        return False
+        if r.status_code != 202:
+            app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Notification failed by {utx.callback_url} with HTTP code {r.status_code}')
+            return False
 
-    utx.callback_confirmed = True
-    db.session.commit()
-    app.logger.info(f'[{utx.crypto}/{utx.external_id}] Notification has been accepted by {utx.callback_url}')
+        utx.callback_confirmed = True
+        db.session.commit()
+        app.logger.info(f'[{utx.crypto}/{utx.external_id}] Notification has been accepted by {utx.callback_url}')
+
     return True
 
 def list_unconfirmed():
