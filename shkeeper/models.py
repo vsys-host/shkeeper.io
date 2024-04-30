@@ -148,6 +148,7 @@ class InvoiceStatus(enum.Enum):
     CANCELLED = enum.auto()
     REFUNDED = enum.auto()
     OUTGOING = enum.auto()
+    EXPIRED = enum.auto()
 
 
 class Invoice(db.Model):
@@ -193,9 +194,12 @@ class Invoice(db.Model):
         # recalculate amount_crypto according to current exchange rate if enabled
         if tx.invoice.wallet.recalc > 0:
             if (tx.invoice.created_at + timedelta(hours=tx.invoice.wallet.recalc)) < datetime.now():
-                tx.invoice.amount_crypto, tx.invoice.exchange_rate = tx.invoice.rate.convert(tx.invoice.amount_fiat)
+                #tx.invoice.amount_crypto, tx.invoice.exchange_rate = tx.invoice.rate.convert(tx.invoice.amount_fiat)
                 # recalculate tx fiat amount according to a new exchange rate
-                tx.amount_fiat = tx.amount_crypto * tx.invoice.exchange_rate
+                #tx.amount_fiat = tx.amount_crypto * tx.invoice.exchange_rate
+                tx.invoice.status = InvoiceStatus.EXPIRED
+                db.session.commit()
+                return self
 
         # add tx to invoice balance
         tx.invoice.balance_fiat += tx.amount_fiat

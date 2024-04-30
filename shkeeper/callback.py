@@ -101,6 +101,43 @@ def send_notification(tx):
     app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification has been accepted by {tx.invoice.callback_url}')
     return True
 
+def send_expired_notification(utx):
+    app.logger.info(f'[{utx.crypto}/{utx.external_id}] Expired Notificator started')
+
+    notification = {
+        "external_id": utx.external_id,
+        "crypto": utx.crypto,
+        "addr": utx.addr,
+        "fiat": utx.fiat,
+        "balance_fiat": str(round(utx.balance_fiat.normalize(), 2)),
+        "balance_crypto": str(round(utx.balance_crypto.normalize(), 8)),
+        "paid": utx.status in (InvoiceStatus.EXPIRED),
+        "status": utx.status.name
+    }
+
+    apikey = Crypto.instances[utx.crypto].wallet.apikey
+    app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Posting {notification} to {utx.callback_url} with api key {apikey}')
+
+    try:
+        r = requests.post(
+            utx.callback_url,
+            json=notification,
+            headers={"X-Shkeeper-Api-Key": apikey},
+            timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
+        )
+    except Exception as e:
+        app.logger.error(f'[{utx.crypto}/{utx.external_id}] Notification failed: {e}')
+        return False
+
+    if r.status_code != 202:
+        app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Notification failed by {utx.callback_url} with HTTP code {r.status_code}')
+        return False
+
+    utx.callback_confirmed = True
+    db.session.commit()
+    app.logger.info(f'[{utx.crypto}/{utx.external_id}] Notification has been accepted by {utx.callback_url}')
+    return True
+
 def list_unconfirmed():
     for tx in Transaction.query.filter_by(callback_confirmed=False):
         print(tx)
@@ -118,6 +155,11 @@ def send_callbacks():
         else:
             app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification is pending')
             send_notification(tx)
+
+def send_expired_callbacks():
+    for utx in Invoice.query.filter_by(status=InvoiceStatus.EXPIRED):
+        app.logger.info(f'[{utx.crypto}/{utx.external_id}] Notification is pending')
+        send_expired_notification(utx)
 
 def update_confirmations():
     for tx in Transaction.query.filter_by(callback_confirmed=False, need_more_confirmations=True):

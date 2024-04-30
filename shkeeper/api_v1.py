@@ -73,17 +73,6 @@ def payment_request(crypto_name):
             "status": "success",
             **invoice.for_response(),
         }
-
-        invData = invoice.for_response()
-
-        tx = Transaction.add(crypto=crypto, tx={
-            "txid": '',
-            "addr": invData['wallet'],
-            "amount": invData['amount'],
-            "confirmations": 0,
-        })
-        send_notification(tx)
-
         app.logger.info({'request': req, 'response': response})
 
     except Exception as e:
