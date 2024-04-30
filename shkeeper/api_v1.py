@@ -77,6 +77,7 @@ def payment_request(crypto_name):
         invData = invoice.for_response();
 
         tx = Transaction.add(crypto=crypto, tx={
+            "txid": '',
             "addr": invData['wallet'],
             "amount": invData['amount'],
             "confirmations": 0,
