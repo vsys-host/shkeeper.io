@@ -108,10 +108,6 @@ def send_expired_notification(utx):
         "external_id": utx.external_id,
         "crypto": utx.crypto,
         "addr": utx.addr,
-        "fiat": utx.fiat,
-        "balance_fiat": str(round(utx.balance_fiat.normalize(), 2)),
-        "balance_crypto": str(round(utx.balance_crypto.normalize(), 8)),
-        "paid": False,
         "status": utx.status.name
     }
 
@@ -156,11 +152,6 @@ def send_callbacks():
             app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification is pending')
             send_notification(tx)
 
-def send_expired_callbacks():
-    for utx in Invoice.query.filter_by(status=InvoiceStatus.EXPIRED):
-        app.logger.info(f'[{utx.crypto}/{utx.external_id}] Notification is pending')
-        send_expired_notification(utx)
-
 def update_confirmations():
     for tx in Transaction.query.filter_by(callback_confirmed=False, need_more_confirmations=True):
         app.logger.info(f'[{tx.crypto}/{tx.txid}] Updating confirmations')
@@ -170,13 +161,17 @@ def update_confirmations():
         else:
             app.logger.info(f'[{tx.crypto}/{tx.txid}] Not enough confirmations yet')
 
+    expired_invoices = []
     for itx in Invoice.query.filter_by(status=InvoiceStatus.UNPAID):
         app.logger.info(f'[{itx.crypto}/{itx.external_id}/{itx.wallet.recalc}] Updating status')
         if itx.wallet.recalc > 0:
             if (itx.created_at + timedelta(hours=itx.wallet.recalc)) < datetime.now():
                 app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status: expired')
                 itx.status = InvoiceStatus.EXPIRED
+                expired_invoices.append(itx)
                 db.session.commit()
+
+    send_expired_notification(expired_invoices)
 
 @bp.cli.command()
 def list():

@@ -13,7 +13,6 @@ def task_callback():
     with scheduler.app.app_context():
         callback.update_confirmations()
         callback.send_callbacks()
-        callback.send_expired_callbacks()
 
 
 @scheduler.task("interval", id="payout", seconds=60)
