@@ -171,7 +171,7 @@ def update_confirmations():
             app.logger.info(f'[{tx.crypto}/{tx.txid}] Not enough confirmations yet')
 
     for itx in Invoice.query.filter_by(status=InvoiceStatus.UNPAID):
-        app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status')
+        app.logger.info(f'[{itx.crypto}/{itx.external_id}/{itx.wallet.recalc}] Updating status')
         if itx.wallet.recalc > 0:
             if (itx.created_at + timedelta(hours=itx.wallet.recalc)) < datetime.now():
                 app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status: expired')
