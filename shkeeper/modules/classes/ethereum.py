@@ -11,6 +11,7 @@ from shkeeper.modules.classes.crypto import Crypto
 
 class Ethereum(Crypto):
 
+    can_set_tx_fee = False
     network_currency = 'ETH'
 
     def gethost(self):
