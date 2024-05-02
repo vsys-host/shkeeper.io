@@ -39,7 +39,7 @@ class Crypto(abc.ABC):
             'ltc', 
             'doge'
         ]
-        default_on = ['btc','eth','eth_usdt']
+        default_on = ['btc','ltc','eth','eth_usdt']
         for symbol in default_off:
             if cls.__name__ == symbol and (f'{symbol.upper()}_WALLET' not in os.environ or
                                            os.environ[f'{symbol.upper()}_WALLET'] != 'enabled'):
