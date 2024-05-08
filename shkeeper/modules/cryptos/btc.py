@@ -10,4 +10,4 @@ class btc(BitcoinLikeCrypto):
     def getname(self):
         return "Bitcoin"
     def gethost(self):
-        return "10.10.20.130:8332"
+        return "bitcoind:8332"

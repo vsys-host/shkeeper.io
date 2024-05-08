@@ -14,13 +14,13 @@ class Ethereum(Crypto):
     network_currency = 'ETH'
 
     def gethost(self):
-        host = environ.get('ETHEREUM_API_SERVER_HOST', 'ethereum-shkeeper')
+        host = environ.get('ETHEREUM_API_SERVER_HOST', 'eth') #eth
         port = environ.get('ETHEREUM_SERVER_PORT', '6000')
         return f'{host}:{port}'
 
     def get_auth_creds(self):
-        username = environ.get(f"ETH_USERNAME", "shkeeper")
-        password = environ.get(f"ETH_PASSWORD", "shkeeper")
+        username = environ.get(f"ETH_USERNAME", "Yml0Y29pbmQtdXNlcg==")
+        password = environ.get(f"ETH_PASSWORD", "Yml0Y29pbmQtdXNlcg==")
         return (username, password)
 
 
