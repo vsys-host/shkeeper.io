@@ -115,7 +115,7 @@ class ExchangeRate(db.Model):
         if self.source == 'manual':
             return self.rate
 
-        rs = RateSource.instances.get(self.source, self.source)
+        rs = RateSource.instances.get(self.source, RateSource.instances.get('binance'))
         return rs.get_rate(self.fiat, self.crypto)
 
     def convert(self, amount):
