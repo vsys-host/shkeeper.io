@@ -219,11 +219,14 @@ function get_task(task_id) {
       .then(response => response.json())
       .then(data => {
         console.log(data);
-        if (data.status != "SUCCESS") {
-          setTimeout(() => get_task(task_id), 1000);
-        } else {
+        if ("SUCCESS" == data.status) {
           alert(`Payment sent!\n\nTransaction IDs:\n` + data.result[0].txids.join("\n"));
           location.reload();
+        } else if ("FAILURE" == data.status) {
+          alert(`Failure!\n\n` + data.result);
+          location.reload();
+        } else {
+          setTimeout(() => get_task(task_id), 1000);
         }
       })
 }
