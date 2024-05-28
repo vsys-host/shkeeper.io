@@ -36,6 +36,11 @@ class Crypto(abc.ABC):
             'bnb_usdc',
             #XRP
             'xrp',
+            #MATIC
+            'matic',
+            'polygon_usdt',
+            'polygon_usdc',
+
             
         ]
         default_on = ['btc', 'ltc', 'doge']
