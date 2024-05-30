@@ -1,10 +1,12 @@
 # Multipayout API (only for TRON, Ethereum, BNB and Ripple; not implemented for BTC,DOGE,LTC and Monero)
 
-This API allows to create a payout task which can transfer USDT to multiple accounts at once.
+This API allows to create a payout task which can transfer cryptocurrency to multiple accounts at once.
 
 The workflow with this API consist of 2 steps:
  - creating a payout task
  - checking for the task result
+
+ This API implemented only for TRON, Ethereum, BNB and Ripple.
 
 ## Auth
 
@@ -12,11 +14,30 @@ Both endpoints requires HTTP Basic Auth using your Shkeeper's login and password
 
 ## Create a multipayout task
 
-To create a multipayout task you should make a POST request with list of JSON objects, each describing a recipient as TRON account address and amount of USDT tokens to transfer to the recipient. Both values should be strings.
+To create a multipayout task you should make a POST request with list of JSON objects, each describing a recipient address and amount of USDT tokens to transfer to the recipient. Both values should be strings.
+
+`<crypto>` in url refers to an ID if cryptocurrency that can be optained from `/api/v1/crypto` endpoint:
+
+$ curl http://localhost:5000/api/v1/crypto | jq .
+
+```json
+{
+  "crypto": [
+    "ETH",
+    "ETH-USDT",
+    "USDC",
+    "TRX",
+    "ETH-USDC",
+    "USDT",
+    "XRP",
+  ]
+  ...
+}
+```
 
 ### REQUEST
 
-POST `/api/v1/USDT/multipayout`
+POST `/api/v1/<crypto>/multipayout`
 
 ```json
 [
@@ -58,7 +79,7 @@ If the transfer status happen to be an `error`, there will be a text description
 
 ### REQUEST
 
-GET `/api/v1/USDT/task/<task_id>`
+GET `/api/v1/<crypto>/task/<task_id>`
 
 ### RESPONSE
 
