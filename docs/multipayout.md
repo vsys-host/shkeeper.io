@@ -1,4 +1,4 @@
-# Multipayout API (USDT only)
+# Multipayout API (only for TRON, Ethereum, BNB and Ripple; not implemented for BTC,DOGE,LTC and Monero)
 
 This API allows to create a payout task which can transfer USDT to multiple accounts at once.
 
