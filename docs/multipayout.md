@@ -14,7 +14,7 @@ Both endpoints requires HTTP Basic Auth using your Shkeeper's login and password
 
 ## Create a multipayout task
 
-To create a multipayout task you should make a POST request with list of JSON objects, each describing a recipient address and amount of USDT tokens to transfer to the recipient. Both values should be strings.
+To create a multipayout task you should make a POST request with list of JSON objects, each describing a recipient address and amount currency to transfer to the recipient. Both values should be strings.
 
 `<crypto>` in url refers to an ID of cryptocurrency that can be obtained from `/api/v1/crypto` endpoint:
 
