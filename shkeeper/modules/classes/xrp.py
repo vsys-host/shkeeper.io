@@ -59,3 +59,6 @@ class Xrp(Ethereum):
 
         except Exception as e:
             return "Offline"
+
+
+    def metrics(self): return ''
