@@ -132,8 +132,8 @@ class Litecoin(Crypto):
     # For internal usage
 
     def get_rpc_credentials(self):
-        username = 'litecoind-rpc'; #environ.get(f"{self.crypto}_USERNAME", "shkeeper")
-        password = 'litecoind-rpc'; #environ.get(f"{self.crypto}_PASSWORD", "shkeeper")
+        username = environ.get(f"{self.crypto}_USERNAME", "shkeeper")
+        password = environ.get(f"{self.crypto}_PASSWORD", "shkeeper")
         return (username, password)
 
     def build_rpc_request(self, method, *params):

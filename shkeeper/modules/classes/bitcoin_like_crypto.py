@@ -132,8 +132,8 @@ class BitcoinLikeCrypto(Crypto):
     # For internal usage
 
     def get_rpc_credentials(self):
-        username = 'bitcoin-rpc'; #environ.get(f"{self.crypto}_USERNAME", "shkeeper")
-        password = 'bitcoin-rpc'; #environ.get(f"{self.crypto}_PASSWORD", "shkeeper")
+        username = environ.get(f"{self.crypto}_USERNAME", "shkeeper")
+        password = environ.get(f"{self.crypto}_PASSWORD", "shkeeper")
         return (username, password)
 
     def build_rpc_request(self, method, *params):
