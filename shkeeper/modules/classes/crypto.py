@@ -25,21 +25,23 @@ class Crypto(abc.ABC):
             'usdt',
             'usdc',
             # Ethereum
-            #'eth',
+            'eth',
             'eth_usdc',
             'eth_usdt',
             # Monero
-            #'Monero',
+            'Monero',
             # BNB
             'bnb',
             'bnb_usdt',
             'bnb_usdc',
             #XRP
             'xrp',
-            #'ltc',
-            #'doge'
+            #MATIC
+            'matic',
+            'polygon_usdt',
+            'polygon_usdc',
         ]
-        default_on = ['btc','ltc','eth','Monero', 'doge']
+        default_on = ['btc', 'ltc', 'doge']
         for symbol in default_off:
             if cls.__name__ == symbol and (f'{symbol.upper()}_WALLET' not in os.environ or
                                            os.environ[f'{symbol.upper()}_WALLET'] != 'enabled'):

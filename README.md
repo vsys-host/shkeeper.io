@@ -56,6 +56,9 @@ Install Shkepeer helm chart:
 
 ```
 # helm repo add vsys-host https://vsys-host.github.io/helm-charts
+# helm repo add mittwald https://helm.mittwald.de
+# helm repo update
+# helm install kubernetes-secret-generator mittwald/kubernetes-secret-generator
 # helm install -f values.yaml shkeeper vsys-host/shkeeper
 ```
 
