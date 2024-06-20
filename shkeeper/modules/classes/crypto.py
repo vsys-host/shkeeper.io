@@ -40,8 +40,10 @@ class Crypto(abc.ABC):
             'matic',
             'polygon_usdt',
             'polygon_usdc',
-
-            
+            #AVALANCHE
+            'avax',
+            'avalanche_usdt',
+            'avalanche_usdc',           
         ]
         default_on = ['btc', 'ltc', 'doge']
         for symbol in default_off:
