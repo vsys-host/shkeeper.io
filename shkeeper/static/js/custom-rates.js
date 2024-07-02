@@ -127,12 +127,12 @@ function helperCycleBinanceRates(currentRates)
 
 function getBinanceRealTRates(pairName, currentRate)
 {
-    if (['usdtusdt', 'eth-usdtusdt', 'bnb-usdtusdt', 'polygon-usdtusdt'].includes(pairName)) {
+    if (['usdtusdt', 'eth-usdtusdt', 'bnb-usdtusdt', 'polygon-usdtusdt', 'avalanche-usdtusdt'].includes(pairName)) {
         currentRate.innerHTML = "1";
         return;
     }
 
-    if (['eth-usdcusdt', 'bnb-usdcusdt', 'polygon-usdcusdt'].includes(pairName)) {
+    if (['eth-usdcusdt', 'bnb-usdcusdt', 'polygon-usdcusdt', 'avalanche-usdcusdt'].includes(pairName)) {
         pairName = 'usdcusdt';
     }
 

@@ -145,16 +145,16 @@ After a few minutes your Shkeeper should be reachable on https://<your domain> a
 
 ### Auth
 
-To authenticate to shkeeper.io use `X-Shkeeper-API-Key` HTTP header in a request:
+To authenticate to shkeeper.io use `X-Shkeeper-Api-Key` HTTP header in a request:
 
 ```
-X-Shkeeper-API-Key: <api key>
+X-Shkeeper-Api-Key: <api key>
 ```
 
 Curl example:
 
 ```
-curl -H "X-Shkeeper-API-Key: wvoNQaHswSBk9rZu" https://<shkeeper.io_url>/api/v1/crypto
+curl -H "X-Shkeeper-Api-Key: wvoNQaHswSBk9rZu" https://<shkeeper.io_url>/api/v1/crypto
 ```
 
 ### List available cryptos with GET `/api/v1/crypto`
@@ -162,7 +162,7 @@ curl -H "X-Shkeeper-API-Key: wvoNQaHswSBk9rZu" https://<shkeeper.io_url>/api/v1/
 Request example:
 
 ```
-curl -H "X-Shkeeper-API-Key: wvoNQaHswSBk9rZu" https://<shkeeper.io_url>/api/v1/crypto
+curl -H "X-Shkeeper-Api-Key: wvoNQaHswSBk9rZu" https://<shkeeper.io_url>/api/v1/crypto
 ```
 
 Response:
@@ -170,7 +170,6 @@ Response:
 ```jsonc
 {
   "status": "success",
-  "crypto": ["BTC", "LTC", "DOGE"],
   "crypto_list": [{"name": "BTC", "display_name": "Bitcoin"}, ...]
 }
 ```
@@ -192,7 +191,7 @@ Request example via curl:
 
 ```
 curl -d '{"external_id":"1","fiat":"USD","amount":100,"callback_url":"https://my-billing-system/callback.php"}' \
-     -H "X-Shkeeper-API-Key: wvoNQaHswSBk9rZu" \
+     -H "X-Shkeeper-Api-Key: wvoNQaHswSBk9rZu" \
      https://<shkeeper.io_url>/api/v1/BTC/payment_request
 ```
 
@@ -219,7 +218,7 @@ Response (on error):
 
 ### Payment notifications format
 
-Once shkeeper.io receives a payment it will send a payment notification to the `<callback_url>` using POST with json-encoded body and `X-Shkeeper-API-Key` HTTP header to authenticate to your system:
+Once shkeeper.io receives a payment it will send a payment notification to the `<callback_url>` using POST with json-encoded body and `X-Shkeeper-Api-Key` HTTP header to authenticate to your system:
 
 ```jsonc
 {
@@ -252,7 +251,7 @@ If a payment notification was successfuly processed by your server, it should re
 
 ```
 curl -d 'key=<decryption_key>' \
-     -H "X-Shkeeper-API-Key: wvoNQaHswSBk9rZu" \
+     -H "X-Shkeeper-Api-Key: wvoNQaHswSBk9rZu" \
      https://<shkeeper.io_url>/api/v1/decryption-key
 ```
 
