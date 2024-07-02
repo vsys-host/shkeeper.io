@@ -43,7 +43,7 @@ class Crypto(abc.ABC):
             #AVALANCHE
             'avax',
             'avalanche_usdt',
-            'avalanche_usdc',           
+            'avalanche_usdc',
         ]
         default_on = ['btc', 'ltc', 'doge']
         for symbol in default_off:
