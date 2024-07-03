@@ -100,42 +100,6 @@ def send_notification(tx):
     db.session.commit()
     app.logger.info(f'[{tx.crypto}/{tx.txid}] Notification has been accepted by {tx.invoice.callback_url}')
     return True
-
-def send_expired_notification(utxs):
-    for utx in utxs:
-        app.logger.info(f'[{utx.crypto}/{utx.external_id}] Expired Notificator started')
-
-        notification = {
-            "external_id": utx.external_id,
-            "crypto": utx.crypto,
-            "addr": utx.addr,
-            "status": utx.status.name
-        }
-
-        apikey = Crypto.instances[utx.crypto].wallet.apikey
-        app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Posting {notification} to {utx.callback_url} with api key {apikey}')
-
-        try:
-            r = requests.post(
-                utx.callback_url,
-                json=notification,
-                headers={"X-Shkeeper-Api-Key": apikey},
-                timeout=app.config.get('REQUESTS_NOTIFICATION_TIMEOUT'),
-            )
-        except Exception as e:
-            app.logger.error(f'[{utx.crypto}/{utx.external_id}] Notification failed: {e}')
-            return False
-
-        if r.status_code != 202:
-            app.logger.warning(f'[{utx.crypto}/{utx.external_id}] Notification failed by {utx.callback_url} with HTTP code {r.status_code}')
-            return False
-
-        utx.callback_confirmed = True
-        db.session.commit()
-        app.logger.info(f'[{utx.crypto}/{utx.external_id}] Notification has been accepted by {utx.callback_url}')
-
-    return True
-
 def list_unconfirmed():
     for tx in Transaction.query.filter_by(callback_confirmed=False):
         print(tx)
@@ -162,26 +126,6 @@ def update_confirmations():
             send_notification(tx)
         else:
             app.logger.info(f'[{tx.crypto}/{tx.txid}] Not enough confirmations yet')
-
-    expired_invoices = []
-    for itx in Invoice.query.filter_by(status=InvoiceStatus.UNPAID):
-        app.logger.info(f'[{itx.crypto}/{itx.external_id}/{itx.wallet.recalc}] Updating status')
-        if itx.wallet.recalc > 0:
-            if (itx.created_at + timedelta(hours=itx.wallet.recalc)) < datetime.now():
-                app.logger.info(f'[{itx.crypto}/{itx.external_id}] Updating status: expired')
-                itx.status = InvoiceStatus.EXPIRED
-                utx = Transaction.add(Crypto.instances[itx.crypto], {
-                    "txid": "",
-                    "addr": itx.addr,
-                    "amount": 0,
-                    "confirmations": 0
-                })
-                utx.callback_confirmed = True
-                expired_invoices.append(itx)
-                db.session.commit()
-
-    send_expired_notification(expired_invoices)
-
 @bp.cli.command()
 def list():
     """Shows list of transaction notifications to be sent"""
