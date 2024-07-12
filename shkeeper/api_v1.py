@@ -200,6 +200,7 @@ def status(crypto_name):
 
 
 @bp.post("/<crypto_name>/payout")
+@basic_auth_optional
 @login_required
 def payout(crypto_name):
     req = request.get_json(force=True)
