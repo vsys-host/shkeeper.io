@@ -203,14 +203,18 @@ def status(crypto_name):
 @basic_auth_optional
 @login_required
 def payout(crypto_name):
-    req = request.get_json(force=True)
-    crypto = Crypto.instances[crypto_name]
-    amount = Decimal(req['amount'])
-    res = crypto.mkpayout(
-        req['destination'],
-        amount,
-        req['fee'],
-    )
+    try:
+        req = request.get_json(force=True)
+        crypto = Crypto.instances[crypto_name]
+        amount = Decimal(req['amount'])
+        res = crypto.mkpayout(
+            req['destination'],
+            amount,
+            req['fee'],
+        ) 
+    except Exception as e:
+        app.logger.exception("Payout error")
+        return  {"status": "error", "message": f"Error: {e}"}
 
     if 'result' in res and res['result']:
         idtxs = res['result'] if isinstance(res['result'], list) else [res['result']]
