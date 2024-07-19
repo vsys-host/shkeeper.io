@@ -41,7 +41,7 @@ Password: admin
 
 ### Helpful links
 
-Details of the latest version can be found on the
+Details of the latest version can be found here: https://github.com/vsys-host/shkeeper.io/commits/main/
 
 Tutorial video: https://www.youtube.com/watch?v=yYK_JAm1_hg
 
@@ -352,7 +352,7 @@ Module has been tested on WHMCS Version: 8.10.1
 Find module for WHMCS here: https://github.com/vsys-host/whmcs-shkeeper-gateway-module
 
 
-### WooCommerce / WordPress
+### WooCommerce WordPress
 
 Shkeeper payment gateway plugin for CMS WordPress + WooCommerce
 
