@@ -388,7 +388,8 @@ If you have experienced any problems using SHKeeper, you can contact the communi
 
 ### CREATED BY
 
-![VSYS logo](https://github.com/user-attachments/assets/eb563832-7965-4276-80fa-1e8b31374917)
+![VSYS logo](https://github.com/user-attachments/assets/719e1f58-a6b4-455d-b4e6-531a777c52f0)
+
 
 
 ### JOIN OUR COMMUNITY
