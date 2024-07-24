@@ -74,6 +74,11 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return [[response['address'], Decimal(response['amount']), response['confirmations'], response['category']]]
+    
+    def get_confirmations_by_txid(self, txid):
+        transactions = self.getaddrbytx(txid)
+        _, _, confirmations, _ = transactions[0]
+        return confirmations
 
     def dump_wallet(self):
         response = requests.post(

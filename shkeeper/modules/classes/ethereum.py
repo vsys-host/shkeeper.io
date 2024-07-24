@@ -58,6 +58,12 @@ class Ethereum(Crypto):
         return Decimal(balance)
 
 
+    def get_confirmations_by_txid(self, txid):
+        transactions = self.getaddrbytx(txid)
+        _, _, confirmations, _ = transactions[0]
+        return confirmations
+
+
     def get_task(self, id):
         response = requests.post(
             f'http://{self.gethost()}/{self.crypto}/task/{id}',

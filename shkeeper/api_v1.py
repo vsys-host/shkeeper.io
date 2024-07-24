@@ -295,7 +295,8 @@ def walletnotify(crypto_name, txid):
                 tx.invoice.update_with_tx(tx)
                 UnconfirmedTransaction.delete(crypto_name, txid)
                 app.logger.info(f'[{crypto.crypto}/{txid}] TX has been added to db')
-                send_notification(tx)
+                if not tx.need_more_confirmations:
+                    send_notification(tx)
             except sqlalchemy.exc.IntegrityError as e:
                 app.logger.warning(f'[{crypto.crypto}/{txid}] TX already exist in db')
         return {"status": "success"}
