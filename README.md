@@ -129,7 +129,7 @@ Install Shkepeer helm chart:
 # helm install -f values.yaml shkeeper vsys-host/shkeeper
 ```
 
-Login to Shkeeper: http://<ip>:5000/
+Login to Shkeeper: http://\<ip>\:5000/
 
 
 ### Install auto SSL
