@@ -207,7 +207,7 @@ Apply CRDS:
 # kubectl apply -f ssl.yaml
 ```
 
-After a few minutes your Shkeeper should be reachable on https://\<your domain>\ and have a valid SSL.
+After a few minutes your Shkeeper should be reachable on https://\<your domain\> and have a valid SSL.
 
 
 ## API for plugins
