@@ -152,7 +152,10 @@ class Ethereum(Crypto):
         return response
 
     def metrics(self):
-        return requests.get(f'http://{self.gethost()}/metrics', auth=self.get_auth_creds()).text
+        try:
+            return requests.get(f'http://{self.gethost()}/metrics', auth=self.get_auth_creds()).text
+        except Exception as e:
+            return {'error': e}
 
     def get_all_addresses(self):
         response = requests.post(
