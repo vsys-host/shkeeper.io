@@ -116,7 +116,12 @@ def manage(crypto_name):
 def list_rates(fiat):
     cryptos = copy.deepcopy(Crypto.instances).values()
     for crypto in cryptos:
-        crypto.rate = ExchangeRate.get(fiat, crypto.crypto)
+        rate = ExchangeRate.get(fiat, crypto.crypto)
+        if rate.fee_policy is None:
+            rate.fee_policy = FeeCalculationPolicy.PERCENT_FEE
+            db.session.commit()
+        crypto.rate = rate
+
     return render_template("wallet/rates.j2",
         cryptos=cryptos,
         fiat=fiat,
