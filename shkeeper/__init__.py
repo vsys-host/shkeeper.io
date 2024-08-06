@@ -8,6 +8,8 @@ import shutil
 from flask import Flask
 import requests
 
+from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
+
 from .utils import format_decimal
 
 from flask_apscheduler import APScheduler
@@ -45,6 +47,8 @@ def create_app(test_config=None):
         UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get('UNCONFIRMED_TX_NOTIFICATION')),
         REQUESTS_TIMEOUT=int(os.environ.get('REQUESTS_TIMEOUT', 10)),
         REQUESTS_NOTIFICATION_TIMEOUT=int(os.environ.get('REQUESTS_NOTIFICATION_TIMEOUT', 30)),
+        DEV_MODE=bool(os.environ.get('DEV_MODE', False)),
+        DEV_MODE_ENC_PW=os.environ.get('DEV_MODE_ENC_PW'),
     )
 
     if test_config is None:
@@ -62,7 +66,10 @@ def create_app(test_config=None):
 
     # clear all session on app restart
     if sess_dir := app.config.get('SESSION_FILE_DIR'):
-        shutil.rmtree(sess_dir, ignore_errors=True)
+        if app.config.get('DEV_MODE'):
+            pass
+        else:
+            shutil.rmtree(sess_dir, ignore_errors=True)
     from flask_session import Session
     Session(app)
 
@@ -100,7 +107,6 @@ def create_app(test_config=None):
         from .models import Wallet, User, PayoutDestination, Invoice, ExchangeRate, Setting
         db.create_all()
 
-        flask_migrate.upgrade()
 
         # Create default user
         default_user = 'admin'
@@ -108,6 +114,10 @@ def create_app(test_config=None):
             admin = User(username=default_user)
             db.session.add(admin)
             db.session.commit()
+
+            flask_migrate.stamp(revision='head')
+        else:
+            flask_migrate.upgrade()
 
         # Register rate sources
         import shkeeper.modules.rates
@@ -135,6 +145,12 @@ def create_app(test_config=None):
             db.session.add(setting)
             db.session.commit()
             app.logger.info(f'WalletEncryptionPersistentStatus is set to {WalletEncryptionPersistentStatus(int(setting.value))}')
+
+        if app.config.get('DEV_MODE'):
+            if wallet_encryption.wallet_encryption.persistent_status() is WalletEncryptionPersistentStatus.enabled:
+                if key := app.config.get('DEV_MODE_ENC_PW'):
+                    wallet_encryption.wallet_encryption.set_key(key)
+                    wallet_encryption.wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.success)
 
         from . import tasks
         scheduler.start()

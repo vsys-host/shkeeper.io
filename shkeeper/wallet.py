@@ -1,5 +1,7 @@
+from collections import defaultdict
 import copy
 import csv
+from decimal import Decimal, InvalidOperation
 import inspect
 from io import StringIO
 import itertools
@@ -16,6 +18,7 @@ from werkzeug.wrappers import Response
 from flask import current_app as app
 import prometheus_client
 
+from shkeeper import db
 from shkeeper.auth import login_required, metrics_basic_auth
 from shkeeper.wallet_encryption import wallet_encryption, WalletEncryptionRuntimeStatus, WalletEncryptionPersistentStatus
 from .modules.classes.tron_token import TronToken
@@ -23,6 +26,7 @@ from .modules.classes.ethereum import Ethereum
 from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
+    FeeCalculationPolicy,
     Invoice,
     InvoiceAddress,
     Payout,
@@ -106,10 +110,10 @@ def manage(crypto_name):
         crypto=crypto, pdest=pdest, ppolicy=[i.value for i in PayoutPolicy], recalc=recalc, server_templates=server_templates)
 
 
-@bp.route('/rates', defaults={'fiat': 'USD'})
-@bp.route('/rates/<fiat>')
+@bp.get('/rates', defaults={'fiat': 'USD'})
+@bp.get('/rates/<fiat>')
 @login_required
-def rates(fiat):
+def list_rates(fiat):
     cryptos = copy.deepcopy(Crypto.instances).values()
     for crypto in cryptos:
         crypto.rate = ExchangeRate.get(fiat, crypto.crypto)
@@ -118,8 +122,34 @@ def rates(fiat):
         fiat=fiat,
         rate_providers=RateSource.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
-        txs=Transaction.query.all()
+        fee_calculation_policy=FeeCalculationPolicy,
     )
+
+@bp.post('/rates', defaults={'fiat': 'USD'})
+@bp.post('/rates/<fiat>')
+@login_required
+def save_rates(fiat):
+    rates = defaultdict(dict)
+    for k,v in request.form.items():
+        if k.startswith('rates__'):
+            _, symbol, field = k.split('__')
+            rates[symbol][field] = v
+    for symbol, fields in rates.items():
+        for k in fields:
+            if k in ('rate', 'fee', 'fixed_fee'):
+                try:
+                    fields[k] = Decimal(fields[k])
+                except InvalidOperation:
+                    fields[k] = Decimal(0)
+
+        # app.logger.info(fields)
+        # do not save rate from dynamic rate providers
+        if fields['source'] != 'manual':
+            del fields['rate']
+
+        ExchangeRate.query.filter_by(crypto=symbol, fiat=fiat).update(fields)
+    db.session.commit()
+    return redirect(url_for("wallet.list_rates"))
 
 @bp.get('/transactions')
 @login_required

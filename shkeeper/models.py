@@ -1,3 +1,4 @@
+from collections import namedtuple
 import enum
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -102,13 +103,26 @@ class Wallet(db.Model):
         return res
 
 
+class FeeCalculationPolicy(namedtuple('FeeCalculationPolicy', 'name desc'), enum.Enum):
+    NO_FEE = 'NO_FEE', 'No fee'
+    PERCENT_FEE = 'PERCENT_FEE', 'Percent'
+    FIXED_FEE = 'FIXED_FEE', 'Fixed fee'
+    PERCENT_OR_MINIMAL_FIXED_FEE = 'PERCENT_OR_MINIMAL_FIXED_FEE', 'Percent but not less than a minimal fixed fee'
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class ExchangeRate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     source = db.Column(db.String, default='dynamic')  # manual or dynamic (binance, etc)
     crypto = db.Column(db.String)
     fiat = db.Column(db.String)
     rate = db.Column(db.Numeric, default=0)  # crypto / fiat, only used is source is manual
-    fee = db.Column(db.Numeric, default=2)
+    fee = db.Column(db.Numeric, default=2)  # percent
+    fixed_fee = db.Column(db.Numeric, default=0)
+    fee_policy = db.Column(db.Enum(FeeCalculationPolicy), default=FeeCalculationPolicy.PERCENT_FEE)
+
     __table_args__ = (db.UniqueConstraint('crypto', 'fiat'), )
 
     def get_rate(self):
@@ -118,9 +132,23 @@ class ExchangeRate(db.Model):
         rs = RateSource.instances.get(self.source, RateSource.instances.get('binance'))
         return rs.get_rate(self.fiat, self.crypto)
 
+    def get_fee(self, amount: Decimal) -> Decimal:
+        fcp = FeeCalculationPolicy
+        if self.fee_policy == fcp.NO_FEE:
+            return Decimal(0)
+        percent_fee = Decimal(amount * (self.fee / 100))
+        if self.fee_policy is None or self.fee_policy == fcp.PERCENT_FEE:
+            return percent_fee
+        if self.fee_policy == fcp.FIXED_FEE:
+            return self.fixed_fee
+        if self.fee_policy == fcp.PERCENT_OR_MINIMAL_FIXED_FEE:
+            return Decimal(max(percent_fee, self.fixed_fee))
+        raise Exception(f'Unexpected fee policy: {self.fee_policy}')
+
     def convert(self, amount):
         rate = self.get_rate()
-        converted = (amount / rate) * (1 + (self.fee / 100))
+        converted = amount / rate
+        converted += self.get_fee(converted)  # add fee
         crypto = Crypto.instances[self.crypto]
         converted = round(converted, crypto.precision)
         return (converted, rate)
