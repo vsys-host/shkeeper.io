@@ -9,7 +9,7 @@ from flask import current_app as app
 from shkeeper import db
 from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
-from .utils import format_decimal
+from .utils import format_decimal, remove_exponent
 from .exceptions import NotRelatedToAnyInvoice
 
 
@@ -202,9 +202,9 @@ class Invoice(db.Model):
         return {
             'txs': [tx.to_json() for tx in (*self.transactions, *self.unconfirmed_transactions)],
             'external_id': self.external_id,
-            'balance_fiat': self.balance_fiat,
+            'balance_fiat': remove_exponent(self.balance_fiat),
             'fiat': self.fiat,
-            'amount_fiat': self.amount_fiat,
+            'amount_fiat': remove_exponent(self.amount_fiat),
             'status': self.status.name,
         }
 
@@ -314,7 +314,7 @@ class UnconfirmedTransaction(db.Model):
 
     def to_json(self):
         return {
-            'amount': self.amount_crypto,
+            'amount': remove_exponent(self.amount_crypto),
             'crypto': self.crypto,
             'addr': self.addr,
             'txid': self.txid,
@@ -375,7 +375,7 @@ class Transaction(db.Model):
 
     def to_json(self):
         return {
-            'amount': self.amount_crypto,
+            'amount': remove_exponent(self.amount_crypto),
             'crypto': self.crypto,
             'addr': self.addr,
             'txid': self.txid,
