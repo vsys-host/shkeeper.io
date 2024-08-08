@@ -30,27 +30,26 @@ class User(db.Model):
     def get_api_key(cls):
         return cls.query.first().api_key
 
+
 class PayoutDestination(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     crypto = db.Column(db.String)
     addr = db.Column(db.String, nullable=False)
-    comment = db.Column(db.String, default='')
+    comment = db.Column(db.String, default="")
 
-    __table_args__ =  (
-        db.UniqueConstraint('crypto', 'addr'),
-    )
+    __table_args__ = (db.UniqueConstraint("crypto", "addr"),)
 
 
 class PayoutPolicy(enum.Enum):
-    MANUAL = 'manual'
-    SCHEDULED = 'scheduled'
-    LIMIT = 'limit'
+    MANUAL = "manual"
+    SCHEDULED = "scheduled"
+    LIMIT = "limit"
+
 
 class Fiat:
-
     @classmethod
     def list(cls):
-        return ['USD', 'EUR']
+        return ["USD", "EUR"]
 
 
 class Wallet(db.Model):
@@ -81,7 +80,7 @@ class Wallet(db.Model):
             if wallet_with_apikey := cls.query.filter(cls.apikey != None).first():
                 wallet.apikey = wallet_with_apikey.apikey
             else:
-                wallet.apikey = app.config['SUGGESTED_WALLET_APIKEY']
+                wallet.apikey = app.config["SUGGESTED_WALLET_APIKEY"]
         db.session.commit()
         return wallet
 
@@ -94,20 +93,29 @@ class Wallet(db.Model):
 
         crypto = Crypto.instances[self.crypto]
         balance = crypto.balance()
-        res = crypto.mkpayout(self.pdest, balance, self.pfee, subtract_fee_from_amount=True)
+        res = crypto.mkpayout(
+            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+        )
 
-        if 'result' in res and res['result']:
-            idtxs = res['result'] if isinstance(res['result'], list) else [res['result']]
-            Payout.add({'dest': self.pdest, 'amount': balance, 'txids': idtxs}, crypto.crypto)
+        if "result" in res and res["result"]:
+            idtxs = (
+                res["result"] if isinstance(res["result"], list) else [res["result"]]
+            )
+            Payout.add(
+                {"dest": self.pdest, "amount": balance, "txids": idtxs}, crypto.crypto
+            )
 
         return res
 
 
-class FeeCalculationPolicy(namedtuple('FeeCalculationPolicy', 'name desc'), enum.Enum):
-    NO_FEE = 'NO_FEE', 'No fee'
-    PERCENT_FEE = 'PERCENT_FEE', 'Percent'
-    FIXED_FEE = 'FIXED_FEE', 'Fixed fee'
-    PERCENT_OR_MINIMAL_FIXED_FEE = 'PERCENT_OR_MINIMAL_FIXED_FEE', 'Percent but not less than a minimal fixed fee'
+class FeeCalculationPolicy(namedtuple("FeeCalculationPolicy", "name desc"), enum.Enum):
+    NO_FEE = "NO_FEE", "No fee"
+    PERCENT_FEE = "PERCENT_FEE", "Percent"
+    FIXED_FEE = "FIXED_FEE", "Fixed fee"
+    PERCENT_OR_MINIMAL_FIXED_FEE = (
+        "PERCENT_OR_MINIMAL_FIXED_FEE",
+        "Percent but not less than a minimal fixed fee",
+    )
 
     def __str__(self) -> str:
         return self.name
@@ -115,21 +123,25 @@ class FeeCalculationPolicy(namedtuple('FeeCalculationPolicy', 'name desc'), enum
 
 class ExchangeRate(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    source = db.Column(db.String, default='dynamic')  # manual or dynamic (binance, etc)
+    source = db.Column(db.String, default="dynamic")  # manual or dynamic (binance, etc)
     crypto = db.Column(db.String)
     fiat = db.Column(db.String)
-    rate = db.Column(db.Numeric, default=0)  # crypto / fiat, only used is source is manual
+    rate = db.Column(
+        db.Numeric, default=0
+    )  # crypto / fiat, only used is source is manual
     fee = db.Column(db.Numeric, default=2)  # percent
     fixed_fee = db.Column(db.Numeric, default=0)
-    fee_policy = db.Column(db.Enum(FeeCalculationPolicy), default=FeeCalculationPolicy.PERCENT_FEE)
+    fee_policy = db.Column(
+        db.Enum(FeeCalculationPolicy), default=FeeCalculationPolicy.PERCENT_FEE
+    )
 
-    __table_args__ = (db.UniqueConstraint('crypto', 'fiat'), )
+    __table_args__ = (db.UniqueConstraint("crypto", "fiat"),)
 
     def get_rate(self):
-        if self.source == 'manual':
+        if self.source == "manual":
             return self.rate
 
-        rs = RateSource.instances.get(self.source, RateSource.instances.get('binance'))
+        rs = RateSource.instances.get(self.source, RateSource.instances.get("binance"))
         return rs.get_rate(self.fiat, self.crypto)
 
     def get_fee(self, amount: Decimal) -> Decimal:
@@ -143,7 +155,7 @@ class ExchangeRate(db.Model):
             return self.fixed_fee
         if self.fee_policy == fcp.PERCENT_OR_MINIMAL_FIXED_FEE:
             return Decimal(max(percent_fee, self.fixed_fee))
-        raise Exception(f'Unexpected fee policy: {self.fee_policy}')
+        raise Exception(f"Unexpected fee policy: {self.fee_policy}")
 
     def convert(self, amount):
         rate = self.get_rate()
@@ -155,16 +167,18 @@ class ExchangeRate(db.Model):
 
     @classmethod
     def get(cls, fiat, crypto):
-        src = cls.query.filter_by(fiat=fiat,crypto=crypto).first()
+        src = cls.query.filter_by(fiat=fiat, crypto=crypto).first()
         if not src:
-            raise Exception(f"Exchange rate src config for {fiat}-{crypto} is not found")
+            raise Exception(
+                f"Exchange rate src config for {fiat}-{crypto} is not found"
+            )
         return src
 
     @classmethod
     def register_currency(cls, crypto):
         for fiat in Fiat.list():
-            if not cls.query.filter_by(fiat=fiat,crypto=crypto.crypto).first():
-                db.session.add(cls(fiat=fiat,crypto=crypto.crypto))
+            if not cls.query.filter_by(fiat=fiat, crypto=crypto.crypto).first():
+                db.session.add(cls(fiat=fiat, crypto=crypto.crypto))
                 db.session.commit()
 
 
@@ -180,9 +194,11 @@ class InvoiceStatus(enum.Enum):
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    transactions = db.relationship('Transaction', backref='invoice', lazy=True)
-    unconfirmed_transactions = db.relationship('UnconfirmedTransaction', backref='invoice', lazy=True)
-    addresses = db.relationship('InvoiceAddress', backref='invoice', lazy=True)
+    transactions = db.relationship("Transaction", backref="invoice", lazy=True)
+    unconfirmed_transactions = db.relationship(
+        "UnconfirmedTransaction", backref="invoice", lazy=True
+    )
+    addresses = db.relationship("InvoiceAddress", backref="invoice", lazy=True)
     crypto = db.Column(db.String)
     addr = db.Column(db.String)
     external_id = db.Column(db.String)
@@ -195,17 +211,23 @@ class Invoice(db.Model):
     exchange_rate = db.Column(db.Numeric)
     status = db.Column(db.Enum(InvoiceStatus), default=InvoiceStatus.UNPAID)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
-                                        onupdate=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    )
 
     def to_json(self):
         return {
-            'txs': [tx.to_json() for tx in (*self.transactions, *self.unconfirmed_transactions)],
-            'external_id': self.external_id,
-            'balance_fiat': remove_exponent(self.balance_fiat),
-            'fiat': self.fiat,
-            'amount_fiat': remove_exponent(self.amount_fiat),
-            'status': self.status.name,
+            "txs": [
+                tx.to_json()
+                for tx in (*self.transactions, *self.unconfirmed_transactions)
+            ],
+            "external_id": self.external_id,
+            "balance_fiat": remove_exponent(self.balance_fiat),
+            "fiat": self.fiat,
+            "amount_fiat": remove_exponent(self.amount_fiat),
+            "status": self.status.name,
         }
 
     @property
@@ -217,23 +239,33 @@ class Invoice(db.Model):
         return ExchangeRate.get(self.fiat, self.crypto)
 
     def update_with_tx(self, tx):
-
         # recalculate amount_crypto according to current exchange rate if enabled
         if tx.invoice.wallet.recalc > 0:
-            if (tx.invoice.created_at + timedelta(hours=tx.invoice.wallet.recalc)) < datetime.now():
-                tx.invoice.amount_crypto, tx.invoice.exchange_rate = tx.invoice.rate.convert(tx.invoice.amount_fiat)
+            if (
+                tx.invoice.created_at + timedelta(hours=tx.invoice.wallet.recalc)
+            ) < datetime.now():
+                (
+                    tx.invoice.amount_crypto,
+                    tx.invoice.exchange_rate,
+                ) = tx.invoice.rate.convert(tx.invoice.amount_fiat)
                 # recalculate tx fiat amount according to a new exchange rate
                 tx.amount_fiat = tx.amount_crypto * tx.invoice.exchange_rate
 
         # add tx to invoice balance
         tx.invoice.balance_fiat += tx.amount_fiat
-        if tx.crypto == tx.invoice.crypto:  # do not add different tokens e.g. TRX and TRC20 USDT
+        if (
+            tx.crypto == tx.invoice.crypto
+        ):  # do not add different tokens e.g. TRX and TRC20 USDT
             tx.invoice.balance_crypto += tx.amount_crypto
 
         # change invoice status according to its new balance
-        if tx.invoice.balance_fiat < (tx.invoice.amount_fiat * (tx.invoice.wallet.llimit / 100)):
+        if tx.invoice.balance_fiat < (
+            tx.invoice.amount_fiat * (tx.invoice.wallet.llimit / 100)
+        ):
             tx.invoice.status = InvoiceStatus.PARTIAL
-        elif tx.invoice.balance_fiat < (tx.invoice.amount_fiat * (tx.invoice.wallet.ulimit / 100)):
+        elif tx.invoice.balance_fiat < (
+            tx.invoice.amount_fiat * (tx.invoice.wallet.ulimit / 100)
+        ):
             tx.invoice.status = InvoiceStatus.PAID
         else:
             tx.invoice.status = InvoiceStatus.OVERPAID
@@ -244,15 +276,18 @@ class Invoice(db.Model):
     @classmethod
     def add(cls, crypto, request):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
-        invoice = cls.query.filter_by(external_id=request['external_id'],
-                                      callback_url=request['callback_url']).first()
+        invoice = cls.query.filter_by(
+            external_id=request["external_id"], callback_url=request["callback_url"]
+        ).first()
         if invoice:
             # updating existing invoice
             if invoice.crypto != crypto.crypto:
                 invoice.crypto = crypto.crypto
 
                 # if address for new crypto already exist, use it instead of generating a new one
-                invoice_address = InvoiceAddress.query.filter_by(invoice_id=invoice.id, crypto=crypto.crypto).first()
+                invoice_address = InvoiceAddress.query.filter_by(
+                    invoice_id=invoice.id, crypto=crypto.crypto
+                ).first()
                 if invoice_address:
                     invoice.addr = invoice_address.addr
                 else:
@@ -263,21 +298,25 @@ class Invoice(db.Model):
                     invoice_address.addr = invoice.addr
                     db.session.add(invoice_address)
 
-            invoice.fiat = request['fiat']
-            invoice.amount_fiat = Decimal(request['amount'])
+            invoice.fiat = request["fiat"]
+            invoice.amount_fiat = Decimal(request["amount"])
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
-            invoice.amount_crypto, invoice.exchange_rate = rate.convert(invoice.amount_fiat)
+            invoice.amount_crypto, invoice.exchange_rate = rate.convert(
+                invoice.amount_fiat
+            )
         else:
             # creating new invoice
             invoice = cls()
             invoice.crypto = crypto.crypto
             invoice.addr = crypto.mkaddr()
-            invoice.external_id = request['external_id']
-            invoice.callback_url = request['callback_url']
-            invoice.fiat = request['fiat']
-            invoice.amount_fiat = Decimal(request['amount'])
+            invoice.external_id = request["external_id"]
+            invoice.callback_url = request["callback_url"]
+            invoice.fiat = request["fiat"]
+            invoice.amount_fiat = Decimal(request["amount"])
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
-            invoice.amount_crypto, invoice.exchange_rate = rate.convert(invoice.amount_fiat)
+            invoice.amount_crypto, invoice.exchange_rate = rate.convert(
+                invoice.amount_fiat
+            )
             db.session.add(invoice)
             db.session.commit()
 
@@ -300,9 +339,10 @@ class Invoice(db.Model):
             "display_name": Crypto.instances[self.crypto].display_name,
         }
 
+
 class UnconfirmedTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, db.ForeignKey("invoice.id"), nullable=False)
     addr = db.Column(db.String)
     txid = db.Column(db.String)
     crypto = db.Column(db.String)
@@ -310,22 +350,26 @@ class UnconfirmedTransaction(db.Model):
     callback_confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
-    __table_args__ = (db.UniqueConstraint('crypto', 'txid', 'invoice_id'), )
+    __table_args__ = (db.UniqueConstraint("crypto", "txid", "invoice_id"),)
 
     def to_json(self):
         return {
-            'amount': remove_exponent(self.amount_crypto),
-            'crypto': self.crypto,
-            'addr': self.addr,
-            'txid': self.txid,
-            'status': 'UNCONFIRMED',
+            "amount": remove_exponent(self.amount_crypto),
+            "crypto": self.crypto,
+            "addr": self.addr,
+            "txid": self.txid,
+            "status": "UNCONFIRMED",
         }
 
     @classmethod
     def add(cls, crypto_name, txid, addr, amount):
-        app.logger.info(f'Add unconfirmed transaction {txid} for {amount} {crypto_name} -> {addr}')
+        app.logger.info(
+            f"Add unconfirmed transaction {txid} for {amount} {crypto_name} -> {addr}"
+        )
 
-        invoice_address = InvoiceAddress.query.filter_by(crypto=crypto_name, addr=addr).first()
+        invoice_address = InvoiceAddress.query.filter_by(
+            crypto=crypto_name, addr=addr
+        ).first()
         if not invoice_address:
             # Check address in Invoice table in case the instance was upgraded from older version that does not have InvoiceAddress table
             invoice = Invoice.query.filter_by(addr=addr).first()
@@ -333,7 +377,7 @@ class UnconfirmedTransaction(db.Model):
             invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
 
         if not invoice:
-            raise NotRelatedToAnyInvoice(f'{addr} is not related to any invoice')
+            raise NotRelatedToAnyInvoice(f"{addr} is not related to any invoice")
 
         t = UnconfirmedTransaction(
             txid=txid,
@@ -348,7 +392,7 @@ class UnconfirmedTransaction(db.Model):
 
     @classmethod
     def delete(cls, crypto_name, txid):
-        app.logger.info(f'Delete unconfirmed transaction {crypto_name} {txid}')
+        app.logger.info(f"Delete unconfirmed transaction {crypto_name} {txid}")
 
         db.session.execute(
             db.delete(UnconfirmedTransaction).filter_by(crypto=crypto_name, txid=txid)
@@ -358,7 +402,7 @@ class UnconfirmedTransaction(db.Model):
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, db.ForeignKey("invoice.id"), nullable=False)
     txid = db.Column(db.String)
     crypto = db.Column(db.String)
     amount_crypto = db.Column(db.Numeric)
@@ -366,25 +410,30 @@ class Transaction(db.Model):
     need_more_confirmations = db.Column(db.Boolean, default=True)
     callback_confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
-                                        onupdate=db.func.current_timestamp())
-    __table_args__ = (db.UniqueConstraint('crypto', 'txid', 'invoice_id'), )
+    updated_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    )
+    __table_args__ = (db.UniqueConstraint("crypto", "txid", "invoice_id"),)
 
     def __repr__(self):
         return f"txid={self.txid}"
 
     def to_json(self):
         return {
-            'amount': remove_exponent(self.amount_crypto),
-            'crypto': self.crypto,
-            'addr': self.addr,
-            'txid': self.txid,
-            'status': 'CONFIRMED',
+            "amount": remove_exponent(self.amount_crypto),
+            "crypto": self.crypto,
+            "addr": self.addr,
+            "txid": self.txid,
+            "status": "CONFIRMED",
         }
 
     @property
     def addr(self):
-        if invoice_address := InvoiceAddress.query.filter_by(crypto=self.crypto, invoice_id=self.invoice_id).first():
+        if invoice_address := InvoiceAddress.query.filter_by(
+            crypto=self.crypto, invoice_id=self.invoice_id
+        ).first():
             return invoice_address.addr
         else:
             return self.invoice.addr
@@ -393,9 +442,7 @@ class Transaction(db.Model):
     def add_outgoing(cls, crypto, txid):
         for addr, amount, _, _ in crypto.getaddrbytx(txid):
             payout_invoice = Invoice(
-                addr=addr,
-                fiat="USD",
-                status=InvoiceStatus.OUTGOING
+                addr=addr, fiat="USD", status=InvoiceStatus.OUTGOING
             )
             db.session.add(payout_invoice)
             db.session.commit()
@@ -415,11 +462,13 @@ class Transaction(db.Model):
 
     @classmethod
     def add(cls, crypto, tx):
-        invoice_address = InvoiceAddress.query.filter_by(crypto=crypto.crypto, addr=tx['addr']).first()
+        invoice_address = InvoiceAddress.query.filter_by(
+            crypto=crypto.crypto, addr=tx["addr"]
+        ).first()
 
         if not invoice_address:
             # Check address in Invoice table in case the instance was upgraded from older version that does not have InvoiceAddress table
-            invoice = Invoice.query.filter_by(addr=tx['addr']).first()
+            invoice = Invoice.query.filter_by(addr=tx["addr"]).first()
         else:
             invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
 
@@ -428,16 +477,16 @@ class Transaction(db.Model):
 
         t = cls()
         t.invoice_id = invoice.id
-        t.txid = tx['txid']
+        t.txid = tx["txid"]
         t.crypto = crypto.crypto
-        t.amount_crypto = tx['amount']
+        t.amount_crypto = tx["amount"]
         if invoice.crypto != crypto.crypto:
             rate = ExchangeRate.get(invoice.fiat, crypto.crypto).get_rate()
             t.amount_fiat = t.amount_crypto * rate
         else:
             t.amount_fiat = t.amount_crypto * invoice.exchange_rate
 
-        if tx['confirmations'] >= crypto.wallet.confirmations:
+        if tx["confirmations"] >= crypto.wallet.confirmations:
             t.need_more_confirmations = False
 
         db.session.add(t)
@@ -458,32 +507,33 @@ class PayoutStatus(enum.Enum):
     SUCCESS = enum.auto()
     FAIL = enum.auto()
 
+
 class Payout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
-                                        onupdate=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    )
     amount = db.Column(db.Numeric)
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
     status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
-    transactions = db.relationship('PayoutTx', backref='payout', lazy=True)
+    transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
     @classmethod
     def add(cls, payout, crypto):
         p = cls(
-            dest_addr = payout['dest'],
-            amount = payout['amount'],
-            crypto = crypto,
+            dest_addr=payout["dest"],
+            amount=payout["amount"],
+            crypto=crypto,
         )
         db.session.add(p)
         db.session.commit()
 
-        for txid in payout['txids']:
-            ptx = PayoutTx(
-                payout_id = p.id,
-                txid = txid
-            )
+        for txid in payout["txids"]:
+            ptx = PayoutTx(payout_id=p.id, txid=txid)
             db.session.add(ptx)
 
         db.session.commit()
@@ -494,12 +544,16 @@ class PayoutTxStatus(enum.Enum):
     SUCCESS = enum.auto()
     FAIL = enum.auto()
 
+
 class PayoutTx(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    payout_id = db.Column(db.Integer, db.ForeignKey('payout.id'), nullable=False)
+    payout_id = db.Column(db.Integer, db.ForeignKey("payout.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(),
-                                        onupdate=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp(),
+    )
     txid = db.Column(db.String)
     status = db.Column(db.Enum(PayoutTxStatus), default=PayoutTxStatus.IN_PROGRESS)
 
@@ -511,8 +565,8 @@ class Setting(db.Model):
 
 class InvoiceAddress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    invoice_id = db.Column(db.Integer, db.ForeignKey('invoice.id'), nullable=False)
+    invoice_id = db.Column(db.Integer, db.ForeignKey("invoice.id"), nullable=False)
     crypto = db.Column(db.String)
     addr = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    __table_args__ = (db.UniqueConstraint('invoice_id', 'crypto', 'addr'), )
+    __table_args__ = (db.UniqueConstraint("invoice_id", "crypto", "addr"),)

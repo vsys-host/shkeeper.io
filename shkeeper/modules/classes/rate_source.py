@@ -10,4 +10,5 @@ class RateSource(metaclass=ABCMeta):
         cls.instances[instance.name] = instance
 
     @abstractmethod
-    def get_rate(self, fiat, crypto): pass
+    def get_rate(self, fiat, crypto):
+        pass

@@ -19,23 +19,28 @@ from shkeeper import db
 
 bp = Blueprint("auth", __name__, url_prefix="/")
 
+
 @bp.context_processor
 def inject_theme():
-    return {'theme': request.cookies.get('theme', 'light')}
+    return {"theme": request.cookies.get("theme", "light")}
+
 
 def metrics_basic_auth(view):
-
     @functools.wraps(view)
     def wrapped_view(**kwargs):
-        metrics_username = os.environ.get('METRICS_USERNAME', 'shkeeper')
-        metrics_password = os.environ.get('METRICS_PASSWORD', 'shkeeper')
+        metrics_username = os.environ.get("METRICS_USERNAME", "shkeeper")
+        metrics_password = os.environ.get("METRICS_PASSWORD", "shkeeper")
         auth = request.authorization
-        if not (auth and auth.username == metrics_username
-                     and auth.password == metrics_password):
-            return {'status': 'error', 'msg': 'authorization requred'}, 401
+        if not (
+            auth
+            and auth.username == metrics_username
+            and auth.password == metrics_password
+        ):
+            return {"status": "error", "msg": "authorization requred"}, 401
         return view(**kwargs)
 
     return wrapped_view
+
 
 def basic_auth_optional(view):
     """View decorator that allow to authenticate using HTTP Basic Auth."""
@@ -49,10 +54,14 @@ def basic_auth_optional(view):
                 if user and user.verify_password(auth.password):
                     g.user = user
                 else:
-                    return {"status": "error", "message": "Bad HTTP Basic Auth credentials"}
+                    return {
+                        "status": "error",
+                        "message": "Bad HTTP Basic Auth credentials",
+                    }
         return view(**kwargs)
 
     return wrapped_view
+
 
 def login_required(view):
     """View decorator that redirects anonymous users to the login page."""
@@ -61,15 +70,18 @@ def login_required(view):
     def wrapped_view(**kwargs):
         if g.user is None:
             if "X-Shkeeper-Api-Key" in request.headers:
-                return {"status": "error", "message": "This endpoint doesn't accept X-Shkeeper-Api-Key auth"}
+                return {
+                    "status": "error",
+                    "message": "This endpoint doesn't accept X-Shkeeper-Api-Key auth",
+                }
             return redirect(url_for("auth.login"))
 
         return view(**kwargs)
 
     return wrapped_view
 
-def api_key_required(view):
 
+def api_key_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
         if "X-Shkeeper-Api-Key" not in request.headers:
@@ -83,6 +95,7 @@ def api_key_required(view):
             return {"status": "error", "message": "Bad API key"}
 
     return wrapped_view
+
 
 @bp.before_app_request
 def load_logged_in_user():
@@ -117,7 +130,6 @@ def load_logged_in_user():
 #                 g.user = User.query.get(1)
 
 
-
 @bp.route("/login", methods=("GET", "POST"))
 def login():
     """Log in a registered user by adding the user id to the session."""
@@ -148,14 +160,15 @@ def login():
 
     return render_template("auth/login.j2")
 
+
 @bp.route("/set-password", methods=("GET", "POST"))
 def set_password():
     admin = User.query.get(1)
     if admin.passhash:
         return redirect(url_for("auth.login"))
-    if request.method == 'POST':
-        if request.form['pw1'] == request.form['pw2']:
-            admin.passhash = User.get_password_hash(request.form['pw1'])
+    if request.method == "POST":
+        if request.form["pw1"] == request.form["pw2"]:
+            admin.passhash = User.get_password_hash(request.form["pw1"])
             db.session.commit()
             return redirect(url_for("auth.login"))
         else:

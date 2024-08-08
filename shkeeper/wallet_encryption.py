@@ -16,25 +16,28 @@ class WalletEncryptionRuntimeStatus(enum.Enum):
 
 
 class wallet_encryption:
-
-    _key = 'shkeeper'
+    _key = "shkeeper"
     _runtime_status = WalletEncryptionRuntimeStatus.pending
 
     @staticmethod
     def persistent_status() -> WalletEncryptionPersistentStatus:
         from . import db
         from .models import Setting
-        if setting := Setting.query.get('WalletEncryptionPersistentStatus'):
+
+        if setting := Setting.query.get("WalletEncryptionPersistentStatus"):
             return WalletEncryptionPersistentStatus(int(setting.value))
 
     @staticmethod
     def set_persistent_status(status: WalletEncryptionPersistentStatus):
         from . import db
         from .models import Setting
-        if setting := Setting.query.get('WalletEncryptionPersistentStatus'):
+
+        if setting := Setting.query.get("WalletEncryptionPersistentStatus"):
             setting.value = status.value
         else:
-            setting = Setting(name='WalletEncryptionPersistentStatus', value=status.value)
+            setting = Setting(
+                name="WalletEncryptionPersistentStatus", value=status.value
+            )
             db.session.add(setting)
         db.session.commit()
 
@@ -68,15 +71,17 @@ class wallet_encryption:
     def save_hash(hash):
         from . import db
         from .models import Setting
-        if setting := Setting.query.get('WalletEncryptionPasswordHash'):
+
+        if setting := Setting.query.get("WalletEncryptionPasswordHash"):
             setting.value = hash
         else:
-            setting = Setting(name='WalletEncryptionPasswordHash', value=hash)
+            setting = Setting(name="WalletEncryptionPasswordHash", value=hash)
             db.session.add(setting)
         db.session.commit()
 
     @staticmethod
     def retrieve_hash():
         from .models import Setting
-        if setting := Setting.query.get('WalletEncryptionPasswordHash'):
+
+        if setting := Setting.query.get("WalletEncryptionPasswordHash"):
             return setting.value

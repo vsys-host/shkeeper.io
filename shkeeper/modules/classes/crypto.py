@@ -3,9 +3,9 @@ import inspect
 import os
 from typing import Dict
 
-class Crypto(abc.ABC):
 
-    instances: Dict[str, 'Crypto'] = {}
+class Crypto(abc.ABC):
+    instances: Dict[str, "Crypto"] = {}
     wallet_created = False
     has_autopayout = True
     can_set_tx_fee = True
@@ -21,74 +21,88 @@ class Crypto(abc.ABC):
 
         default_off = [
             # Tron
-            'trx',
-            'usdt',
-            'usdc',
+            "trx",
+            "usdt",
+            "usdc",
             # Ethereum
-            'eth',
-            'eth_usdc',
-            'eth_usdt',
+            "eth",
+            "eth_usdc",
+            "eth_usdt",
             # Monero
-            'Monero',
+            "Monero",
             # BNB
-            'bnb',
-            'bnb_usdt',
-            'bnb_usdc',
-            #XRP
-            'xrp',
-            #MATIC
-            'matic',
-            'polygon_usdt',
-            'polygon_usdc',
-            #AVALANCHE
-            'avax',
-            'avalanche_usdt',
-            'avalanche_usdc',           
+            "bnb",
+            "bnb_usdt",
+            "bnb_usdc",
+            # XRP
+            "xrp",
+            # MATIC
+            "matic",
+            "polygon_usdt",
+            "polygon_usdc",
+            # AVALANCHE
+            "avax",
+            "avalanche_usdt",
+            "avalanche_usdc",
         ]
-        default_on = ['btc', 'ltc', 'doge']
+        default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
-            if cls.__name__ == symbol and (f'{symbol.upper()}_WALLET' not in os.environ or
-                                           os.environ[f'{symbol.upper()}_WALLET'] != 'enabled'):
+            if cls.__name__ == symbol and (
+                f"{symbol.upper()}_WALLET" not in os.environ
+                or os.environ[f"{symbol.upper()}_WALLET"] != "enabled"
+            ):
                 return
 
         for symbol in default_on:
-            if (cls.__name__ == symbol
-                and f'{symbol.upper()}_WALLET' in os.environ
-                and os.environ[f'{symbol.upper()}_WALLET'] == 'disabled'):
+            if (
+                cls.__name__ == symbol
+                and f"{symbol.upper()}_WALLET" in os.environ
+                and os.environ[f"{symbol.upper()}_WALLET"] == "disabled"
+            ):
                 return
 
         instance = cls()
         cls.instances[instance.crypto] = instance
 
     @abc.abstractmethod
-    def getname(self): pass
+    def getname(self):
+        pass
 
     @abc.abstractmethod
-    def gethost(self): pass
+    def gethost(self):
+        pass
 
     @abc.abstractmethod
-    def balance(self): pass
+    def balance(self):
+        pass
 
     @abc.abstractmethod
-    def getstatus(self): pass
+    def getstatus(self):
+        pass
 
     @abc.abstractmethod
-    def mkaddr(self): pass
+    def mkaddr(self):
+        pass
 
     @abc.abstractmethod
-    def getaddrbytx(self, tx): pass
+    def getaddrbytx(self, tx):
+        pass
 
     @abc.abstractmethod
-    def dump_wallet(self): pass
+    def dump_wallet(self):
+        pass
 
     @abc.abstractmethod
-    def create_wallet(self): pass
+    def create_wallet(self):
+        pass
 
     @abc.abstractmethod
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False): pass
+    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
+        pass
 
     @abc.abstractmethod
-    def get_all_addresses(self): pass
+    def get_all_addresses(self):
+        pass
 
     @property
     def wallet(self):
