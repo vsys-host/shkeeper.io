@@ -1,7 +1,7 @@
 import click
 from shkeeper import requests
 
-from flask import Blueprint
+from flask import Blueprint, json
 from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
@@ -68,12 +68,15 @@ def send_notification(tx):
 
     transactions = []
     for t in tx.invoice.transactions:
+        amount_fiat_without_fee = t.rate.get_orig_amount(t.amount_fiat)
         transactions.append(
             {
                 "txid": t.txid,
                 "date": str(t.created_at),
-                "amount_crypto": str(round(t.amount_crypto.normalize(), 8)),
-                "amount_fiat": str(round(t.amount_fiat.normalize(), 2)),
+                "amount_crypto": remove_exponent(t.amount_crypto),
+                "amount_fiat": remove_exponent(t.amount_fiat),
+                "amount_fiat_without_fee": remove_exponent(amount_fiat_without_fee),
+                "fee_fiat": remove_exponent(t.amount_fiat - amount_fiat_without_fee),
                 "trigger": tx.id == t.id,
                 "crypto": t.crypto,
             }
@@ -84,12 +87,14 @@ def send_notification(tx):
         "crypto": tx.invoice.crypto,
         "addr": tx.invoice.addr,
         "fiat": tx.invoice.fiat,
-        "balance_fiat": str(round(tx.invoice.balance_fiat.normalize(), 2)),
-        "balance_crypto": str(round(tx.invoice.balance_crypto.normalize(), 8)),
+        "balance_fiat": remove_exponent(tx.invoice.balance_fiat),
+        "balance_crypto": remove_exponent(tx.invoice.balance_crypto),
         "paid": tx.invoice.status in (InvoiceStatus.PAID, InvoiceStatus.OVERPAID),
         "status": tx.invoice.status.name,
         "transactions": transactions,
-        "fee_percent": str(tx.invoice.rate.fee.normalize()),
+        "fee_percent": remove_exponent(tx.invoice.rate.fee),
+        "fee_fixed": remove_exponent(tx.invoice.rate.fixed_fee),
+        "fee_policy": tx.invoice.rate.fee_policy.name,
     }
 
     overpaid_fiat = tx.invoice.balance_fiat - (
@@ -101,7 +106,7 @@ def send_notification(tx):
 
     apikey = Crypto.instances[tx.crypto].wallet.apikey
     app.logger.warning(
-        f"[{tx.crypto}/{tx.txid}] Posting {notification} to {tx.invoice.callback_url} with api key {apikey}"
+        f"[{tx.crypto}/{tx.txid}] Posting {json.dumps(notification)} to {tx.invoice.callback_url} with api key {apikey}"
     )
     try:
         r = requests.post(

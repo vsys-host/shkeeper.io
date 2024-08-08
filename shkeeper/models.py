@@ -157,6 +157,24 @@ class ExchangeRate(db.Model):
             return Decimal(max(percent_fee, self.fixed_fee))
         raise Exception(f"Unexpected fee policy: {self.fee_policy}")
 
+    def get_orig_amount(self, amount_with_fee):
+        fcp = FeeCalculationPolicy
+        if self.fee_policy == fcp.NO_FEE:
+            return amount_with_fee
+
+        orig_amount_without_percent = amount_with_fee * 100 / (100 + self.fee)
+
+        if self.fee_policy is None or self.fee_policy == fcp.PERCENT_FEE:
+            return orig_amount_without_percent
+        if self.fee_policy == fcp.FIXED_FEE:
+            return amount_with_fee - self.fixed_fee
+        if self.fee_policy == fcp.PERCENT_OR_MINIMAL_FIXED_FEE:
+            return min(
+                orig_amount_without_percent,
+                amount_with_fee - self.fixed_fee,
+            )
+        raise Exception(f"Unexpected fee policy: {self.fee_policy}")
+
     def convert(self, amount):
         rate = self.get_rate()
         converted = amount / rate
@@ -428,6 +446,10 @@ class Transaction(db.Model):
             "txid": self.txid,
             "status": "CONFIRMED",
         }
+
+    @property
+    def rate(self):
+        return ExchangeRate.get(self.invoice.fiat, self.crypto)
 
     @property
     def addr(self):
