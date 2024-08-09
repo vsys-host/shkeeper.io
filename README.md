@@ -32,6 +32,7 @@
      - [WHMCS](#whmcs)
      - [WooCommerce WordPress](#woocommerce-wordpress)
      - [Opencart 3](#opencart-3)
+     - [Prestashop 8](#prestashop-8)
 - [Be involved](#be-involved)
 - [Contact us](#contact-us)
   
@@ -43,9 +44,9 @@ SHKeeper - is an open-source, self-hosted cryptocurrency payment processor. It u
 <a name="demo"></a>
 ### 1.1. Demo
 
-SHKeeper demo version is available from us, so you can try it yourself without installing it:
+SHKeeper demo version is available from us (works in testnet network), so you can try it yourself without installing it:
 
-http://demo.shkeeper.io:5000/
+https://demo.shkeeper.io/
 
 **Login:** admin 
 
@@ -808,9 +809,18 @@ Find module for WooCommerce / WordPress here: https://github.com/vsys-host/wp-sh
 
 SHKeeper payment gateway module for OpenCart 3
 
-Module has been tested on CMS OpenCart Version 3.0.3.9
+The module has been tested on CMS OpenCart Version 3.0.3.9
 
-Find module for Opencart 3 here: https://github.com/vsys-host/opencart-3-shkeeper-payment-module 
+Find the module for Opencart 3 here: https://github.com/vsys-host/opencart-3-shkeeper-payment-module 
+
+<a name="prestashop-8"></a>
+#### 5.4.4. Prestashop 8
+
+SHKeeper payment gateway module for Prestashop 8
+
+The module has been tested on CMS Prestashop Version  8.1.7
+
+Find the module for Prestashop 8 here: https://github.com/vsys-host/prestashop-8-shkeeper-payment-module
 
 <a name="be-involved"></a>
 ## 6. Be involved
