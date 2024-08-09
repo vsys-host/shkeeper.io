@@ -177,8 +177,7 @@ class ExchangeRate(db.Model):
 
     def convert(self, amount):
         rate = self.get_rate()
-        converted = amount / rate
-        converted += self.get_fee(converted)  # add fee
+        converted = (amount + self.get_fee(amount)) / rate
         crypto = Crypto.instances[self.crypto]
         converted = round(converted, crypto.precision)
         return (converted, rate)
