@@ -94,7 +94,11 @@ def send_notification(tx):
         "transactions": transactions,
         "fee_percent": remove_exponent(tx.invoice.rate.fee),
         "fee_fixed": remove_exponent(tx.invoice.rate.fixed_fee),
-        "fee_policy": tx.invoice.rate.fee_policy.name,
+        "fee_policy": (
+            tx.invoice.rate.fee_policy.name
+            if tx.invoice.rate.fee_policy
+            else FeeCalculationPolicy.PERCENT_FEE.name
+        ),
     }
 
     overpaid_fiat = tx.invoice.balance_fiat - (
