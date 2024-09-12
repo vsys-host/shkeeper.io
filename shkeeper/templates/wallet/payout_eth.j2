@@ -30,7 +30,7 @@
         <div><p>Destination:</p></div>
         <div class="dropdown ms-0">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{% if crypto.wallet.pdest %}}{{ crypto.wallet.pdest }}{% endif %}" id="paddress">
+            <input class="dropdown__current" value="{% if crypto.wallet.pdest %}{{ crypto.wallet.pdest }}{% endif %}" id="paddress">
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
