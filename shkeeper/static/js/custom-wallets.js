@@ -7,49 +7,66 @@ function refreshRates()
     {
         currentRates[i].id = currentRates[i].id.toLowerCase();
     }
-    helperCycleBinanceRates(currentRates,totalMoney,coinAmount);
 
-    function helperCycleBinanceRates(currentRates,totalMoney,coinAmount)
+    for(let i = 0; i < currentRates.length; i++)
     {
-        for(let i = 0; i < currentRates.length; i++)
-        {
-            getBinanceRealTRates(currentRates[i].id, currentRates[i],totalMoney[i],coinAmount[i]);
 
-        }
+        updateCryptoRate(currentRates[i], totalMoney[i], coinAmount[i]);
+
     }
+}
 
-    function getBinanceRealTRates(pairName, currentRate,totalMoney,coinAmount)
-    {
-        if (['usdtusdt', 'eth-usdtusdt', 'bnb-usdtusdt', 'polygon-usdtusdt', 'avalanche-usdtusdt'].includes(pairName)) {
-            currentRate.innerHTML = "1";
-            setInterval(() => {
-                if (coinAmount.innerHTML != "--") {
-                    totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
-                }
-            }, 1000);
-            return;
-        }
-
-        if (['eth-usdcusdt', 'bnb-usdcusdt', 'polygon-usdcusdt', 'avalanche-usdcusdt'].includes(pairName)) {
-            pairName = 'usdcusdt';
-        }
-
-        let url = 'wss://stream.binance.com:9443/ws/' + pairName + '@miniTicker';
-        let bSocket = new WebSocket(url);
-        bSocket.onmessage = function(data) {
-            let quotation = JSON.parse(data.data);
-            let price = parseFloat(quotation['c']);
-            currentRate.innerHTML = price;
-            if(coinAmount.innerHTML != "--")
+function updateCryptoRate(currentRate, totalMoney, coinAmount) 
+{
+    let currentCrypto = currentRate.id.replace("usdt", "").toUpperCase();
+    let url = "/" + currentCrypto + "/get-rate";
+    let http2 = new XMLHttpRequest();
+    http2.onload = function(){
+        let data = "";
+        if(http2.status == 200)
             {
-                totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
+                data = JSON.parse(this.responseText);
             }
-        }
+        if(data[currentCrypto] !== false)
+            {
+                currentRate.innerHTML = precise(parseFloat(data[currentCrypto]));
+                 updateTotalMoney(currentRate, totalMoney, coinAmount);
+            }
     }
-    function precise(x)
+    http2.open("GET", url, true );
+    http2.send();
+}
+
+
+function updateTotalMoney(currentRate, totalMoney, coinAmount) 
+{
+    if (coinAmount.innerHTML !== "--") {
+        totalMoney.innerHTML = precise(parseFloat(currentRate.innerHTML) * parseFloat(coinAmount.innerHTML));
+    }
+}
+
+function precise(x)
+{
+    return x.toFixed(2);
+}
+
+function getCryptoRate(crypto)
+{
+    let cryptoName = crypto.toUpperCase();
+    let url = "/" + cryptoName + "/get-rate";
+    let http2 = new XMLHttpRequest();
+    let data = "";
+    http2.open("GET", url, true ); // , false);
+    http2.send();
+    if(http2.status == 200)
     {
-        return x.toFixed(2);
+        data = JSON.parse(http2.responseText);
     }
+    if(data[cryptoName] !== false)
+    {
+        return parseFloat(data[cryptoName]);
+    }
+
 }
 
 function refreshWalletInfo()
@@ -70,7 +87,6 @@ function refreshWalletInfo()
             getWalletInfo(serverStatus[i], walletStatus[i],coinAmount[i]);
         }
     }
-
 
 
     function getWalletInfo(serverStatus,walletStatus,coinAmount)
@@ -213,4 +229,6 @@ window.addEventListener('DOMContentLoaded',function(){
     refreshRates();
     refreshWalletInfo();
     setPolicyStatus();
+
+    setInterval(refreshRates, 10000);
 });

@@ -70,6 +70,15 @@ def wallets():
     return render_template("wallet/wallets.j2", cryptos=cryptos)
 
 
+@bp.get("/<crypto_name>/get-rate")
+@login_required
+def get_source_rate(crypto_name):
+    fiat = "USD"
+    rate = ExchangeRate.get(fiat, crypto_name)
+    current_rate = rate.get_rate()
+    return {crypto_name: current_rate}
+
+
 @bp.route("/payout/<crypto_name>")
 @login_required
 def payout(crypto_name):

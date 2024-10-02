@@ -9,6 +9,7 @@ function changeSource(ind) {
     } else {
         delete rate_inputs[ind].dataset.manual
         rate_inputs[ind].readOnly = true
+        getRealTRates(rate_inputs[ind].dataset.pairname.toLowerCase(), rate_inputs[ind]);
     }
 }
 
@@ -36,27 +37,27 @@ function change_fee_policy(ind) {
     }
 }
 
-function getBinanceRealTRates(pairName, currentRate) {
-    if (['usdtusdt', 'eth-usdtusdt', 'bnb-usdtusdt', 'polygon-usdtusdt', 'avalanche-usdtusdt'].includes(pairName)) {
-        if (!currentRate.dataset.manual) {
-            currentRate.value = "1";
+function getRealTRates(pairName, currentRate) {
+    console.log('--->',currentRate)
+    //let currentCrypto = currentRate.dataset.pairname.replace("USDT", "").toUpperCase();
+    let currentCrypto = pairName.replace("usdt", "").toUpperCase();
+    console.log('--->',currentCrypto)
+    let url = "/" + currentCrypto + "/get-rate";
+    let http2 = new XMLHttpRequest();
+    http2.onload = function(){
+        let data = "";
+        if(http2.status == 200)
+        {
+            data = JSON.parse(this.responseText);
         }
-        return;
-    }
-
-    if (['eth-usdcusdt', 'bnb-usdcusdt', 'polygon-usdcusdt', 'avalanche-usdcusdt'].includes(pairName)) {
-        pairName = 'usdcusdt';
-    }
-
-    let url = 'wss://stream.binance.com:9443/ws/' + pairName + '@miniTicker';
-    let bSocket = new WebSocket(url);
-    bSocket.onmessage = function (data) {
-        let quotation = JSON.parse(data.data);
-        let price = parseFloat(quotation['c']);
-        if (!currentRate.dataset.manual) {
-            currentRate.value = price;
+        if(data[currentCrypto] !== false)
+        {
+            currentRate.value = data[currentCrypto];
         }
     }
+
+    http2.open("GET", url, true);
+    http2.send();
 }
 
 let selectArray = document.getElementsByClassName("select-rate");
@@ -126,6 +127,6 @@ window.addEventListener('DOMContentLoaded', function () {
     let currentRates = document.getElementsByClassName("rates-cost-value");
     for (let i = 0; i < currentRates.length; i++) {
         let pairName = currentRates[i].dataset.pairname.toLowerCase();
-        getBinanceRealTRates(pairName, currentRates[i]);
+        getRealTRates(pairName, currentRates[i]);
     }
 });
