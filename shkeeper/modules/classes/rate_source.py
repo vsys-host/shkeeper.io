@@ -4,6 +4,9 @@ from abc import ABCMeta, abstractmethod
 class RateSource(metaclass=ABCMeta):
     instances = {}
 
+    USDT_CRYPTOS = {"USDT", "ETH-USDT", "BNB-USDT", "POLYGON-USDT", "AVALANCHE-USDT"}
+    USDC_CRYPTOS = {"ETH-USDC", "BNB-USDC", "POLYGON-USDC", "AVALANCHE-USDC"}
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         instance = cls()
