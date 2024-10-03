@@ -483,9 +483,7 @@ class Transaction(db.Model):
 
     @classmethod
     def add(cls, crypto, tx):
-        invoice_address = InvoiceAddress.query.filter_by(
-            crypto=crypto.crypto, addr=tx["addr"]
-        ).first()
+        invoice_address = InvoiceAddress.query.filter_by(addr=tx["addr"]).first()
 
         if not invoice_address:
             # Check address in Invoice table in case the instance was upgraded from older version that does not have InvoiceAddress table

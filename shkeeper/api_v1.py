@@ -337,6 +337,7 @@ def walletnotify(crypto_name, txid):
                 app.logger.warning(f"[{crypto.crypto}/{txid}] TX already exist in db")
         return {"status": "success"}
     except NotRelatedToAnyInvoice:
+        app.logger.warning(f"Transaction {txid} is not related to any invoice")
         return {
             "status": "success",
             "message": "Transaction is not related to any invoice",
