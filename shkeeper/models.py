@@ -487,7 +487,9 @@ class Transaction(db.Model):
 
         if not invoice_address:
             # Check address in Invoice table in case the instance was upgraded from older version that does not have InvoiceAddress table
-            invoice = Invoice.query.filter_by(addr=tx["addr"]).first()
+            invoice = Invoice.query.filter(
+                Invoice.addr == tx["addr"], Invoice.status != InvoiceStatus.OUTGOING
+            ).first()
         else:
             invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
 
