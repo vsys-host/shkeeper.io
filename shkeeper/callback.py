@@ -146,27 +146,37 @@ def list_unconfirmed():
 
 def send_callbacks():
     for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
-        send_unconfirmed_notification(utx)
+        try:
+            send_unconfirmed_notification(utx)
+        except Exception as e:
+            app.logger.exception(
+                f"Exception while sending callback for UTX {utx.crypto}/{utx.txid}"
+            )
 
     for tx in Transaction.query.filter_by(
         callback_confirmed=False, need_more_confirmations=False
     ):
-        delay_until_date = tx.created_at + timedelta(
-            seconds=app.config.get("NOTIFICATION_TASK_DELAY")
-        )
-        if datetime.now() > delay_until_date:
-            app.logger.info(
-                f"[{tx.crypto}/{tx.txid}] created at {tx.created_at}, delayed until {delay_until_date}"
+        try:
+            delay_until_date = tx.created_at + timedelta(
+                seconds=app.config.get("NOTIFICATION_TASK_DELAY")
             )
-            if tx.invoice.status == InvoiceStatus.OUTGOING:
-                tx.callback_confirmed = True
-                db.session.commit()
+            if datetime.now() > delay_until_date:
+                app.logger.info(
+                    f"[{tx.crypto}/{tx.txid}] created at {tx.created_at}, delayed until {delay_until_date}"
+                )
+                if tx.invoice.status == InvoiceStatus.OUTGOING:
+                    tx.callback_confirmed = True
+                    db.session.commit()
+                else:
+                    app.logger.info(f"[{tx.crypto}/{tx.txid}] Notification is pending")
+                    send_notification(tx)
             else:
-                app.logger.info(f"[{tx.crypto}/{tx.txid}] Notification is pending")
-                send_notification(tx)
-        else:
-            app.logger.info(
-                f"[{tx.crypto}/{tx.txid}] delaying notification created at {tx.created_at} until {delay_until_date}"
+                app.logger.info(
+                    f"[{tx.crypto}/{tx.txid}] delaying notification created at {tx.created_at} until {delay_until_date}"
+                )
+        except Exception as e:
+            app.logger.exception(
+                f"Exception while sending callback for TX {tx.crypto}/{tx.txid}"
             )
 
 
@@ -174,11 +184,16 @@ def update_confirmations():
     for tx in Transaction.query.filter_by(
         callback_confirmed=False, need_more_confirmations=True
     ):
-        app.logger.info(f"[{tx.crypto}/{tx.txid}] Updating confirmations")
-        if not tx.is_more_confirmations_needed():
-            app.logger.info(f"[{tx.crypto}/{tx.txid}] Got enough confirmations")
-        else:
-            app.logger.info(f"[{tx.crypto}/{tx.txid}] Not enough confirmations yet")
+        try:
+            app.logger.info(f"[{tx.crypto}/{tx.txid}] Updating confirmations")
+            if not tx.is_more_confirmations_needed():
+                app.logger.info(f"[{tx.crypto}/{tx.txid}] Got enough confirmations")
+            else:
+                app.logger.info(f"[{tx.crypto}/{tx.txid}] Not enough confirmations yet")
+        except Exception as e:
+            app.logger.exception(
+                f"Exception while updating tx confirmations for {tx.crypto}/{tx.txid}"
+            )
 
 
 @bp.cli.command()
