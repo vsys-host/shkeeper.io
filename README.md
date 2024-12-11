@@ -845,6 +845,7 @@ If you have experienced any problems using SHKeeper, you can contact the communi
 
 
 
+
 ### JOIN OUR COMMUNITY
 
 [![Group 1790](https://github.com/user-attachments/assets/9829e615-2f22-4340-8d5d-eb5c156fcbcf)](https://www.reddit.com/user/shkeeper_io/)
@@ -855,5 +856,7 @@ If you have experienced any problems using SHKeeper, you can contact the communi
 [![Group 1791](https://github.com/user-attachments/assets/dc12acee-6d70-489e-a351-750ca4d92e06)](https://www.youtube.com/channel/UCfJp6tIaiJ2bchDyF-LFnaw)
 
 
+Stay informed with the latest SHKeeper news, updates, and technical announcements. Follow our Telegram to never miss important changes and improvements:
+https://t.me/shkeeper_updates
 
 
