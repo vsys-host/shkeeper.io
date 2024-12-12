@@ -69,7 +69,7 @@ def task_payout():
                     )
 
 
-@scheduler.task("interval", id="create_wallet", seconds=60)
+@scheduler.task("interval", id="create_wallet", seconds=10)
 def task_create_wallet():
     with scheduler.app.app_context():
         if all([c.wallet_created for c in Crypto.instances.values()]):
@@ -83,6 +83,9 @@ def task_create_wallet():
             if crypto.wallet_created:
                 continue
             try:
+                scheduler.app.logger.info(
+                    f"[task_create_wallet()] Calling create_wallet() for {crypto.crypto}"
+                )
                 res = crypto.create_wallet()
                 if not res["error"]:
                     scheduler.app.logger.info(
@@ -106,7 +109,7 @@ def task_create_wallet():
                         f'creation error: {res["error"]["message"]}'
                     )
             except Exception as e:
-                scheduler.app.logger.info(
+                scheduler.app.logger.exception(
                     f"[Create Wallet] {crypto.crypto} shkeeper wallet "
                     f"creation error: {e}"
                 )

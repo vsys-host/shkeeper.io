@@ -61,7 +61,7 @@ class TronToken(Crypto):
         except Exception as e:
             return "Offline"
 
-    def mkaddr(self):
+    def mkaddr(self, **kwargs):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/generate-address",
             auth=self.get_auth_creds(),
@@ -112,7 +112,7 @@ class TronToken(Crypto):
         FeeDepositAccount = namedtuple("FeeDepositAccount", "addr balance")
         return FeeDepositAccount(response["account"], Decimal(response["balance"]))
 
-    def estimate_tx_fee(self, amount):
+    def estimate_tx_fee(self, amount, **kwargs):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/calc-tx-fee/{amount}",
             auth=self.get_auth_creds(),

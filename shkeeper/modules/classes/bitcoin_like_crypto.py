@@ -67,7 +67,7 @@ class BitcoinLikeCrypto(Crypto):
 
         return response
 
-    def mkaddr(self):
+    def mkaddr(self, **kwargs):
         response = requests.post(
             "http://" + self.gethost(),
             auth=self.get_rpc_credentials(),

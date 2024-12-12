@@ -1,3 +1,5 @@
+import base64
+import codecs
 from collections import namedtuple
 import enum
 from datetime import datetime, timedelta
@@ -297,6 +299,12 @@ class Invoice(db.Model):
             external_id=request["external_id"], callback_url=request["callback_url"]
         ).first()
         if invoice:
+            invoice.fiat = request["fiat"]
+            invoice.amount_fiat = Decimal(request["amount"])
+            rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
+            invoice.amount_crypto, invoice.exchange_rate = rate.convert(
+                invoice.amount_fiat
+            )
             # updating existing invoice
             if invoice.crypto != crypto.crypto:
                 invoice.crypto = crypto.crypto
@@ -308,24 +316,19 @@ class Invoice(db.Model):
                 if invoice_address:
                     invoice.addr = invoice_address.addr
                 else:
-                    invoice.addr = crypto.mkaddr()
+                    invoice.addr = crypto.mkaddr(
+                        details={"value": invoice.amount_crypto}
+                    )
                     invoice_address = InvoiceAddress()
                     invoice_address.invoice_id = invoice.id
                     invoice_address.crypto = invoice.crypto
                     invoice_address.addr = invoice.addr
                     db.session.add(invoice_address)
 
-            invoice.fiat = request["fiat"]
-            invoice.amount_fiat = Decimal(request["amount"])
-            rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
-            invoice.amount_crypto, invoice.exchange_rate = rate.convert(
-                invoice.amount_fiat
-            )
         else:
             # creating new invoice
             invoice = cls()
             invoice.crypto = crypto.crypto
-            invoice.addr = crypto.mkaddr()
             invoice.external_id = request["external_id"]
             invoice.callback_url = request["callback_url"]
             invoice.fiat = request["fiat"]
@@ -334,6 +337,7 @@ class Invoice(db.Model):
             invoice.amount_crypto, invoice.exchange_rate = rate.convert(
                 invoice.amount_fiat
             )
+            invoice.addr = crypto.mkaddr(details={"value": invoice.amount_crypto})
             db.session.add(invoice)
             db.session.commit()
 
@@ -591,3 +595,22 @@ class InvoiceAddress(db.Model):
     addr = db.Column(db.String)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     __table_args__ = (db.UniqueConstraint("invoice_id", "crypto", "addr"),)
+
+
+class BitcoinLightningInvoice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    r_hash = db.Column(db.String, unique=True, nullable=False)
+    payment_request = db.Column(db.String(512))
+    value = db.Column(db.Numeric)
+    expiry = db.Column(db.String)
+    state = db.Column(db.String)
+    creation_date = db.Column(db.String)
+    settle_date = db.Column(db.String)
+    sent_to_shkeeper = db.Column(db.Boolean, default=False)
+
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        db.session.add(self)
+        db.session.commit()

@@ -17,6 +17,7 @@ from shkeeper.auth import basic_auth_optional, login_required, api_key_required
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
+from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
@@ -411,7 +412,7 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    if isinstance(crypto, (TronToken, Ethereum, Monero)):
+    if isinstance(crypto, (TronToken, Ethereum, Monero, BitcoinLightning)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add("Content-Type", "application/json")
@@ -455,7 +456,7 @@ def set_exchange_rate(crypto_name):
 @login_required
 def estimate_tx_fee(crypto_name, amount):
     crypto = Crypto.instances[crypto_name]
-    return crypto.estimate_tx_fee(amount)
+    return crypto.estimate_tx_fee(amount, address=request.args.get("address"))
 
 
 @bp.get("/<crypto_name>/task/<id>")
@@ -615,3 +616,12 @@ def decryption_key():
             return {"status": "error", "message": "Invalid decryption key"}
     else:
         return {"status": "error", "message": "Wallet is not encrypted"}
+
+
+@bp.post("/test-callback-receiver")
+@api_key_required
+def test_callback_receiver():
+    callback = request.get_json(force=True)
+    app.logger.info("=============== Test callback received ===================")
+    app.logger.info(callback)
+    return {"status": "success", "message": "callback logged"}, 202

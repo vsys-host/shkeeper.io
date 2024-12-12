@@ -44,6 +44,8 @@ class Crypto(abc.ABC):
             "avax",
             "avalanche_usdt",
             "avalanche_usdc",
+            # Lightning
+            "BitcoinLightning",
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
@@ -81,7 +83,7 @@ class Crypto(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def mkaddr(self):
+    def mkaddr(self, **kwargs):
         pass
 
     @abc.abstractmethod

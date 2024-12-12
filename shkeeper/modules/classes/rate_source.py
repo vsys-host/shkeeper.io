@@ -6,6 +6,7 @@ class RateSource(metaclass=ABCMeta):
 
     USDT_CRYPTOS = {"USDT", "ETH-USDT", "BNB-USDT", "POLYGON-USDT", "AVALANCHE-USDT"}
     USDC_CRYPTOS = {"ETH-USDC", "BNB-USDC", "POLYGON-USDC", "AVALANCHE-USDC"}
+    BTC_CRYPTOS = {"BTC", "BTC-LIGHTNING"}
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)

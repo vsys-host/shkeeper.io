@@ -4,6 +4,15 @@ import logging
 import secrets
 from decimal import Decimal
 import shutil
+import threading
+
+from flask import logging as flog
+
+flog.default_handler.setFormatter(
+    logging.Formatter(
+        "%(levelname)s %(filename)s:%(lineno)s %(funcName)s(): %(message)s"
+    )
+)
 
 from flask import Flask
 import requests
@@ -11,6 +20,7 @@ import requests
 from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
 
 from .utils import format_decimal
+from .events import shkeeper_initialized
 
 from flask_apscheduler import APScheduler
 
@@ -57,6 +67,7 @@ def create_app(test_config=None):
         DEV_MODE=bool(os.environ.get("DEV_MODE", False)),
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
+        TEMPLATES_AUTO_RELOAD=True,
     )
 
     if test_config is None:
@@ -83,8 +94,15 @@ def create_app(test_config=None):
     Session(app)
 
     scheduler.init_app(app)
-    logging.getLogger("apscheduler").setLevel(logging.INFO)
-    app.logger.setLevel(logging.INFO)
+
+    if app.debug or app.config.get("DEV_MODE"):
+        logging.getLogger("apscheduler").setLevel(logging.DEBUG)
+        app.logger.setLevel(logging.DEBUG)
+    else:
+        logging.getLogger("apscheduler").setLevel(logging.INFO)
+        app.logger.setLevel(logging.INFO)
+
+    app.logger.propagate = False
 
     from flask.json import JSONDecoder, JSONEncoder
     from decimal import Decimal
@@ -198,5 +216,7 @@ def create_app(test_config=None):
     app.register_blueprint(wallet.bp)
     app.register_blueprint(api_v1.bp)
     app.register_blueprint(callback.bp)
+
+    shkeeper_initialized.set()
 
     return app

@@ -117,7 +117,7 @@ class Monero(Crypto):
         except Exception as e:
             return f"Error: {e}"
 
-    def mkaddr(self) -> str:
+    def mkaddr(self, **kwargs) -> str:
         address = self.monero_wallet.new_address()[0]
         return str(address)
 
@@ -169,8 +169,8 @@ class Monero(Crypto):
             error = {"message": str(e)}
         return {"result": result, "error": error}
 
-    def estimate_tx_fee(self, amount, priority_class=None):
-        if priority_class is None:
+    def estimate_tx_fee(self, amount, **kwargs):
+        if priority_class := kwargs.get("priority_class") is None:
             priority_class = self.default_fee
 
         fee = self.monero_wallet.transfer(

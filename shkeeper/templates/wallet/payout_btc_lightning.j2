@@ -1,0 +1,151 @@
+{% extends 'wallet/page.j2' %}
+
+
+{% block content %}
+<div class="px-5 py-4 content-container">
+  <div class="row">
+    <div class="col">
+      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col ps-4" style="max-width: 600px;">
+      <div class="autopayout-grid common-text ps-4">
+
+        <div><p>Balance over all channels:</p></div>
+        <div>
+          <p>
+            <strong>{{crypto.balance()|format_decimal(6)}}</strong> {{crypto.display_name}}
+          </p>
+        </div>
+        <div><p>Payment request:</p></div>
+        <div class="d-flex align-items-center">
+            <textarea id="paddress" class="form-control common-text"  style="width: 100%;" rows="7" placeholder="lnbc... / lntb... / lnbs... / lnbcrt..."></textarea>
+        </div>
+
+        <div><p>Amount:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <span id="amount_btc" style="font-weight: bolder;">0</span>
+            <p class="ms-2">{{crypto.display_name}}</p>
+          </div>
+        </div>
+
+        <div><p>Estimated fee:</p></div>
+        <div>
+            <p><span id="est_fee" style="font-weight: bolder;">0</span>  {{ crypto.network_currency }}</p>
+        </div>
+
+        <div><p></p></div>
+        <div>
+            <p><span id="fee_err" style="display: none; color: red; font-weight: bolder;"></span></p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col d-flex justify-content-end">
+      <button type="submit" class="button btn me-3 send-payment" data-progress="off">
+        <span class="tx_standby">Send</span>
+        <span class="tx_in_progress" style="display: none;">
+          <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+          Sending...
+        </span>
+      </button>
+      <button type="button" class="button btn button-secondary" onclick="location.href='/';">
+        Discard
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function tx_progress_on() {
+  document.querySelector(".send-payment").dataset.progress = 'on';
+  document.querySelector(".tx_standby").style.display = "none";
+  document.querySelector(".tx_in_progress").style.display = "block";
+}
+function tx_progress_off() {
+  document.querySelector(".send-payment").dataset.progress = 'off';
+  document.querySelector(".tx_in_progress").style.display = "none";
+  document.querySelector(".tx_standby").style.display = "block";
+}
+
+function delay(fn, ms) {
+  let timer = 0
+  return function(...args) {
+    clearTimeout(timer)
+    timer = setTimeout(fn.bind(this, ...args), ms || 0)
+  }
+}
+
+function decode_pay_req() {
+  let addr = paddress.value.trim();
+  fetch(`/api/v1/{{crypto.crypto}}/estimate-tx-fee/999?address=${addr}`)
+    .then(response => response.json())
+    .then(data => {
+      console.log(data);
+
+      if (data.payment_request_details) {
+        amount_btc.innerText = (data.payment_request_details.num_satoshis / 100_000_000).toFixed(8);
+      }
+
+      if ("success" != data.status) {
+        fee_err.innerHTML = `Invoice can't be paid: ${data.error}`;
+        fee_err.style.display = "block";
+      } else {
+        est_fee.innerText = data.fee;
+
+        fee_err.style.display = "none";
+      }
+
+
+    })
+}
+document.querySelector("#paddress").addEventListener("input", delay((e) => decode_pay_req(), 200));
+
+document.querySelector(".send-payment").addEventListener("click", e => {
+  if (document.querySelector(".send-payment").dataset.progress == 'on') return;
+
+  if (!paddress.value.trim())  {
+    alert("Please fill in payment request first.");
+    paddress.focus();
+    return;
+  }
+
+  if ("block" == fee_err.style.display) {
+    alert(fee_err.innerHTML);
+    return;
+  }
+
+  tx_progress_on();
+
+  fetch("/api/v1/{{crypto.crypto}}/payout", {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      destination: paddress.value.trim(),
+      amount: amount_btc.innerText,
+      fee: est_fee.innerText,
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+      console.log(data);
+      if (data.error) {
+        alert(`Invoice payment failure: ${data.error.message}`);
+      } else {
+        alert(`Invoice payment success.`);
+      }
+      location.reload();
+    })
+});
+
+</script>
+{% endblock %}

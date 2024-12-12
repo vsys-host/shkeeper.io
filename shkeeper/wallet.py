@@ -95,6 +95,9 @@ def payout(crypto_name):
     if crypto_name in ["ETH", "BNB", "XRP", "MATIC", "AVAX"]:
         tmpl = "wallet/payout_eth_coin.j2"
 
+    if "BTC-LIGHTNING" == crypto_name:
+        tmpl = "wallet/payout_btc_lightning.j2"
+
     return render_template(tmpl, crypto=crypto, pdest=pdest)
 
 

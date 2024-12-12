@@ -16,13 +16,16 @@ class KuCoin(RateSource):
         if crypto in self.USDC_CRYPTOS:
             crypto = "USDC"
 
+        if crypto in self.BTC_CRYPTOS:
+            crypto = "BTC"
+
         # https://www.kucoin.com/docs/beginners/introduction
         url = f"https://api.kucoin.com/api/v1/prices?base={fiat}&currencies={crypto}"
         answer = requests.get(url)
         if answer.status_code == requests.codes.ok:
             data = json.loads(answer.text)
             if data.get("code") == "200000":
-                #data will be empty dict if symbol doesnt exist even though code is 200000
+                # data will be empty dict if symbol doesnt exist even though code is 200000
                 price = data.get("data", {}).get(crypto)
                 if price is not None:
                     return Decimal(price)

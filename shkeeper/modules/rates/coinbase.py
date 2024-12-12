@@ -15,12 +15,15 @@ class Coinbase(RateSource):
         if crypto in self.USDC_CRYPTOS:
             crypto = "USDC"
 
+        if crypto in self.BTC_CRYPTOS:
+            crypto = "BTC"
+
         if fiat == "USD":
             fiat = "USDT"
         url = f"https://api.coinbase.com/v2/exchange-rates?currency={crypto}"
         answer = requests.get(url)
         if answer.status_code == requests.codes.ok:
             data = json.loads(answer.text)
-            return Decimal(data['data']['rates'][fiat]) 
-        
+            return Decimal(data["data"]["rates"][fiat])
+
         raise Exception(f"Can't get rate for {crypto} / {fiat}")
