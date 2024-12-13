@@ -295,30 +295,33 @@ class Invoice(db.Model):
     @classmethod
     def add(cls, crypto, request):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
+        crypto_is_lightning = "BTC-LIGHTNING" == crypto.crypto
         invoice = cls.query.filter_by(
             external_id=request["external_id"], callback_url=request["callback_url"]
         ).first()
         if invoice:
+            # updating existing invoice
             invoice.fiat = request["fiat"]
             invoice.amount_fiat = Decimal(request["amount"])
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
             invoice.amount_crypto, invoice.exchange_rate = rate.convert(
                 invoice.amount_fiat
             )
-            # updating existing invoice
-            if invoice.crypto != crypto.crypto:
+            crypto_changed = invoice.crypto != crypto.crypto
+            if crypto_changed or crypto_is_lightning:
                 invoice.crypto = crypto.crypto
 
                 # if address for new crypto already exist, use it instead of generating a new one
                 invoice_address = InvoiceAddress.query.filter_by(
                     invoice_id=invoice.id, crypto=crypto.crypto
                 ).first()
-                if invoice_address:
+                if invoice_address and not crypto_is_lightning:
                     invoice.addr = invoice_address.addr
                 else:
                     invoice.addr = crypto.mkaddr(
                         details={"value": invoice.amount_crypto}
                     )
+                    db.session.commit()
                     invoice_address = InvoiceAddress()
                     invoice_address.invoice_id = invoice.id
                     invoice_address.crypto = invoice.crypto
@@ -347,11 +350,34 @@ class Invoice(db.Model):
             invoice_address.addr = invoice.addr
             db.session.add(invoice_address)
 
+        if crypto_is_lightning and crypto.LIGHTNING_GENERATE_ONCHAIN_ADDRESS:
+            app.logger.debug("Lightning requested on-chain address...")
+            btc = Crypto.instances.get("BTC")
+
+            if btc:
+                btc_address = InvoiceAddress.query.filter_by(
+                    invoice_id=invoice.id, crypto="BTC"
+                ).first()
+
+                if btc_address:
+                    app.logger.debug("Using already existing on-chain BTC address")
+                else:
+                    app.logger.debug("Generating a new on-chain BTC address")
+                    btc_address = InvoiceAddress()
+                    btc_address.crypto = "BTC"
+                    btc_address.addr = btc.mkaddr()
+                    btc_address.invoice_id = invoice.id
+                    db.session.add(btc_address)
+            else:
+                raise Exception(
+                    "Lightning requested on-chain address generation but BTC wallet is not enabled in configuration"
+                )
+
         db.session.commit()
         return invoice
 
     def for_response(self):
-        return {
+        res = {
             "id": self.id,
             "exchange_rate": format_decimal(self.exchange_rate, 2),
             "amount": format_decimal(self.amount_crypto),
@@ -359,6 +385,22 @@ class Invoice(db.Model):
             "recalculate_after": self.wallet.recalc,
             "display_name": Crypto.instances[self.crypto].display_name,
         }
+
+        if "BTC-LIGHTNING" == self.crypto:
+            onchain_addr = None
+            for ia in self.addresses:
+                if "BTC" == ia.crypto:
+                    onchain_addr = ia.addr
+
+            if not onchain_addr:
+                raise Exception("BTC onchain address not found")
+
+            pay_req = self.addr.upper()
+            onchain_addr = onchain_addr.upper()
+            bip21 = f"bitcoin:{onchain_addr}?amount={format_decimal(self.amount_crypto)}&lightning={pay_req}"
+            res["bip21"] = bip21
+
+        return res
 
 
 class UnconfirmedTransaction(db.Model):

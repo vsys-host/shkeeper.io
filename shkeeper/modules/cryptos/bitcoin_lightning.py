@@ -55,6 +55,10 @@ class BitcoinLightning(Crypto):
             environ.get("LIGHTNING_WALLET_SEED_SAVER_PERIOD", 5)
         )
 
+        self.LIGHTNING_GENERATE_ONCHAIN_ADDRESS = bool(
+            environ.get("LIGHTNING_GENERATE_ONCHAIN_ADDRESS", False)
+        )
+
         self.start_threads()
 
     def start_threads(self):
