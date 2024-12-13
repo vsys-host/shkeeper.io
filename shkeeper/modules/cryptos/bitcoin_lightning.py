@@ -94,7 +94,7 @@ class BitcoinLightning(Crypto):
         ).start()
 
     def getname(self):
-        return self._display_name
+        return self.crypto
 
     def gethost(self):
         return self.LND_REST_URL
