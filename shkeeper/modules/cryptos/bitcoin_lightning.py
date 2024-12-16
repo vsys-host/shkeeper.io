@@ -232,8 +232,12 @@ class BitcoinLightning(Crypto):
                         app.logger.debug(f"invoice update: {json_response}")
                         r = json_response["result"]
                         r["r_hash"] = self.to_hex_string(r["r_hash"])
-                        inv = BLI.query.filter(BLI.r_hash == r["r_hash"]).first()
-                        inv.update(**r)
+                        if inv := BLI.query.filter(BLI.r_hash == r["r_hash"]).first():
+                            inv.update(**r)
+                        else:
+                            app.logger.debug(
+                                f"invoice not (yet) found in db. Update body: {json_response}"
+                            )
                 except Exception as e:
                     app.logger.exception(f"error: {e}")
                     sleep(self.LIGHTNING_INVOICE_ERROR_WAIT_PERIOD)
