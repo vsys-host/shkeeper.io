@@ -115,7 +115,7 @@ class Monero(Crypto):
                 status = info["status"]
             return status
         except Exception as e:
-            return f"Error: {e}"
+            return "Offline"
 
     def mkaddr(self, **kwargs) -> str:
         address = self.monero_wallet.new_address()[0]

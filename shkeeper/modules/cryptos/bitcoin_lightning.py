@@ -155,7 +155,7 @@ class BitcoinLightning(Crypto):
             return status
         except Exception as e:
             app.logger.exception(f"Can't get status: {e}")
-            return f"Error: {e}"
+            return "Offline"
 
     @staticmethod
     def sat_to_btc(sat: Decimal):
