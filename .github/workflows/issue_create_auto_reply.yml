@@ -1,0 +1,22 @@
+name: Add comment
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  add-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: vsys-host/shkeeper.io
+          sparse-checkout: |
+            .github/issue_create_auto_reply.md
+          sparse-checkout-cone-mode: false
+      - name: Add comment
+        run: gh issue comment "$NUMBER" --body-file "$GITHUB_WORKSPACE/.github/issue_create_auto_reply.md"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.issue.number }}
