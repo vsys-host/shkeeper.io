@@ -28,6 +28,7 @@ class Crypto(abc.ABC):
             "eth",
             "eth_usdc",
             "eth_usdt",
+            "eth_pyusd",
             # Monero
             "Monero",
             # BNB
