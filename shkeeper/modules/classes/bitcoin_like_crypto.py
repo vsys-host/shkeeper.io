@@ -128,7 +128,8 @@ class BitcoinLikeCrypto(Crypto):
         ).json(parse_float=Decimal)
 
         host, port = self.gethost().split(":")
-        return f"http://{host}:5555/{fname}"
+        nginx_url = environ.get(f"{self.crypto}_NGINX_URL", f"http://{host}:5555")
+        return f"{nginx_url}/{fname}"
 
     def get_all_addresses(self):
         response = requests.post(
