@@ -303,13 +303,22 @@ class Invoice(db.Model):
             # updating existing invoice
             invoice.fiat = request["fiat"]
             invoice.amount_fiat = Decimal(request["amount"])
+
+            # recalc crypto amount for the new fiat amount
             rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
             invoice.amount_crypto, invoice.exchange_rate = rate.convert(
                 invoice.amount_fiat
             )
+
             crypto_changed = invoice.crypto != crypto.crypto
             if crypto_changed or crypto_is_lightning:
                 invoice.crypto = crypto.crypto
+
+                # recalc crypto amount for the new crypto and fiat amount
+                rate = ExchangeRate.get(invoice.fiat, invoice.crypto)
+                invoice.amount_crypto, invoice.exchange_rate = rate.convert(
+                    invoice.amount_fiat
+                )
 
                 # if address for new crypto already exist, use it instead of generating a new one
                 invoice_address = InvoiceAddress.query.filter_by(
@@ -540,7 +549,7 @@ class Transaction(db.Model):
             invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
 
         if not invoice:
-            raise NotRelatedToAnyInvoice(f'{tx["addr"]} is not related to any invoice')
+            raise NotRelatedToAnyInvoice(f"{tx['addr']} is not related to any invoice")
 
         t = cls()
         t.invoice_id = invoice.id
