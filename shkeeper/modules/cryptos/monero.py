@@ -110,7 +110,7 @@ class Monero(Crypto):
                     status = "Synced"
                 else:
                     sync_status = "Syncing" if info["busy_syncing"] else "Sync pending"
-                    status = f'{sync_status}: {info["target_height"] - info["height"]} blocks behind'
+                    status = f"{sync_status}: {info['target_height'] - info['height']} blocks behind"
             else:
                 status = info["status"]
             return status
@@ -142,7 +142,7 @@ class Monero(Crypto):
         return details
 
     def get_confirmations_by_txid(self, txid) -> int:
-        _, _, confirmations, _ = self.getaddrbytx(txid)
+        _, _, confirmations, _ = self.getaddrbytx(txid)[0]
         return confirmations
 
     def mkpayout(

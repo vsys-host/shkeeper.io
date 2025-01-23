@@ -106,7 +106,7 @@ class BitcoinLikeCrypto(Crypto):
             )
 
     def get_confirmations_by_txid(self, txid):
-        _, _, confirmations, _ = self.getaddrbytx(txid)
+        _, _, confirmations, _ = self.getaddrbytx(txid)[0]
         return confirmations
 
     def create_wallet(self, name="shkeeper"):
