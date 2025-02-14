@@ -47,6 +47,12 @@ class Crypto(abc.ABC):
             "avalanche_usdc",
             # Lightning
             "BitcoinLightning",
+            # Solana
+            "sol",
+            "solana_usdt",
+            "solana_usdc",
+            "solana_pyusd",
+
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:

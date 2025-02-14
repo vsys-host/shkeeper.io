@@ -4,8 +4,8 @@ from abc import ABCMeta, abstractmethod
 class RateSource(metaclass=ABCMeta):
     instances = {}
 
-    USDT_CRYPTOS = {"USDT", "ETH-USDT", "BNB-USDT", "POLYGON-USDT", "AVALANCHE-USDT", "ETH-PYUSD"}
-    USDC_CRYPTOS = {"ETH-USDC", "BNB-USDC", "POLYGON-USDC", "AVALANCHE-USDC"}
+    USDT_CRYPTOS = {"USDT", "ETH-USDT", "BNB-USDT", "POLYGON-USDT", "AVALANCHE-USDT", "ETH-PYUSD", "SOLANA-PYUSD", "SOLANA-USDT"}
+    USDC_CRYPTOS = {"ETH-USDC", "BNB-USDC", "POLYGON-USDC", "AVALANCHE-USDC", "SOLANA-USDC"}
     BTC_CRYPTOS = {"BTC", "BTC-LIGHTNING"}
 
     def __init_subclass__(cls, **kwargs):
