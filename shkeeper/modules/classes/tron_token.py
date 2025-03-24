@@ -70,17 +70,18 @@ class TronToken(Crypto):
         return addr
 
     def getaddrbytx(self, txid):
-        response = requests.post(
+        txs = requests.post(
             f"http://{self.gethost()}/{self.crypto}/transaction/{txid}",
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return [
             [
-                response["address"],
-                Decimal(response["amount"]),
-                response["confirmations"],
-                response["category"],
+                tx["address"],
+                Decimal(tx["amount"]),
+                tx["confirmations"],
+                tx["category"],
             ]
+            for tx in txs
         ]
 
     def get_confirmations_by_txid(self, txid):
