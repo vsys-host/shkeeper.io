@@ -100,6 +100,53 @@ def payment_request(crypto_name):
 
     return response
 
+@bp.post("/<crypto_name>/quote")
+@api_key_required
+def get_crypto_quote(crypto_name):
+    try:
+        try:
+            crypto = Crypto.instances[crypto_name]
+        except KeyError:
+            return {
+                "status": "error",
+                "message": f"{crypto_name} payment gateway is unavailable",
+            }
+        if not crypto.wallet.enabled:
+            return {
+                "status": "error",
+                "message": f"{crypto_name} payment gateway is unavailable",
+            }
+
+        req = request.get_json(force=True)
+        fiat = req.get("fiat")
+        amount_str = req.get("amount")
+
+        if not fiat or not amount_str:
+            return {
+                "status": "error",
+                "message": "'fiat' and 'amount' are required fields.",
+            }
+
+        amount_fiat = Decimal(amount_str)
+        rate = ExchangeRate.get(fiat, crypto.crypto)
+        amount_crypto, exchange_rate = rate.convert(amount_fiat)
+
+        return {
+            "status": "success",
+            "fiat": fiat,
+            "amount_fiat": str(amount_fiat),
+            "crypto": crypto.crypto,
+            "amount_crypto": str(amount_crypto),
+            "exchange_rate": str(exchange_rate),
+        }
+
+    except Exception as e:
+        app.logger.exception("Failed to get crypto quote")
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc(),
+        }
 
 @bp.get("/<crypto_name>/payment-gateway")
 @login_required
