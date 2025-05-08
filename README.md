@@ -367,6 +367,48 @@ curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH/payment_requ
     "status": "error"
 }
 ```
+<a name="quote-generation"></a>
+#### 5.2.3.1 Quote Generation
+
+**Endpoint:** `/api/v1/<crypto_name>/quote`  
+**Authorization:** ApiKey.  
+**HTTP request method:** POST request with a JSON object in the following format:  
+```json
+{
+    "fiat": "USD",
+    "amount": "100.00"
+}
+```
+
+- `fiat`: Currency code in ISO 4217 format for conversion. Currently, only USD is supported.
+- `amount`: The amount for which the crypto quote should be generated.
+
+This endpoint returns the crypto amount equivalent and the exchange rate used for the conversion. It does **not** create an invoice and is intended for informational purposes (e.g., showing the user how much crypto they'll need to pay before generating a real invoice).
+
+**Example Curl request:**
+```bash
+curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH/quote' \
+--header 'X-Shkeeper-API-Key: nApijGv8djih7ozY' \
+--header 'Content-Type: application/json' \
+--data-raw '{"fiat":"USD","amount":"100.00"}'
+```
+
+**Success Example Response:**
+```json
+{
+    "crypto_amount": "0.02981237",
+    "exchange_rate": "3353.26",
+    "status": "success"
+}
+```
+
+**Unavailable Crypto Response:**
+```json
+{
+    "message": "BTC payment gateway is unavailable",
+    "status": "error"
+}
+```
 <a name="retrieve-created-addresses"></a>
 #### 5.2.4. Retrieve created addresses
 
