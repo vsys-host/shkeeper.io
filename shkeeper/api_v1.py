@@ -46,10 +46,12 @@ def list_crypto():
     crypto_list = []
     for crypto in Crypto.instances.values():
         if crypto.wallet.enabled and (crypto.getstatus() != "Offline"):
-            filtered_list.append(crypto.crypto)
-            crypto_list.append(
-                {"name": crypto.crypto, "display_name": crypto.display_name}
-            )
+            if (not app.config.get("DISABLE_CRYPTO_WHEN_LAGS") or 
+                    (app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() == "Synced")):
+                filtered_list.append(crypto.crypto)
+                crypto_list.append(
+                    {"name": crypto.crypto, "display_name": crypto.display_name}
+                )
     return {
         "status": "success",
         "crypto": filtered_list,
@@ -80,6 +82,11 @@ def payment_request(crypto_name):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
+            }
+        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+            return {
+                "status": "error",
+                "message": f"{crypto_name} payment gateway is unavailable because of lagging",
             }
 
         req = request.get_json(force=True)
@@ -115,6 +122,11 @@ def get_crypto_quote(crypto_name):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
+            }
+        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+            return {
+                "status": "error",
+                "message": f"{crypto_name} payment gateway is unavailable because of lagging",
             }
 
         req = request.get_json(force=True)

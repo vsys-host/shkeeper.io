@@ -68,6 +68,7 @@ def create_app(test_config=None):
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
+        DISABLE_CRYPTO_WHEN_LAGS=bool(os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)),
     )
 
     if test_config is None:
