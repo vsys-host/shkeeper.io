@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 import inspect
 from io import StringIO
 import itertools
+import segno
 
 from flask import Blueprint
 from flask import flash
@@ -84,6 +85,7 @@ def get_source_rate(crypto_name):
 def payout(crypto_name):
     crypto = Crypto.instances[crypto_name]
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name)
+    fee_deposit_qrcode = segno.make(str(crypto.fee_deposit_account.addr))
 
     tmpl = "wallet/payout.j2"
     if isinstance(crypto, TronToken):
@@ -98,7 +100,7 @@ def payout(crypto_name):
     if "BTC-LIGHTNING" == crypto_name:
         tmpl = "wallet/payout_btc_lightning.j2"
 
-    return render_template(tmpl, crypto=crypto, pdest=pdest)
+    return render_template(tmpl, crypto=crypto, pdest=pdest, fee_deposit_qrcode=fee_deposit_qrcode)
 
 
 @bp.route("/wallet/<crypto_name>")
