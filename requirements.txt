@@ -11,3 +11,4 @@ monero==1.1.1
 prometheus-client==0.16.0
 Flask-Migrate==4.0.5
 cryptography
+segno==1.6.6
