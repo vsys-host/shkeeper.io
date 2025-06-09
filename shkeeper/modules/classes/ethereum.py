@@ -86,9 +86,11 @@ class Ethereum(Crypto):
             return "Offline"
 
     def mkaddr(self, **kwargs):
+        data = {'xpub': self.wallet.xpub}
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/generate-address",
             auth=self.get_auth_creds(),
+            json=data
         ).json(parse_float=Decimal)
         addr = response["address"]
         return addr

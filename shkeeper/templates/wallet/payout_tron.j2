@@ -24,13 +24,13 @@
         <div><p>Available:</p></div>
         <div>
           <p>
-            <a onclick="document.querySelector('.fee-input').value = this.text; document.querySelector('.fee-input').dispatchEvent(new Event('input'));" class="d-inline accent-text">{{crypto.balance()|format_decimal(6)}}</a> {{crypto.display_name}}
+            <a onclick="document.querySelector('.fee-input').value = this.text; document.querySelector('.fee-input').dispatchEvent(new Event('input'));" class="d-inline accent-text">{{crypto.balance()|format_decimal(6)}} </a> {{crypto.display_name}}
           </p>
         </div>
         <div><p>Destination:</p></div>
         <div class="dropdown ms-0">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{% if crypto.wallet.pdest %}{{ crypto.wallet.pdest }}{% endif %}" id="paddress">
+            <input class="dropdown__current" value="{% if crypto.wallet.pdest %}{{ crypto.wallet.pdest }}{% endif %}" id="paddress" {% if crypto.only_read_mode() %}disabled{% endif %}>
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
@@ -70,6 +70,7 @@
               class="fee-input form-control common-text"
               name="amount"
               type="number" min="1" max="{{(crypto.balance())}}" step=".01"
+              {% if crypto.only_read_mode() %}disabled{% endif %}
             />
             <p class="ms-2">{{crypto.display_name}}</p>
           </div>
@@ -93,7 +94,7 @@
   </div>
   <div class="row">
     <div class="col d-flex justify-content-end">
-      <button type="submit" class="button btn me-3 send-payment" data-progress="off">
+      <button type="submit" class="button btn me-3 send-payment" data-progress="off" {% if crypto.only_read_mode() %}disabled{% endif %}>
         <span class="tx_standby">Send</span>
         <span class="tx_in_progress" style="display: none;">
           <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>

@@ -10,7 +10,7 @@
   </div>
 
   <div class="row">
-    <div class="col ps-4" style="max-width: 600px;">
+    <div class="col ps-4 payout-wrapper">
       <div class="autopayout-grid common-text ps-4">
         <div><p>Fee-deposit account:</p></div>
         <div>
@@ -27,7 +27,7 @@
         <div><p>Destination:</p></div>
         <div class="dropdown ms-0">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress" {% if crypto.only_read_mode() %}disabled{% endif %}>
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
@@ -67,6 +67,7 @@
               class="fee-input form-control common-text"
               type="text"
               name="amount"
+              {% if crypto.only_read_mode() %}disabled{% endif %}
             />
             <p class="ms-2">{{ crypto.crypto|upper }}</p>
           </div>
@@ -85,13 +86,10 @@
         </div>
       </div>
     </div>
-    <div class="col ps-4" style="max-width: 600px;">
-      <p><img src="{{ fee_deposit_qrcode.svg_data_uri( scale=4,  light='#fff') }}"></p>
-    </div>
   </div>
   <div class="row">
     <div class="col d-flex justify-content-end">
-      <button type="submit" class="button btn me-3 send-payment" data-progress="off">
+      <button type="submit" class="button btn me-3 send-payment" data-progress="off" {% if crypto.only_read_mode() %}disabled{% endif %}>
         <span class="tx_standby">Send</span>
         <span class="tx_in_progress" style="display: none;">
           <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>

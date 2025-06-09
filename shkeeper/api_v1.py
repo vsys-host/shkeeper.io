@@ -8,7 +8,7 @@ from flask import request
 from flask import Response
 from flask import stream_with_context
 from flask import current_app as app
-from flask.json import JSONDecoder
+# from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
 
@@ -63,6 +63,12 @@ def list_crypto():
 @login_required
 def generate_address(crypto_name):
     crypto = Crypto.instances[crypto_name]
+    if crypto.only_read_mode() and not crypto.wallet.xpub:
+        return {
+            "status": "error",
+            "message": f"{crypto_name} xpub should be added in read-only mode",
+        }
+
     addr = crypto.mkaddr()
     return {"status": "success", "addr": addr}
 
@@ -71,23 +77,17 @@ def generate_address(crypto_name):
 @api_key_required
 def payment_request(crypto_name):
     try:
-        try:
-            crypto = Crypto.instances[crypto_name]
-        except KeyError:
-            return {
-                "status": "error",
-                "message": f"{crypto_name} payment gateway is unavailable",
-            }
-        if not crypto.wallet.enabled:
-            return {
-                "status": "error",
-                "message": f"{crypto_name} payment gateway is unavailable",
-            }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
-            return {
-                "status": "error",
-                "message": f"{crypto_name} payment gateway is unavailable because of lagging",
-            }
+        crypto = Crypto.instances.get(crypto_name)
+        error = None
+
+        if not crypto or not crypto.wallet.enabled:
+            error = f"{crypto_name} payment gateway is unavailable"
+        elif app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+            error = f"{crypto_name} payment gateway is unavailable because of lagging"
+        elif crypto.only_read_mode() and not crypto.wallet.xpub:
+            error = f"{crypto_name} xpub should be added in read-only mode"
+        if error:
+            return {"status": "error", "message": error}
 
         req = request.get_json(force=True)
         invoice = Invoice.add(crypto=crypto, request=req)
@@ -111,14 +111,9 @@ def payment_request(crypto_name):
 @api_key_required
 def get_crypto_quote(crypto_name):
     try:
-        try:
-            crypto = Crypto.instances[crypto_name]
-        except KeyError:
-            return {
-                "status": "error",
-                "message": f"{crypto_name} payment gateway is unavailable",
-            }
-        if not crypto.wallet.enabled:
+        crypto = Crypto.instances.get(crypto_name)
+
+        if not crypto or not crypto.wallet.enabled:
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
@@ -266,6 +261,7 @@ def autopayout(crypto_name):
     w.llimit = req["partiallPaid"]
     w.ulimit = req["addedFee"]
     w.confirmations = req["confirationNum"]
+    w.xpub = req["xPub"]
     w.recalc = req["recalc"]
 
     db.session.commit()

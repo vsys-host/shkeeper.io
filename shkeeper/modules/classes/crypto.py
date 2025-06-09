@@ -73,6 +73,13 @@ class Crypto(abc.ABC):
         instance = cls()
         cls.instances[instance.crypto] = instance
 
+    def only_read_mode(self):
+        network_currency = getattr(self, 'network_currency', None)
+        if network_currency is None:
+            return False
+
+        return os.environ.get(f"{network_currency}_READ_MODE") == 'enabled'
+
     @abc.abstractmethod
     def getname(self):
         pass
