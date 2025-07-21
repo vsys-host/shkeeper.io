@@ -2,6 +2,8 @@ from decimal import Decimal
 import traceback
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
+from operator import  itemgetter
+
 
 from werkzeug.datastructures import Headers
 from flask import Blueprint, jsonify
@@ -72,8 +74,8 @@ def list_crypto():
 
     return {
         "status": "success",
-        "crypto": filtered_list,
-        "crypto_list": crypto_list,
+        "crypto": sorted(filtered_list),
+        "crypto_list": sorted(crypto_list, key=itemgetter("name")),
     }
 
 
