@@ -1,6 +1,9 @@
 from decimal import Decimal
 import traceback
 from os import environ
+from concurrent.futures import ThreadPoolExecutor
+from operator import  itemgetter
+
 
 from werkzeug.datastructures import Headers
 from flask import Blueprint, jsonify
@@ -44,18 +47,35 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 def list_crypto():
     filtered_list = []
     crypto_list = []
-    for crypto in Crypto.instances.values():
-        if crypto.wallet.enabled and (crypto.getstatus() != "Offline"):
-            if (not app.config.get("DISABLE_CRYPTO_WHEN_LAGS") or 
-                    (app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() == "Synced")):
-                filtered_list.append(crypto.crypto)
-                crypto_list.append(
-                    {"name": crypto.crypto, "display_name": crypto.display_name}
-                )
+    disable_on_lags = app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+    cryptos =  Crypto.instances.values()
+    filtered_cryptos = []
+
+    for crypto in cryptos:
+        if crypto.wallet.enabled:
+            filtered_cryptos.append(crypto)
+
+    def get_crypto_status(crypto):
+        return crypto, crypto.getstatus()
+
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(get_crypto_status, filtered_cryptos))
+
+    for crypto, status in results:
+        if status == "Offline":
+            continue
+        if disable_on_lags and status != "Synced":
+            continue
+        filtered_list.append(crypto.crypto)
+        crypto_list.append({
+            "name": crypto.crypto,
+            "display_name": crypto.display_name
+        })
+
     return {
         "status": "success",
-        "crypto": filtered_list,
-        "crypto_list": crypto_list,
+        "crypto": sorted(filtered_list),
+        "crypto_list": sorted(crypto_list, key=itemgetter("name")),
     }
 
 
