@@ -39,7 +39,7 @@
       });
 
       function setDark() {
-        document.cookie = "theme=dark;";
+        document.cookie = "theme=dark; path=/";
         document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.dark.css') }}";
         document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.dark.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
@@ -48,7 +48,7 @@
       }
 
       function setLight() {
-        document.cookie = "theme=light;";
+        document.cookie = "theme=light; path=/";
         document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.light.css') }}";
         document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.light.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
