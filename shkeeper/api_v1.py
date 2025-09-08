@@ -415,6 +415,7 @@ def walletnotify(crypto_name, txid):
                     send_notification(tx)
             except sqlalchemy.exc.IntegrityError as e:
                 app.logger.warning(f"[{crypto.crypto}/{txid}] TX already exist in db")
+                db.session.rollback()
         return {"status": "success"}
     except NotRelatedToAnyInvoice:
         app.logger.warning(f"Transaction {txid} is not related to any invoice")
