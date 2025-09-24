@@ -263,6 +263,26 @@ By default, when adding a transaction and calculating the amount in fiat, SHKeep
 </p>
 
 If you have set “Recalculate invoice rate” to a value other than 0, then in the case of an invoice being paid after the specified time, the exchange rate will be the one at the moment the transaction is credited. When creating an invoice in SHKeeper, an object is returned that includes the `recalculate_after` field, allowing you to inform the customer of how long the current exchange rate will be held for them.
+
+#### Static address mode (advanced)
+
+For businesses that need a permanent deposit address per customer (e.g., exchanges, custodial flows, recurring deposits), SHKeeper supports a “static address” usage pattern **without** changing the core invoice mechanics:
+
+1. **Create a “large” reusable invoice per customer and per coin.**  
+   Set an intentionally high target amount so the invoice never reaches the “fully paid” state during normal operation. This lets you reuse the **same address** for many deposits from the same customer.
+
+2. **Keep the address static by reusing the same invoice.**  
+   Each invoice in SHKeeper maps to a unique blockchain address. By reusing that invoice, you keep the deposit address unchanged for the customer.
+
+3. **Control pricing exposure with “Recalculate invoice rate after”.**  
+   Set a minimal recalculation period (e.g., 1 hour) so fiat/crypto conversion snapshots are refreshed at your cadence. Within the configured period, the rate remains fixed; after it expires, the next transactions will use the updated rate snapshot automatically.
+
+**Notes & caveats**
+
+- This approach preserves a **static deposit address** while keeping rate handling predictable via the recalculation window.  
+- Standard invoice thresholds (under/overpayment windows) and confirmations still apply.  
+- Accounting & reconciliation remain invoice-centric: you attribute multiple deposits to the same customer by keeping a dedicated invoice per customer/coin.
+
 <a name="api"></a>
 ### 5.2. API 
 <a name="auth"></a>
