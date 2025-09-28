@@ -32,6 +32,17 @@
             <a id="generateAPIBtn" href="#" class="ms-2 common-text accent-text" >Generate</a>
           </div>
         </div>
+        {% if crypto.only_read_mode() %}
+          <div class="mb-3">
+            <p class="common-text mb-1">XPUB:</p>
+            <textarea
+              class="form-control common-text"
+              id="xpub"
+              rows="3"
+              style="resize: vertical; max-width: 400px; font-size: 14px;"
+            >{{ crypto.wallet.xpub or '' }}</textarea>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -46,7 +57,7 @@
         <div class="autopayout-width">Destination:</div>
         <div class="dropdown">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{{ crypto.wallet.pdest if crypto.wallet.pdest is not none }}" id="paddress">
+            <input class="dropdown__current" value="{{ crypto.wallet.pdest if crypto.wallet.pdest is not none }}" id="paddress" {% if crypto.only_read_mode() %}disabled{% endif %}>
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
@@ -119,9 +130,9 @@
       <div class="d-flex flex-row common-text align-items-center mb-3">
         <div class="autopayout-width">Policy:</div>
         <div class="policy-block d-flex align-items-center">
-          <select class="form-select form-select--width common-text" id="ppolicy">
+          <select class="form-select form-select--width common-text" id="ppolicy" {% if crypto.only_read_mode() %}disabled{% endif %}>
             {% for policy in ppolicy %}
-            <option {% if policy == crypto.wallet.ppolicy.value %} selected {% endif %}>{{policy}}</option>
+            <option {% if policy == crypto.wallet.ppolicy.value %} selected {% endif %}>{{policy}} </option>
             {% endfor %}
           </select>
           <p class="common-text text-nowrap mx-2">once per</p>
@@ -175,6 +186,7 @@
             type="number"
             value="{{ crypto.wallet.llimit | format_decimal }}"
             id="llimit"
+            {% if crypto.only_read_mode() %}disabled{% endif %}
           />
           <p class="ps-2 common-text">%</p>
         </div>
@@ -191,6 +203,7 @@
             type="number"
             value="{{ crypto.wallet.ulimit | format_decimal }}"
             id="ulimit"
+            {% if crypto.only_read_mode() %}disabled{% endif %}
           />
           <p class="ps-2 common-text">%</p>
         </div>
@@ -199,9 +212,9 @@
       <div class="d-flex flex-row common-text align-items-center mb-3">
         <div class="autopayout-2-width">Recalculate invoice rate after</div>
         <div class="recalc-block d-flex align-items-center">
-          <input class="form-control common-text autopayout-input me-2" type="number" id="recalculate-val" value="{{ recalc.num }}"/>
+          <input class="form-control common-text autopayout-input me-2" type="number" id="recalculate-val" value="{{ recalc.num }}" {% if crypto.only_read_mode() %}disabled{% endif %}/>
 
-          <select class="form-select form-select--width common-text" id="recalculate-term" id="">
+          <select class="form-select form-select--width common-text" id="recalculate-term" id=" " {% if crypto.only_read_mode() %}disabled{% endif %}>
           {% for period in recalc['periods'] %}
             <option value="{{ period.hours }}" {% if period.hours == recalc.multiplier %}selected{% endif %}>
               {{ period.name }}
@@ -223,6 +236,7 @@
             type="number"
             value="{{ crypto.wallet.confirmations }}"
             id="confirmations"
+            {% if crypto.only_read_mode() %}disabled{% endif %}
           />
         </div>
       </div>

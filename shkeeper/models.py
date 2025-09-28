@@ -63,6 +63,7 @@ class Wallet(db.Model):
     payout = db.Column(db.Boolean, default=False)
     ppolicy = db.Column(db.Enum(PayoutPolicy), default=PayoutPolicy.MANUAL)
     pcond = db.Column(db.String)
+    xpub = db.Column(db.String)
     last_payout_attempt = db.Column(db.DateTime, default=datetime.min)
     enabled = db.Column(db.Boolean, default=True)
     apikey = db.Column(db.String)
