@@ -1,5 +1,5 @@
 const crypto = document.getElementById('cryptoname').getAttribute("cryptoname");
-const BTC = "BTC";
+// const BTC = "BTC";
 const LTC = "LTC";
 const DOGE = "DOGE"
 console.log(crypto);
@@ -353,21 +353,21 @@ function sendAction()
       element.value = element.value.trim();
       if(element.value != "" && element.value != "None")
       {
-        if(crypto == BTC)
-        {
-          let BTCRegExp = new RegExp('^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{26,33}|bc1[a-z0-9]{39,59}|tb1[a-z0-9]{39,59})$');
-          if(BTCRegExp.test(element.value))
-          {
-            document.querySelector(".dropdown__header").classList.remove("red-highlight");
-          }
-          else
-          {
-            alert("Destination Address doesn't match Valid Bitcoin address.");
-            document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;
-          }
-        }
-        else if(crypto == LTC)
+        // if(crypto == BTC)
+        // {
+        //   let BTCRegExp = new RegExp('^(?:[13]{1}[a-km-zA-HJ-NP-Z1-9]{26,33}|bc1[a-z0-9]{39,59}|tb1[a-z0-9]{39,59})$');
+        //   if(BTCRegExp.test(element.value))
+        //   {
+        //     document.querySelector(".dropdown__header").classList.remove("red-highlight");
+        //   }
+        //   else
+        //   {
+        //     alert("Destination Address doesn't match Valid Bitcoin address.");
+        //     document.querySelector(".dropdown__header").classList.add("red-highlight");
+        //     check = false;
+        //   }
+        // }
+        if(crypto == LTC)
         {
           let BTCRegExp = new RegExp('^([LM3][a-km-zA-HJ-NP-Z1-9]{26,33}|ltc1[a-z0-9]{39,59})$');
           if(BTCRegExp.test(element.value))
