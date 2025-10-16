@@ -117,8 +117,9 @@ class Btc(Crypto):
                 return f"Payout failed: not enought BTC to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
+        current_fee = fee if fee not in (None, 0, 0.0, "0", "") else self.estimate_tx_fee(amount)["fee_satoshi"]
         response = requests.post(
-            f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
+            f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}/{current_fee}",
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response

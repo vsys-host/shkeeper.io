@@ -106,7 +106,6 @@ class Wallet(db.Model):
             Payout.add(
                 {"dest": self.pdest, "amount": balance, "txids": idtxs}, crypto.crypto
             )
-
         return res
 
 
