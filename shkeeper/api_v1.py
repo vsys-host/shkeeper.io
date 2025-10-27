@@ -303,6 +303,29 @@ def status(crypto_name):
     }
 
 
+@bp.get("/<crypto_name>/balance")
+@api_key_required
+def balance(crypto_name):
+    if crypto_name not in Crypto.instances.keys():
+        return {"status": "error", 
+                "message": f"Crypto {crypto_name} is not enabled"}
+    crypto = Crypto.instances[crypto_name]
+    fiat = "USD"
+    rate = ExchangeRate.get(fiat, crypto_name)
+    current_rate = rate.get_rate()
+    crypto_amount = format_decimal(crypto.balance()) if crypto.balance() else 0
+
+    return {
+        "name": crypto.crypto,
+        "display_name": crypto.display_name,
+        "amount_crypto": crypto_amount,
+        "rate": current_rate,
+        "fiat": "USD",
+        "amount_fiat": format_decimal(Decimal(crypto_amount) * Decimal(current_rate)),
+        "server_status": crypto.getstatus(),
+    }
+
+
 @bp.post("/<crypto_name>/payout")
 @basic_auth_optional
 @login_required

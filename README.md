@@ -27,6 +27,7 @@
         - [Creating a payout task](#creating-a-payout-task)
         - [Creating a multipayout task](#creating-a-multipayout-task)
         - [Checking task status](#checking-task-status)
+        - [Get crypto balance information](#get-crypto-balance-info)
   - [Receiving callback](#receiving-callback)
   - [Ready-made modules](#ready-made-modules)
      - [WHMCS](#whmcs)
@@ -774,6 +775,40 @@ When the task is in progress:
     "status": "FAILURE"
 }
 ```
+
+<a name="get-crypto-balance-info"></a>
+##### 5.2.11.4. Get crypto balance information
+
+**Endpoint:** `/api/v1/<crypto_name>/balance`  
+**Authorization:** ApiKey.    
+**HTTP request method:**  GET  
+**Curl Example:**
+```
+curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH/balance' \
+--header 'X-Shkeeper-Api-Key: nApijGv8djih7ozY'
+```
+
+**Successful Response:**
+```
+{
+  "amount_crypto":"0.0213590094",
+  "amount_fiat":"88.8201590493",
+  "display_name":"Ethereum",
+  "fiat":"USD",
+  "name":"ETH",
+  "rate":"4158.44000000",
+  "server_status":"Synced"
+}
+```
+
+**Error Response:**
+```
+{
+  "message":"Crypto XRP is not enabled",
+  "status":"error"
+}
+```
+
 <a name="receiving-callback"></a>
 ### 5.3 Receiving callback
 
