@@ -28,7 +28,8 @@ class BitcoinLightning(Crypto):
         self.LND_SHARED_DIR = environ.get("LND_SHARED_DIR", "/lightning_shared")
         self.LND_REST_URL = environ.get("LND_REST_URL", "https://lnd:8080")
         self.LND_NETWORK = environ.get(
-            "LND_NETWORK", "mainnet"  # regtest, testnet, mainnet
+            "LND_NETWORK",
+            "mainnet",  # regtest, testnet, mainnet
         )
         self.LIGHTNING_INVOICE_TTL = int(
             environ.get("LIGHTNING_INVOICE_TTL", 60 * 60 * 24 * 7)
@@ -105,7 +106,6 @@ class BitcoinLightning(Crypto):
 
     @cached_property
     def session(self):
-
         s = requests.Session()
         s.verify = self.tls_cert
         s.headers = {"Grpc-Metadata-macaroon": self.macaroon}
@@ -380,7 +380,6 @@ class BitcoinLightning(Crypto):
     def getaddrbytx(
         self, txid
     ) -> List[Tuple[str, Decimal, int, Literal["send", "receive"]]]:
-
         inv: BLI = BLI.query.filter(BLI.r_hash == txid).first()
         confirmations = 999
         address = inv.payment_request
@@ -393,7 +392,6 @@ class BitcoinLightning(Crypto):
         return 999
 
     def estimate_tx_fee(self, amount, **kwargs):
-
         pay_req = kwargs.get("address")
         app.logger.debug(f"Estimated TX fee for {pay_req}:")
         decoded_pay_req = self.session.get(
@@ -422,6 +420,13 @@ class BitcoinLightning(Crypto):
                 "status": "error",
                 "error": f"The invoice has been expired. Expiration date: {exp_date}",
             }
+
+        return {
+            "status": "success",
+            "fee": 0,
+            # "fee_estimate_details": fee_estimate,
+            "payment_request_details": decoded_pay_req,
+        }
 
         fee_estimate = self.session.post(
             f"{self.LND_REST_URL}/v2/router/route/estimatefee",
