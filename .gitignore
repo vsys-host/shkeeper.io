@@ -13,3 +13,5 @@ build/
 .idea/
 *.swp
 *~
+.vscode/launch.json
+.env
