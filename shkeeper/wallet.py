@@ -104,7 +104,9 @@ def payout(crypto_name):
     if "BTC-LIGHTNING" == crypto_name:
         tmpl = "wallet/payout_btc_lightning.j2"
 
-    return render_template(tmpl, crypto=crypto, pdest=pdest, fee_deposit_qrcode=fee_deposit_qrcode)
+    return render_template(
+        tmpl, crypto=crypto, pdest=pdest, fee_deposit_qrcode=fee_deposit_qrcode
+    )
 
 
 @bp.route("/wallet/<crypto_name>")
@@ -411,7 +413,51 @@ def parts_tron_multiserver():
 
     servers_status = any_tron_crypto.servers_status()
     return render_template(
-        "wallet/manage_server_trontoken_status.j2", servers_status=servers_status
+        "wallet/configure/tron/main__multiserver_table.j2",
+        servers_status=servers_status,
+    )
+
+
+@bp.route("/configure/tron", methods=("GET", "POST"))
+@login_required
+def configure_tron():
+    if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
+        any_tron_crypto: TronToken = next(cryptos)
+    else:
+        return "No Tron crypto found."
+
+    account_info = any_tron_crypto.get_account_info()
+    return render_template(
+        "wallet/configure/tron/main.j2", i=account_info, crypto=any_tron_crypto
+    )
+
+
+@bp.get("/parts/tron-staking-stake")
+@login_required
+def get_parts_tron_staking_stake():
+    # if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
+    #     any_tron_crypto: TronToken = next(cryptos)
+    # else:
+    #     return "No Tron crypto found."
+
+    # account_info = any_tron_crypto.get_account_info()
+    return render_template(
+        "wallet/configure/tron/main__dialog_staking__stake.j2",
+    )
+
+
+@bp.post("/parts/tron-staking-stake")
+@login_required
+def post_parts_tron_staking_stake():
+    tron: TronToken = next(
+        filter(lambda x: isinstance(x, TronToken), Crypto.instances.values())
+    )
+    stake_result = tron.stake_trx(
+        request.values.get("amount_trx"), request.values.get("resource")
+    )
+    return render_template(
+        "wallet/configure/tron/main__dialog_staking__result.j2",
+        stake_result=stake_result,
     )
 
 

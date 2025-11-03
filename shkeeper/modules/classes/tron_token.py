@@ -9,6 +9,7 @@ from shkeeper import requests
 from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.schemas import TronAccountResponse
 
 
 class TronToken(Crypto):
@@ -173,3 +174,18 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response["accounts"]
+
+    def get_account_info(self) -> TronAccountResponse:
+        response = requests.get(
+            f"http://{self.gethost()}/staking",
+            auth=self.get_auth_creds(),
+        )
+        result = TronAccountResponse.model_validate_json(response.text)
+        return result
+
+    def stake_trx(self, amount, resource):
+        response = requests.post(
+            f"http://{self.gethost()}/staking/freeze/{amount}/{resource}",
+            auth=self.get_auth_creds(),
+        )
+        return response.json(parse_float=Decimal)

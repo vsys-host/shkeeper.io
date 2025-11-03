@@ -58,6 +58,7 @@ def create_app(test_config=None):
         SESSION_TYPE="filesystem",
         SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
         TRON_MULTISERVER_GUI=bool(os.environ.get("TRON_MULTISERVER_GUI")),
+        TRON_STAKING_GUI=bool(os.environ.get("TRON_STAKING_GUI")),
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get("FORCE_WALLET_ENCRYPTION")),
         UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get("UNCONFIRMED_TX_NOTIFICATION")),
         REQUESTS_TIMEOUT=int(os.environ.get("REQUESTS_TIMEOUT", 10)),
@@ -68,7 +69,9 @@ def create_app(test_config=None):
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
-        DISABLE_CRYPTO_WHEN_LAGS=bool(os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)),
+        DISABLE_CRYPTO_WHEN_LAGS=bool(
+            os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)
+        ),
     )
 
     if test_config is None:
