@@ -1,0 +1,246 @@
+{% extends 'wallet/page.j2' %}
+
+
+{% block content %}
+<div class="px-5 py-4 content-container">
+  <div class="row">
+    <div class="col">
+      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col ps-4" style="max-width: 600px;">
+      <div class="autopayout-grid common-text ps-4">
+        <div><p>Fee-deposit account:</p></div>
+        <div>
+            <p>
+              {{ crypto.fee_deposit_account.addr }}
+            </p>
+        </div>
+        <div><p>Available:</p></div>
+        <div>
+          <p>
+            <a onclick="document.querySelector('.fee-input').value = this.text; document.querySelector('.fee-input').dispatchEvent(new Event('input'));" class="d-inline accent-text">{{crypto.balance()|format_decimal(8)}}</a> {{ crypto.crypto|upper }}
+          </p>
+        </div>
+        <div><p>Destination:</p></div>
+        <div class="dropdown ms-0">
+          <div class="dropdown__header d-flex flex-row align-items-center">
+            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <div class="dropdown__button">
+              <svg class="dropdown-arrow__icon" width="16" height="16">
+                <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
+              </svg>
+            </div>
+          </div>
+          <div class="dropdown__body">
+            {% for pd in pdest %}
+            <div class="dropdown__item">
+              <div class="dropdown__item-wraper">
+                <div class="dropdown__text">{{ pd.addr }}</div>
+              </div>
+              <button class="dropdown-delete-button delete-button" type="button">
+                  <svg width="10" height="10">
+                    <use href="/static/images/icons.svg#close-icon"></use>
+                  </svg>
+              </button>
+            </div>
+            {% endfor %}
+            <div class="dropdown__item-sample">
+              <div class="dropdown__item-wraper">
+                <div class="dropdown__text"></div>
+              </div>
+              <button class="dropdown-delete-button delete-button" type="button">
+                  <svg width="10" height="10">
+                    <use href="/static/images/icons.svg#close-icon"></use>
+                  </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div><p>Amount:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="fee-input form-control common-text"
+              type="text"
+              name="amount"
+            />
+            <p class="ms-2">{{ crypto.crypto|upper }}</p>
+          </div>
+        </div>
+        <div><p>Fee</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="fee-input form-control common-text"
+              id = "fee-input"
+              type="text"
+              name="fee"
+            />
+            <p class="ms-2 fee-label" id="estimate-fee-btn" style="cursor: pointer; color: white;">sat/vByte</p>
+            <p class="ms-2"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col d-flex justify-content-end">
+      <button type="submit" class="button btn me-3 send-payment" data-progress="off">
+        <span class="tx_standby">Send</span>
+        <span class="tx_in_progress" style="display: none;">
+          <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+          Sending...
+        </span>
+      </button>
+      <button type="button" class="button btn button-secondary" onclick="location.href='/';">
+        Discard
+      </button>
+    </div>
+  </div>
+</div>
+<script>
+  function tx_progress_on() {
+    document.querySelector(".send-payment").dataset.progress = 'on';
+    document.querySelector(".tx_standby").style.display = "none";
+    document.querySelector(".tx_in_progress").style.display = "block";
+  }
+  function tx_progress_off() {
+    document.querySelector(".send-payment").dataset.progress = 'off';
+    document.querySelector(".tx_in_progress").style.display = "none";
+    document.querySelector(".tx_standby").style.display = "block";
+  }
+
+  function delay(fn, ms) {
+    let timer = 0
+    return function (...args) {
+      clearTimeout(timer)
+      timer = setTimeout(fn.bind(this, ...args), ms || 0)
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const feeLabel = document.querySelector(".fee-label");
+    if (feeLabel) {
+      feeLabel.style.cursor = "pointer";
+      feeLabel.addEventListener("click", show_btc_est_fee);
+    }
+  });
+
+  function show_btc_est_fee() {
+    const feeInput = document.querySelector("#fee-input");
+    if (!feeInput) {
+      return;
+    }
+    const amount = feeInput.value || "1";
+    fetch("/api/v1/BTC/estimate-tx-fee/" + amount)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.fee_satoshi) {
+          return;
+        }
+        console.log
+        const feeSatoshi = data.fee_satoshi;
+        feeInput.value = feeSatoshi;
+        document.querySelector("#est_fee").innerText = feeSatoshi;
+        check_fee();
+      })
+      .catch(err => console.error("error:", err));
+  }
+
+  function show_est_fee() {
+    let amount = document.querySelector(".fee-input").value;
+    if (!amount) return;
+    fetch("/api/v1/{{crypto.crypto}}/estimate-tx-fee/" + amount)
+      .then(response => response.json())
+      .then(data => {
+        if (!data.fee) return;
+        document.querySelector("#est_fee").innerText = data.fee;
+        check_fee();
+        console.log(data);
+      })
+  }
+
+  var not_en_trx_msg = `Not enough {{ crypto.network_currency }} to pay for transaction. Please top up the fee-deposit account.`;
+
+  function check_fee() {
+    let est_fee = parseFloat(document.querySelector("#est_fee").innerText);
+    let fee_depos_bal = parseFloat(document.querySelector("#fee_depos_bal").innerText);
+    let fee_err = document.querySelector("#fee_err");
+
+    if (fee_depos_bal < est_fee) {
+      fee_err.innerText = not_en_trx_msg;
+      fee_err.style.display = "block";
+      return false;
+    }
+
+    fee_err.style.display = "none";
+    return true;
+  }
+
+  document.querySelector(".send-payment").addEventListener("click", e => {
+
+    if (document.querySelector(".send-payment").dataset.progress == 'on') return;
+
+    document.tx_complete = false;
+
+    let addr = document.querySelector("#paddress").value.trim();
+    let amount = document.querySelector(".fee-input").value;
+    let feeInput = document.querySelector("#fee-input");
+    let fee = feeInput ? feeInput.value : 0;
+
+    if (!amount) {
+      alert('Please enter amount to send.');
+      return;
+    }
+
+    {# if (!check_fee()) {
+      alert(not_en_trx_msg);
+      return;
+    } #}
+
+    tx_progress_on();
+
+    fetch("/api/v1/{{crypto.crypto}}/payout", {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        destination: addr,
+        amount: amount,
+        fee: fee,
+      })
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        get_task(data.task_id);
+      })
+
+    console.log('submit!')
+  });
+
+  function get_task(task_id) {
+    fetch("/api/v1/{{crypto.crypto}}/task/" + task_id)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        if ("SUCCESS" == data.status) {
+          alert(`Payment sent!\n\nTransaction IDs:\n` + data.result[0].txids.join("\n"));
+          location.reload();
+        } else if ("FAILURE" == data.status) {
+          alert(`Failure!\n\n` + data.result);
+          location.reload();
+        } else {
+          setTimeout(() => get_task(task_id), 1000);
+        }
+      })
+  }
+
+</script>
+{% endblock %}

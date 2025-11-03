@@ -71,29 +71,15 @@
             <p class="ms-2">{{ crypto.crypto|upper }}</p>
           </div>
         </div>
-        {% if crypto.crypto|upper == "BTC" %}
-          <div><p>Fee</p></div>
-        {% else %}
-          <div></div>
-        {% endif %}
+        <div><p></p></div>
         <div>
           <div class="d-flex align-items-center">
-            {% if crypto.crypto|upper == "BTC" %}
-              <input
-                class="fee-input form-control common-text"
-                id = "fee-input"
-                type="text"
-                name="fee"
-              />
-              <p class="ms-2 fee-label" id="estimate-fee-btn" style="cursor: pointer; color: white;">sat/vByte</p>
-            {% else %}
-              <input
-                value="0"
-                class="fee-input form-control common-text"
-                type="hidden"
-                name="fee"
-              />
-            {% endif %}
+            <input
+              value="0"
+              class="fee-input form-control common-text"
+              type="hidden"
+              name="fee"
+            />
             <p class="ms-2"></p>
           </div>
         </div>
@@ -139,38 +125,6 @@
     }
   }
 
-  document.addEventListener("DOMContentLoaded", function() {
-    const cryptoName = "{{ crypto.crypto|upper }}";
-    if (cryptoName === "BTC") {
-      const feeLabel = document.querySelector(".fee-label");
-      if (feeLabel) {
-        feeLabel.style.cursor = "pointer";
-        feeLabel.addEventListener("click", show_btc_est_fee);
-      }
-    }
-  });
-
-  function show_btc_est_fee() {
-    const feeInput = document.querySelector("#fee-input");
-    if (!feeInput) {
-      return;
-    }
-    const amount = feeInput.value || "1";
-    fetch("/api/v1/BTC/estimate-tx-fee/" + amount)
-      .then(response => response.json())
-      .then(data => {
-        if (!data.fee_satoshi) {
-          return;
-        }
-        console.log
-        const feeSatoshi = data.fee_satoshi;
-        feeInput.value = feeSatoshi;
-        document.querySelector("#est_fee").innerText = feeSatoshi;
-        check_fee();
-      })
-      .catch(err => console.error("error:", err));
-  }
-
   function show_est_fee() {
     let amount = document.querySelector(".fee-input").value;
     if (!amount) return;
@@ -209,9 +163,6 @@
 
     let addr = document.querySelector("#paddress").value.trim();
     let amount = document.querySelector(".fee-input").value;
-    let feeInput = document.querySelector("#fee-input");
-    let fee = feeInput ? feeInput.value : 0;
-
     if (!amount) {
       alert('Please enter amount to send.');
       return;
@@ -233,7 +184,7 @@
       body: JSON.stringify({
         destination: addr,
         amount: amount,
-        fee: fee,
+        fee: 0,
       })
     })
       .then(response => response.json())
