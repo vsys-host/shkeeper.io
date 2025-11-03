@@ -1,0 +1,28 @@
+body, dialog {
+    background-color: var(--background-color);
+    font-family: Montserrat, sans-serif
+}
+
+dialog {
+    border-width: 2px;
+    border-color: var(--accent-color);
+    border-style: solid;
+}
+
+dialog::backdrop {
+  background-image: linear-gradient(
+      black
+  );
+  opacity: .9;
+}
+
+
+.htmx-indicator{
+    display:none;
+}
+.htmx-request .htmx-indicator{
+    display:inline;
+}
+.htmx-request.htmx-indicator{
+    display:inline;
+}
