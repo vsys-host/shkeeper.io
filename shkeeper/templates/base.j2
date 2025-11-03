@@ -44,7 +44,7 @@
         document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.dark.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
         document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
-        document.querySelectorAll('img.big-logo, img.menu-logo').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
+        document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
       }
 
       function setLight() {
@@ -53,7 +53,7 @@
         document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.light.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
         document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
-        document.querySelectorAll('img.big-logo, img.menu-logo').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
+        document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
       }
 
       function forceColorScheme(is_dark) {
