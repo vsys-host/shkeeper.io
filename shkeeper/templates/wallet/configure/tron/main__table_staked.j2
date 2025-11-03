@@ -1,0 +1,39 @@
+{% if i.account_info.has_staked_trx() %}
+    <div class="row">
+        <div class="input-block">
+            <h2 class="subtitle-text mb-4">Resources obtained from staking</h2>
+            <div class="d-flex ps-4 input-block">
+                <table class="table table-sm table-borderless common-text tron-staked-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Resource</th>
+                            <th scope="col">Points</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in i.account_info.frozenV2 if r.type != "TRON_POWER" %}
+                            <tr>
+                                <td>{{ r.trx() }} TRX</td>
+                                <td>{{ r.type }}</td>
+                                <td>{{ i.estimate_points_from_staking_trx(r.trx() ,r.type) }}</td>
+                                <td>
+                            {# <button hx-get="/parts/tron-staking-unstake?resource={{ r.type }}&max_trx={{ r.trx() }}" hx-trigger="click" hx-target="#tron_staking" hx-swap="outerHTML" class="btn btn-sm general-button">
+                                <img height="16" width="16" class="htmx-indicator" src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+                                Unstake
+                            </button> #}
+                        </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <style>
+.tron-staked-table > th, td {
+  padding: 7px !important;
+}
+            </style>
+        </div>
+    </div>
+{% endif %}

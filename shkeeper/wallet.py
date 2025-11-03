@@ -121,9 +121,6 @@ def manage(crypto_name):
         for cls in crypto.__class__.mro()
     ][:-2]
 
-    if not app.config["TRON_MULTISERVER_GUI"]:
-        server_templates = filter(lambda x: "trontoken" not in x, server_templates)
-
     def f(h):
         if not h:
             return 0, 1

@@ -125,8 +125,8 @@ class TronAccount(BaseModel):
 class TronDelegatedResource(BaseModel):
     from_: TronAddress = Field(..., alias="from")
     to: TronAddress
-    frozen_balance_for_energy: PositiveInt
-    frozen_balance_for_bandwidth: PositiveInt
+    frozen_balance_for_energy: NonNegativeInt = 0
+    frozen_balance_for_bandwidth: NonNegativeInt = 0
 
 
 class TronAccountResource(BaseModel):

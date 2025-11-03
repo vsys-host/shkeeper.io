@@ -1,0 +1,60 @@
+<div id="tron_staking">
+        <h2 class="subtitle-text mb-4"></h2>
+        <p class="common-text mb-3">
+                <b>TRX to stake:</b>
+                <input type="number"
+                       id="trx_stake_input"
+                       name="amount_trx"
+                       min="1"
+                       max="{{ request.values.get('max_trx') }}"
+                       value="{{ request.values.get('max_trx') }}">
+        </p>
+        <ul>
+                <li>
+                        <span hx-post="/parts/tron-staking-stake?resource=ENERGY"
+                              hx-include="#trx_stake_input"
+                              hx-trigger="click"
+                              hx-target="#tron_staking"
+                              hx-swap="outerHTML"
+                              hx-confirm="Are you sure you wish to stake TRX for energy?"
+                              class="common-text accent-text"
+                              style="cursor: pointer">
+                                <img height="16"
+                                     width="16"
+                                     class="htmx-indicator"
+                                     src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+                                Stake for energy
+                        </span>
+                </li>
+                <li>
+                        <span hx-post="/parts/tron-staking-stake?resource=BANDWIDTH"
+                              hx-include="#trx_stake_input"
+                              hx-trigger="click"
+                              hx-target="#tron_staking"
+                              hx-swap="outerHTML"
+                              hx-confirm="Are you sure you wish to stake TRX for bandwidth?"
+                              class="common-text accent-text"
+                              style="cursor: pointer">
+                                <img height="16"
+                                     width="16"
+                                     class="htmx-indicator"
+                                     src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+                                Stake for bandwidth
+                        </span>
+                </li>
+                <li>
+                        <span hx-get="/parts/tron-staking"
+                              hx-trigger="click"
+                              hx-target="#tron_staking"
+                              hx-swap="outerHTML"
+                              class="common-text accent-text"
+                              style="cursor: pointer">
+                                <img height="16"
+                                     width="16"
+                                     class="htmx-indicator"
+                                     src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+                                Return to overview
+                        </span>
+                </li>
+        </ul>
+</div>

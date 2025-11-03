@@ -1,0 +1,18 @@
+{% import 'macros.j2' as manage %}
+{% set result_url %}
+    <a href="https://tronscan.org/#/transaction/{{ stake_result.id }}">{{ stake_result.id }}</a>
+{% endset %}
+{% set return_link %}
+    <span onclick="dialog_staking.close(); location.reload();"
+          class="common-text accent-text"
+          style="cursor: pointer">
+        Return
+    </span>
+{% endset %}
+{% set content %}
+    {{ manage.manage_block_row("Staked:&nbsp;&nbsp;&nbsp;", request.values.amount_trx + " TRX") }}
+    {{ manage.manage_block_row("Resource:&nbsp;&nbsp;&nbsp;", request.values.resource) }}
+    {{ manage.manage_block_row("TXID:&nbsp;&nbsp;&nbsp;", result_url) }}
+    {{ manage.manage_block_row("", return_link) }}
+{% endset %}
+<div id="tron_staking">{{ manage.manage_block("Staking result", content) }}</div>
