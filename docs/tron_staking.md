@@ -56,7 +56,7 @@ Keep funds and Energy delegation separate. Point the feature to an Energy-only a
 tron_shkeeper:
   extraEnv:
     ENERGY_DELEGATION_MODE: 1
-	ENERGY_DELEGATION_MODE_SEPARATE_BALANCE_AND_ENERGY_ACCOUNTS: 1
+    ENERGY_DELEGATION_MODE_SEPARATE_BALANCE_AND_ENERGY_ACCOUNTS: 1
 ```
 
 ### 3) Minimal SR voting
@@ -67,7 +67,6 @@ This enables voting for a single SR addresse. Replace the example `T...` address
 tron_shkeeper:
   extraEnv:
     ENERGY_DELEGATION_MODE: 1
-	# ...
     SR_VOTING: 1
     SR_VOTES: |
         [
