@@ -61,7 +61,7 @@
               </div>
               <button class="dropdown-delete-button delete-button" type="button">
                   <svg width="10" height="10">
-                    <use href="/static/images/icons.svg#close-icon"></use>
+                    <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
                   </svg>
               </button>
             </div>
@@ -72,7 +72,7 @@
               </div>
               <button class="dropdown-delete-button delete-button" type="button">
                   <svg width="10" height="10">
-                    <use href="/static/images/icons.svg#close-icon"></use>
+                    <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
                   </svg>
               </button>
             </div>
