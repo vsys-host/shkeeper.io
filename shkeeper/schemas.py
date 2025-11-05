@@ -1,6 +1,6 @@
 import datetime
 import math
-from typing import Annotated, List, Literal, TypeAlias
+from typing import Annotated, Any, List, Literal, TypeAlias
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
 
@@ -175,3 +175,9 @@ class TronAccountResponse(BaseModel):
             )
         else:
             return 0
+
+
+class TronError(BaseModel):
+    status: Literal["error"]
+    msg: str
+    details: Any
