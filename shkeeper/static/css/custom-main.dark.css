@@ -187,6 +187,7 @@
 .dropdown__item {
     display: flex;
     flex-direction: row;
+    background-color: var(--background-color);
 }
 
 .dropdown__item-hide {
