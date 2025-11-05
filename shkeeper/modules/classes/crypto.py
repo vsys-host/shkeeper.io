@@ -54,7 +54,7 @@ class Crypto(abc.ABC):
             "solana_pyusd",
 
         ]
-        default_on = ["ltc", "btc", "doge"]
+        default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
             if cls.__name__ == symbol and (
                 f"{symbol.upper()}_WALLET" not in os.environ
