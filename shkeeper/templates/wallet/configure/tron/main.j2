@@ -30,29 +30,40 @@
     {% endif %}
   {% endset %}
   {% set content %}
-    {{ manage.manage_block_row("<b>Staking account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
-    {% if i.account_info.trx() >= 1 %}
-    {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % i.account_info.trx() ) }}
+
+    {% if tron_config.energy_delegation_mode %}
+      {{ manage.manage_block_row("<b>Staking account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
+      {% if i.account_info.trx() >= 1 %}
+      {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % i.account_info.trx() ) }}
+      {% else %}
+      {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "<span style='color: var(--danger-color);'>%f TRX</span>" % i.account_info.trx() ) }}
+      {% endif %}
+
+      {{ manage.manage_block_row("<b>Energy:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_en() , i.account_resource.EnergyLimit)) }}
+      {{ manage.manage_block_row("<b>Bandwidth:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_bw() , i.account_resource.NetLimit)) }}
+      {# {{ manage.manage_block_row("<b>Voting reward:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % (i.account_info.allowance / 1_000_000) ) }} #}
+      {{ manage.manage_block_row("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;", "enabled") }}
+      {{ manage.manage_block_row("<b>Actions:</b>&nbsp;&nbsp;&nbsp;", actions) }}
     {% else %}
-    {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "<span style='color: var(--danger-color);'>%f TRX</span>" % i.account_info.trx() ) }}
+      {{ manage.manage_block_row("<b>Balances account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
+      {{ manage.manage_block_row("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;", "disabled") }}
     {% endif %}
 
-    {{ manage.manage_block_row("<b>Energy:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_en() , i.account_resource.EnergyLimit)) }}
-    {{ manage.manage_block_row("<b>Bandwidth:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_bw() , i.account_resource.NetLimit)) }}
-    {# {{ manage.manage_block_row("<b>Voting reward:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % (i.account_info.allowance / 1_000_000) ) }} #}
-    {{ manage.manage_block_row("<b>Actions:</b>&nbsp;&nbsp;&nbsp;", actions) }}
+
   {% endset %}
 
   <div class="px-5 py-4 content-container" style="justify-content: start;">
     {% include "wallet/configure/tron/main__multiserver.j2" %}
-    <div id="tron_staking">{{ manage.manage_block("General info", content) }}</div>
-    <div class="mt-3"></div>
-    {% include "wallet/configure/tron/main__table_staked.j2" %}
-    {# {% include "wallet/configure/tron/main__table_unstaking.j2" %} #}
-    {% include "wallet/configure/tron/main__table_delegated.j2" %}
-    <div class="mt-3"></div>
+      <div id="tron_staking">{{ manage.manage_block("General info", content) }}</div>
+    {% if tron_config.energy_delegation_mode %}
+      <div class="mt-3"></div>
+      {% include "wallet/configure/tron/main__table_staked.j2" %}
+      {# {% include "wallet/configure/tron/main__table_unstaking.j2" %} #}
+      {% include "wallet/configure/tron/main__table_delegated.j2" %}
+      <div class="mt-3"></div>
 
-    {# Dialogs #}
-    {% include "wallet/configure/tron/main__dialog_staking.j2" %}
+      {# Dialogs #}
+      {% include "wallet/configure/tron/main__dialog_staking.j2" %}
+    {% endif %}
   </div>
 {% endblock content %}
