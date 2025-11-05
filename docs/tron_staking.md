@@ -18,7 +18,7 @@ With staked TRX you can also vote for SRs and obtain TRX as reward.
 	- Ensure you have sufficient staked TRX to cover the total votes you configure.
 
 
-## Relevant settings (from `tron-shkeeper/app/config.py`)
+## Relevant settings
 
 Energy delegation:
 
@@ -89,3 +89,39 @@ Guidance:
 - Voting transactions also require resources; if they fail, temporarily enable `SR_VOTING_ALLOW_BURN_TRX=true` or increase available bandwidth/energy.
 
 # Staking TRX from Shkeeper
+1. Click "Manage" on any Tron asset.
+
+  <img src="images/tron_staking/01.png" alt="Manage Tron asset" width="500"/>
+
+2. Click "Configure Tron Settings".
+
+  <img src="images/tron_staking/02.png" alt="Configure Tron Settings" width="500"/>
+
+3. Fund the Balance and (if used) the Staking/Energy accounts, then reload the page.
+  If you chose not to separate accounts, only one account will appear.
+
+  <img src="images/tron_staking/03.png" alt="Fund accounts" width="500"/>
+
+4. After funding, click "Stake".
+
+  <img src="images/tron_staking/04.png" alt="Stake button" width="500"/>
+
+5. Enter the amount of TRX to stake for Energy. Use the Resource Calculator to estimate required TRX: https://tronscan.org/#/tools/tronstation
+
+  <img src="images/tron_staking/05.png" alt="Enter stake amount" width="500"/>
+
+6. Confirm the staking transaction and return to the overview.
+
+  <img src="images/tron_staking/06.png" alt="Confirm staking" width="500"/>
+
+7. Repeat the process to stake TRX for Bandwidth.
+
+  <img src="images/tron_staking/07.png" alt="Stake bandwidth" width="500"/>
+
+8. Confirm the Bandwidth staking transaction and return to the overview.
+
+  <img src="images/tron_staking/08.png" alt="Confirm bandwidth" width="500"/>
+
+9. Once confirmed on-chain, the overview should show acquired Energy and Bandwidth resource points.
+
+  <img src="images/tron_staking/09.png" alt="Staking success" width="500"/>
