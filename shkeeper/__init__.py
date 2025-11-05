@@ -6,7 +6,7 @@ from decimal import Decimal
 import shutil
 import threading
 
-from flask import logging as flog
+from flask import logging as flog, render_template, request
 
 flog.default_handler.setFormatter(
     logging.Formatter(
@@ -42,6 +42,14 @@ db = flask_sqlalchemy.SQLAlchemy(metadata=metadata)
 import flask_migrate
 
 migrate = flask_migrate.Migrate()
+
+
+def internal_server_error(e):
+    return render_template("500.j2", theme=request.cookies.get("theme", "light")), 500
+
+
+def page_not_found_error(e):
+    return render_template("404.j2", theme=request.cookies.get("theme", "light")), 404
 
 
 def create_app(test_config=None):
@@ -220,6 +228,8 @@ def create_app(test_config=None):
     app.register_blueprint(wallet.bp)
     app.register_blueprint(api_v1.bp)
     app.register_blueprint(callback.bp)
+    app.register_error_handler(500, internal_server_error)
+    app.register_error_handler(404, page_not_found_error)
 
     shkeeper_initialized.set()
 
