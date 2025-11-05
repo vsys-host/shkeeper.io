@@ -21,6 +21,7 @@ import prometheus_client
 
 from shkeeper import db
 from shkeeper.auth import login_required, metrics_basic_auth
+from shkeeper.schemas import TronError
 from shkeeper.wallet_encryption import (
     wallet_encryption,
     WalletEncryptionRuntimeStatus,
@@ -424,6 +425,35 @@ def configure_tron():
         return "No Tron crypto found."
 
     account_info = any_tron_crypto.get_account_info()
+    config = any_tron_crypto.get_staking_config()
+    #
+    # test
+    # app.logger.error(config)
+    # config["fee_deposit_account"]["is_active"] = True
+    # config["energy_delegator_account"]["is_active"] = True
+    # app.logger.error(config)
+    # test
+    #
+    if (
+        not config["fee_deposit_account"]["is_active"]
+        or not config["energy_delegator_account"]["is_active"]
+    ):
+        fee_deposit_qrcode = energy_delegator_qrcode = None
+        try:
+            fee_deposit_qrcode = segno.make(config["fee_deposit_account"]["address"])
+            energy_delegator_qrcode = segno.make(
+                config["energy_delegator_account"]["address"]
+            )
+        except Exception:
+            pass
+        return render_template(
+            "wallet/configure/tron/activation.j2",
+            i=account_info,
+            config=config,
+            fee_deposit_qrcode=fee_deposit_qrcode,
+            energy_delegator_qrcode=energy_delegator_qrcode,
+        )
+
     return render_template(
         "wallet/configure/tron/main.j2", i=account_info, crypto=any_tron_crypto
     )

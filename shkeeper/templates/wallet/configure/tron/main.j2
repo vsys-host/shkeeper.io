@@ -34,7 +34,7 @@
     {% if i.account_info.trx() >= 1 %}
     {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % i.account_info.trx() ) }}
     {% else %}
-    {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "<span style='color: var(--danger-color);''>%f TRX</span>" % i.account_info.trx() ) }}
+    {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "<span style='color: var(--danger-color);'>%f TRX</span>" % i.account_info.trx() ) }}
     {% endif %}
 
     {{ manage.manage_block_row("<b>Energy:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_en() , i.account_resource.EnergyLimit)) }}
@@ -42,6 +42,7 @@
     {# {{ manage.manage_block_row("<b>Voting reward:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % (i.account_info.allowance / 1_000_000) ) }} #}
     {{ manage.manage_block_row("<b>Actions:</b>&nbsp;&nbsp;&nbsp;", actions) }}
   {% endset %}
+
   <div class="px-5 py-4 content-container" style="justify-content: start;">
     {% include "wallet/configure/tron/main__multiserver.j2" %}
     <div id="tron_staking">{{ manage.manage_block("General info", content) }}</div>
