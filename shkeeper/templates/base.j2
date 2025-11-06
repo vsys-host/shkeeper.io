@@ -17,6 +17,8 @@
       integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x"
       crossorigin="anonymous"
     />
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js" integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}" />
     <link id="css1" rel="stylesheet" href="{{ url_for('static', filename='css/main.min.' + theme + '.css') }}" />
     <link id="css2" rel="stylesheet" href="{{ url_for('static', filename='css/custom-main.' + theme + '.css') }}" />
   </head>
@@ -39,21 +41,21 @@
       });
 
       function setDark() {
-        document.cookie = "theme=dark;";
+        document.cookie = "theme=dark; path=/";
         document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.dark.css') }}";
         document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.dark.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
         document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
-        document.querySelectorAll('img .big-logo, img .menu-logo-big, img .menu-logo-small').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
+        document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
       }
 
       function setLight() {
-        document.cookie = "theme=light;";
+        document.cookie = "theme=light; path=/";
         document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.light.css') }}";
         document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.light.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
         document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
-        document.querySelectorAll('img .big-logo, img .menu-logo-big, img .menu-logo-small').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
+        document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
       }
 
       function forceColorScheme(is_dark) {

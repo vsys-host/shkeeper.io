@@ -6,7 +6,7 @@ from decimal import Decimal
 import shutil
 import threading
 
-from flask import logging as flog
+from flask import logging as flog, render_template, request
 
 flog.default_handler.setFormatter(
     logging.Formatter(
@@ -44,6 +44,14 @@ import flask_migrate
 migrate = flask_migrate.Migrate()
 
 
+def internal_server_error(e):
+    return render_template("500.j2", theme=request.cookies.get("theme", "light")), 500
+
+
+def page_not_found_error(e):
+    return render_template("404.j2", theme=request.cookies.get("theme", "light")), 404
+
+
 def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__, instance_relative_config=True)
@@ -58,6 +66,7 @@ def create_app(test_config=None):
         SESSION_TYPE="filesystem",
         SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
         TRON_MULTISERVER_GUI=bool(os.environ.get("TRON_MULTISERVER_GUI")),
+        TRON_STAKING_GUI=bool(os.environ.get("TRON_STAKING_GUI")),
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get("FORCE_WALLET_ENCRYPTION")),
         UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get("UNCONFIRMED_TX_NOTIFICATION")),
         REQUESTS_TIMEOUT=int(os.environ.get("REQUESTS_TIMEOUT", 10)),
@@ -68,7 +77,9 @@ def create_app(test_config=None):
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
-        DISABLE_CRYPTO_WHEN_LAGS=bool(os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)),
+        DISABLE_CRYPTO_WHEN_LAGS=bool(
+            os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)
+        ),
     )
 
     if test_config is None:
@@ -217,6 +228,8 @@ def create_app(test_config=None):
     app.register_blueprint(wallet.bp)
     app.register_blueprint(api_v1.bp)
     app.register_blueprint(callback.bp)
+    app.register_error_handler(500, internal_server_error)
+    app.register_error_handler(404, page_not_found_error)
 
     shkeeper_initialized.set()
 

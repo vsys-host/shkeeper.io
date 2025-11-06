@@ -1,0 +1,14 @@
+{% macro manage_block_row(left,right) -%}
+  <div class="mb-3 d-flex align-items-center justify-content-start">
+    <p class="common-text">{{ left }}</p>
+    <p class="common-text">{{ right }}</p>
+  </div>
+{%- endmacro %}
+{% macro manage_block(title, content) -%}
+  <div class="input-block">
+    <h2 class="subtitle-text mb-4">{{ title }}</h2>
+    <div class="d-flex ps-4">
+      <div class="w-100">{{ content }}</div>
+    </div>
+  </div>
+{%- endmacro %}

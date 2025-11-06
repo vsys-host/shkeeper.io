@@ -112,7 +112,8 @@
 
 .dropdown {
     min-width: 380px;
-    background-color: var(--secondary-bcg-color-grey01);
+    background-color: var(--background-color);
+
     outline: 1px solid var(--grey-02);
     justify-content: space-between;
     position: relative;
@@ -135,14 +136,13 @@
 }
 
 .dropdown__button:hover {
-    background-color: #D4D5D5;
     cursor: pointer;
 }
 
 .dropdown__body {
     display: none;
     width: 100%;
-    background-color: #f1f1f1;
+
     position: absolute;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
     z-index: 1;
@@ -158,6 +158,8 @@
     padding: 6px;
     flex: 1;
     border: none;
+    background-color: var(--background-color);
+    color: var(--main-text-color-grey07);
 }
 
 .dropdown__item-wraper {
@@ -171,7 +173,6 @@
 }
 
 .dropdown__item-wraper:hover {
-    background-color: #D4D5D5;
 }
 
 .dropdown-show {
@@ -186,6 +187,7 @@
 .dropdown__item {
     display: flex;
     flex-direction: row;
+    background-color: var(--background-color);
 }
 
 .dropdown__item-hide {
@@ -205,8 +207,12 @@
     box-shadow: none;
 }
 
+.dropdown .delete-button {
+    outline: 1px solid var(--grey-02);
+    background-color: var(--background-color);
+    color: var(--main-text-color-grey07);
+}
 .dropdown .delete-button:hover {
-    background-color: #D4D5D5;
 }
 
 .cancel-btn {

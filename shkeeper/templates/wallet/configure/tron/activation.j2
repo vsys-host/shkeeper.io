@@ -1,0 +1,88 @@
+{% extends 'wallet/page.j2' %}
+{% block content %}
+  <div class="px-5 py-4 content-container">
+    <div class="row">
+      <div class="col">
+        <h1 class="title-text" id="cryptoname" cryptoname="">Tron Account Activation Required</h1>
+        <br>
+        <p class="common-text" style="font-size: 14px;">Deposit at least 1 TRX to activate Tron accounts:</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col ps-4">
+        <div class="common-text ps-4"
+             style="display: grid;
+                    grid-template-columns: auto auto auto;
+                    align-items: baseline;
+                    align-content: center;
+                    justify-items: start;
+                    justify-content: start;
+                    column-gap: 60px">
+          {% if config.config.energy_delegation_mode_separate_balance_and_energy_accounts %}
+            <div>
+              <p>
+                Fee deposit account
+                {% if config.fee_deposit_account.is_active %}
+                  (<span style="color: var(--success-color);">active</span>)
+                {% else %}
+                  (<span style="color: var(--danger-color);">inactive</span>)
+                {% endif %}
+                :
+              </p>
+            </div>
+            <div>
+              <p>{{ config.fee_deposit_account.address }}</p>
+            </div>
+            <div>
+              {% if not config.fee_deposit_account.is_active %}
+                <img src="{{ fee_deposit_qrcode.svg_data_uri(scale=4,  light='#060616' if theme == 'dark' else '#fff', dark='#fff' if theme == 'dark' else '#000') }}">
+              {% endif %}
+            </div>
+            <div>
+              <p>
+                Stacking account
+                {% if config.energy_delegator_account.is_active %}
+                  (<span style="color: var(--success-color);">active</span>)
+                {% else %}
+                  (<span style="color: var(--danger-color);">inactive</span>)
+                {% endif %}
+                :
+              </p>
+            </div>
+            <div>
+              <p>{{ config.energy_delegator_account.address }}</p>
+            </div>
+            <div>
+              {% if not config.energy_delegator_account.is_active %}
+                <img src="{{ energy_delegator_qrcode.svg_data_uri(scale=4,  light='#060616' if theme == 'dark' else '#fff', dark='#fff' if theme == 'dark' else '#000') }}">
+              {% endif %}
+            </div>
+            {% else %}
+            <div>
+              <p>
+                Balances and Stacking account
+                {% if config.fee_deposit_account.is_active %}
+                  (<span style="color: var(--success-color);">active</span>)
+                {% else %}
+                  (<span style="color: var(--danger-color);">inactive</span>)
+                {% endif %}
+                :
+              </p>
+            </div>
+            <div>
+              <p>{{ config.fee_deposit_account.address }}</p>
+            </div>
+            <div>
+              {% if not config.fee_deposit_account.is_active %}
+                <img src="{{ fee_deposit_qrcode.svg_data_uri(scale=4,  light='#060616' if theme == 'dark' else '#fff', dark='#fff' if theme == 'dark' else '#000') }}">
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col d-flex justify-content-end"></div>
+    </div>
+  </div>
+{% endblock %}

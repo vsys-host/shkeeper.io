@@ -1,0 +1,27 @@
+<div class="input-block">
+    <h2 class="subtitle-text mb-4">Unstaking</h2>
+    <table class="table table-sm table-borderless common-text tron-unstaking-table">
+        <thead>
+            <tr>
+                <th scope="col">Resource</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Available at</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in i.account_info.unfrozenV2 %}
+                <tr>
+                    <td>{{ r.type }}</td>
+                    <td>{{ r.trx() }} TRX</td>
+                    <td>{{ r.unfreeze_expire_time }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <style>
+.tron-unstaking-table > th, td {
+  padding: 7px !important;
+}
+    </style>
+</div>

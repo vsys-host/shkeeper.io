@@ -1,0 +1,33 @@
+<div class="input-block">
+    <h2 class="subtitle-text mb-4">Resources delegated to others</h2>
+    <div class="d-flex ps-4 input-block">
+
+        <table class="table table-sm table-borderless common-text tron-delegated-table">
+            <thead>
+                <tr>
+                    <th scope="col">Account</th>
+                    <th scope="col">Bandwidth</th>
+                    <th scope="col">Energy</th>
+                    <th scope="col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in i.delegated_resources %}
+                    <tr>
+                        <td>{{ r.to }}</td>
+                        <td>{{ r.frozen_balance_for_bandwidth / 1_000_000 }} TRX</td>
+                        <td>{{ r.frozen_balance_for_energy / 1_000_000 }} TRX</td>
+                        <td>
+                            {# <button class="btn btn-sm general-button">reclaim</button> #}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <style>
+.tron-delegated-table > th, td {
+  padding: 7px !important;
+}
+    </style>
+</div>

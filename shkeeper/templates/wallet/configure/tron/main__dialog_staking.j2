@@ -1,0 +1,64 @@
+{%- set max_trx -%}{{ i.account_info.trx() |round(0, 'floor')|int }}{% endset %}
+<dialog id="dialog_staking" style="min-width: 300px">
+    <div id="dialog_staking_content">
+        <h2 class="subtitle-text mb-4">Stake TRX</h2>
+        <p class="common-text mb-3">
+            <b>Balance:</b>&nbsp;&nbsp;&nbsp;
+            {{ max_trx }} TRX
+        </p>
+        <p class="common-text mb-3">
+            <b>TRX to stake:</b>&nbsp;&nbsp;&nbsp;
+            <input class="form-control common-text"
+                   type="number"
+                   style="display: inline;
+                          width: 50px"
+                   id="trx_stake_input"
+                   name="amount_trx"
+                   min="1"
+                   max="{{ max_trx }}"
+                   value="{{ max_trx }}">
+        </p>
+        <ul>
+            <li>
+                <span hx-post="/parts/tron-staking-stake?resource=ENERGY"
+                      hx-include="#trx_stake_input"
+                      hx-trigger="click"
+                      hx-target="#dialog_staking_content"
+                      hx-swap="outerHTML"
+                      hx-confirm="Are you sure you wish to stake TRX for energy?"
+                      class="common-text accent-text"
+                      style="cursor: pointer;
+                             color: var(--success-color)">
+                    <img height="16"
+                         width="16"
+                         class="htmx-indicator"
+                         src="{{ url_for('static', filename='images/svg-loaders/spinning-circles.' + theme + '.svg') }}" />
+                    Stake for energy
+                </span>
+            </li>
+            <li>
+                <span hx-post="/parts/tron-staking-stake?resource=BANDWIDTH"
+                      hx-include="#trx_stake_input"
+                      hx-trigger="click"
+                      hx-target="#dialog_staking_content"
+                      hx-swap="outerHTML"
+                      hx-confirm="Are you sure you wish to stake TRX for bandwidth?"
+                      class="common-text accent-text"
+                      style="cursor: pointer;
+                             color: var(--info-color)">
+                    <img height="16"
+                         width="16"
+                         class="htmx-indicator"
+                         src="{{ url_for('static', filename='images/svg-loaders/spinning-circles.' + theme + '.svg') }}" />
+                    Stake for bandwidth
+                </span>
+            </li>
+            <li>
+                <span onclick="dialog_staking.close()"
+                      class="common-text accent-text"
+                      style="cursor: pointer;
+                             color: var(--danger-color)">Cancel</span>
+            </li>
+        </ul>
+    </div>
+</dialog>

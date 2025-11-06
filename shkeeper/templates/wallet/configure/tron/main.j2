@@ -1,0 +1,69 @@
+{% extends 'wallet/page.j2' %}
+{% block content %}
+<div class="px-5 py-4 content-container">
+  <div class="row">
+    <div class="col">
+      <h1 class="title-text">Tron Settings</h1>
+    </div>
+  </div>
+
+  {% import 'macros.j2' as manage %}
+  {% set actions %}
+    {% if i.account_info.trx() >= 1 %}
+      <span class="common-text accent-text"
+            style="cursor: pointer"
+            onclick="dialog_staking.showModal();">Stake</span>
+      {# <span hx-get="/parts/tron-staking-stake?resource=ENERGY&max_trx={{ i.account_info.trx() |round(0, 'floor')|int }}" hx-trigger="click" hx-target="#dialog_staking_content" hx-swap="outerHTML" class="common-text accent-text" style="cursor: pointer">
+            <img height="16" width="16" class="htmx-indicator" src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+            Stake
+        </span> #}
+      {# <button hx-get="/parts/tron-staking-stake?resource=ENERGY&max_trx={{ i.account_info.trx() |round(0, 'floor')|int }}" hx-trigger="click" hx-target="#tron_staking" hx-swap="outerHTML" class="btn btn-sm general-button">
+            <img height="16" width="16" class="htmx-indicator" src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+            Vote
+        </button>
+        <button hx-get="/parts/tron-staking-stake?resource=ENERGY&max_trx={{ i.account_info.trx() |round(0, 'floor')|int }}" hx-trigger="click" hx-target="#tron_staking" hx-swap="outerHTML" class="btn btn-sm general-button">
+            <img height="16" width="16" class="htmx-indicator" src="{{ url_for('static', filename='images/svg-loaders/spinning-circles-' + theme + '.svg') }}" />
+            Claim reward
+        </button> #}
+    {% else %}
+      <b style="color: var(--danger-color);">Top up staking account to activate actions</b>
+    {% endif %}
+  {% endset %}
+  {% set content %}
+
+    {% if tron_config.config.energy_delegation_mode %}
+      {{ manage.manage_block_row("<b>Staking account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
+      {% if i.account_info.trx() >= 1 %}
+      {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % i.account_info.trx() ) }}
+      {% else %}
+      {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "<span style='color: var(--danger-color);'>%f TRX</span>" % i.account_info.trx() ) }}
+      {% endif %}
+
+      {{ manage.manage_block_row("<b>Energy:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_en() , i.account_resource.EnergyLimit)) }}
+      {{ manage.manage_block_row("<b>Bandwidth:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_bw() , i.account_resource.NetLimit)) }}
+      {# {{ manage.manage_block_row("<b>Voting reward:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % (i.account_info.allowance / 1_000_000) ) }} #}
+      {{ manage.manage_block_row("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;", "enabled") }}
+      {{ manage.manage_block_row("<b>Actions:</b>&nbsp;&nbsp;&nbsp;", actions) }}
+    {% else %}
+      {{ manage.manage_block_row("<b>Balances account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
+      {{ manage.manage_block_row("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;", "disabled") }}
+    {% endif %}
+
+
+  {% endset %}
+
+  <div class="px-5 py-4 content-container" style="justify-content: start;">
+    {% include "wallet/configure/tron/main__multiserver.j2" %}
+      <div id="tron_staking">{{ manage.manage_block("General info", content) }}</div>
+    {% if tron_config.config.energy_delegation_mode %}
+      <div class="mt-3"></div>
+      {% include "wallet/configure/tron/main__table_staked.j2" %}
+      {# {% include "wallet/configure/tron/main__table_unstaking.j2" %} #}
+      {% include "wallet/configure/tron/main__table_delegated.j2" %}
+      <div class="mt-3"></div>
+
+      {# Dialogs #}
+      {% include "wallet/configure/tron/main__dialog_staking.j2" %}
+    {% endif %}
+  </div>
+{% endblock content %}

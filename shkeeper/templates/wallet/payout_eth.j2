@@ -41,11 +41,11 @@
             {% for pd in pdest %}
             <div class="dropdown__item">
               <div class="dropdown__item-wraper">
-                <div class="dropdown__text">{{ pd.addr }}</div>
+                <div class="dropdown__text">{{ pd.addr | e }}</div>
               </div>
               <button class="dropdown-delete-button delete-button" type="button">
                   <svg width="10" height="10">
-                    <use href="/static/images/icons.svg#close-icon"></use>
+                    <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
                   </svg>
               </button>
             </div>
@@ -56,12 +56,12 @@
               </div>
               <button class="dropdown-delete-button delete-button" type="button">
                   <svg width="10" height="10">
-                    <use href="/static/images/icons.svg#close-icon"></use>
+                    <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
                   </svg>
               </button>
             </div>
           </div>
-        </div>  
+        </div>
 
         <div><p>Amount:</p></div>
         <div>
@@ -83,7 +83,7 @@
         <div><p></p></div>
         <div>
             <p><span id="fee_err" style="display: none; color: red;"></span></p>
-        </div>    
+        </div>
 
       </div>
     </div>

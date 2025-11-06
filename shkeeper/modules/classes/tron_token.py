@@ -4,11 +4,14 @@ from os import environ
 import datetime
 import json
 from collections import namedtuple
+from typing import Annotated, Union
 
 from shkeeper import requests
 from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.schemas import TronAccountResponse, TronError
+from pydantic import TypeAdapter
 
 
 class TronToken(Crypto):
@@ -173,3 +176,26 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response["accounts"]
+
+    def get_account_info(self) -> TronAccountResponse | TronError:
+        response = requests.get(
+            f"http://{self.gethost()}/staking",
+            auth=self.get_auth_creds(),
+        )
+        # adaptor = TypeAdapter(Annotated[Union[TronAccountResponse, TronError]])
+        adaptor = TypeAdapter(Union[TronAccountResponse, TronError])
+        return adaptor.validate_json(response.text)
+
+    def get_staking_config(self):
+        response = requests.get(
+            f"http://{self.gethost()}/staking/info",
+            auth=self.get_auth_creds(),
+        )
+        return response.json(parse_float=Decimal)
+
+    def stake_trx(self, amount, resource):
+        response = requests.post(
+            f"http://{self.gethost()}/staking/freeze/{amount}/{resource}",
+            auth=self.get_auth_creds(),
+        )
+        return response.json(parse_float=Decimal)
