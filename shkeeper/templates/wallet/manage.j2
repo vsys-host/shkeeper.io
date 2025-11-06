@@ -57,7 +57,7 @@
             {% for pd in pdest %}
             <div class="dropdown__item">
               <div class="dropdown__item-wraper">
-                <div class="dropdown__text">{{ pd.addr }}</div>
+                <div class="dropdown__text">{{ pd.addr | e }}</div>
               </div>
               <button class="dropdown-delete-button delete-button" type="button">
                   <svg width="10" height="10">
