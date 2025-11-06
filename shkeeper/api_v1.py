@@ -58,20 +58,15 @@ def list_crypto():
 
     def get_crypto_status(crypto):
         status_result = crypto.getstatus(True)
-        # 如果返回的是元组（包含状态和区块时间戳），则解包
         if isinstance(status_result, tuple):
             status, block_timestamp = status_result
         else:
-            # 否则只有状态信息，区块时间戳为 None
             status = status_result
             block_timestamp = None
         return crypto, status, block_timestamp
 
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(get_crypto_status, filtered_cryptos))
-
-    # 获取服务器时间戳
-    server_timestamp = int(datetime.datetime.now().timestamp())
 
     for crypto, status, block_timestamp in results:
         if status == "Offline":
@@ -84,6 +79,8 @@ def list_crypto():
             "display_name": crypto.display_name,
             "block_timestamp": block_timestamp
         })
+
+    server_timestamp = int(datetime.datetime.now().timestamp())
 
     return {
         "status": "success",
