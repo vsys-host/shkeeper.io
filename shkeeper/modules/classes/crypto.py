@@ -86,7 +86,7 @@ class Crypto(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def getstatus(self):
+    def getstatus(self, include_blocktime=False):
         pass
 
     @abc.abstractmethod
