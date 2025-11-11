@@ -304,6 +304,8 @@ function sendAction()
     }
     let paymentPartiallyPaid = validateFloatValue(document.getElementById("llimit"));
     let paymentAddedFee = validateFloatValue(document.getElementById("ulimit"));
+    let xPubElement = document.getElementById("xpub");
+    let xPub = xPubElement ? xPubElement.value : "";
     let recalculateTerm = getRecalcTermHour();
     let confirationNumber = validateNumValue(document.getElementById("confirmations"));
     if(check == false)
@@ -318,6 +320,7 @@ function sendAction()
       policyStatus: policyStatus,
       policyValue: policyValue,
       partiallPaid:  paymentPartiallyPaid,
+      xPub: xPub,
       addedFee: paymentAddedFee,
       confirationNum: confirationNumber,
       recalc: recalculateTerm //int
