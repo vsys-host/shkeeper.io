@@ -5,6 +5,7 @@ We would like to clarify that the SHKeeper development team consists solely of t
 - @dmytro-samoylenko
 - @Olxndr
 - @yukonet
+- @ikyslyi
 
 It is managed through our official GitHub account https://github.com/vsys-host
 
