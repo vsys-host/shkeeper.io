@@ -127,6 +127,7 @@ class Wallet(db.Model):
     last_payout_attempt = db.Column(db.DateTime, default=datetime.min)
     enabled = db.Column(db.Boolean, default=True)
     apikey = db.Column(db.String)
+    callback_url = db.Column(db.String, nullable=True)
     llimit = db.Column(db.Numeric, default=95)
     ulimit = db.Column(db.Numeric, default=105)
     recalc = db.Column(db.Integer, default=0)
@@ -554,6 +555,53 @@ class UnconfirmedTransaction(db.Model):
         )
         db.session.commit()
 
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    txid = db.Column(db.String)
+    crypto = db.Column(db.String)
+    amount_crypto = db.Column(db.Numeric)
+    callback_confirmed = db.Column(db.Boolean, default=False)
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String, nullable=False)
+    object_id = db.Column(db.Integer, nullable=False)
+    message = db.Column(db.String, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    __table_args__ = (
+        db.UniqueConstraint("type", "object_id"),
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "object_id": self.object_id,
+            "message": self.message,
+            "amount": remove_exponent(self.amount_crypto),
+            "crypto": self.crypto,
+            "txid": self.txid,
+            "status": "UNCONFIRMED",
+            "created_at": self.created_at.isoformat(),
+        }
+
+    @classmethod
+    def add(cls, type_, object_id, message=None):
+        app.logger.info(f"Add notification {type_} for object {object_id}")
+        notif = Notification(
+            type=type_,
+            object_id=object_id,
+            message=message,
+        )
+        db.session.add(notif)
+        db.session.commit()
+        return notif
+
+    @classmethod
+    def delete(cls, type_, object_id):
+        app.logger.info(f"Delete notification {type_} {object_id}")
+        db.session.execute(
+            db.delete(Notification).filter_by(type=type_, object_id=object_id)
+        )
+        db.session.commit()
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -686,6 +734,7 @@ class Payout(db.Model):
     amount = db.Column(db.Numeric)
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
+    callback_url = db.Column(db.String, nullable=True)
     status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
@@ -694,6 +743,7 @@ class Payout(db.Model):
         p = cls(
             dest_addr=payout["dest"],
             amount=payout["amount"],
+            callback_url=payout["callback_url"],
             crypto=crypto,
         )
         db.session.add(p)
@@ -704,6 +754,18 @@ class Payout(db.Model):
             db.session.add(ptx)
 
         db.session.commit()
+        if payout["callback_url"]:
+            t = Notification(
+                txid=txid,
+                object_id=p.id,
+                type = 'Payout',
+                crypto=crypto,
+                amount_crypto=payout["amount"],
+                callback_url=payout["callback_url"],
+                addr=payout["dest"],
+            )
+            db.session.add(t)
+            db.session.commit()
 
 
 class PayoutTxStatus(enum.Enum):

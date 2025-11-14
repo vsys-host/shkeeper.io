@@ -71,6 +71,17 @@
             <p class="ms-2">{{ crypto.crypto|upper }}</p>
           </div>
         </div>
+
+        <div><p>Callback url:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="fee-input form-control common-text"
+              type="text"
+              name="callback-url"
+            />
+          </div>
+        </div>
         <div><p></p></div>
         <div>
           <div class="d-flex align-items-center">
@@ -162,6 +173,7 @@
     document.tx_complete = false;
 
     let addr = document.querySelector("#paddress").value.trim();
+    let callback_url = document.querySelector(".callback-url").value.trim();
     let amount = document.querySelector(".fee-input").value;
     if (!amount) {
       alert('Please enter amount to send.');
@@ -184,6 +196,7 @@
       body: JSON.stringify({
         destination: addr,
         amount: amount,
+        callback_url: callback_url,
         fee: 0,
       })
     })

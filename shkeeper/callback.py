@@ -15,11 +15,14 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
     app.logger.info(
         f"send_unconfirmed_notification started for {utx.crypto} {utx.txid}, {utx.addr}, {utx.amount_crypto}"
     )
-
-    invoice_address = InvoiceAddress.query.filter_by(
-        crypto=utx.crypto, addr=utx.addr
-    ).first()
-    invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
+    
+    if utx == Notification:
+      invoice = Notification
+    else:    
+        invoice_address = InvoiceAddress.query.filter_by(
+            crypto=utx.crypto, addr=utx.addr
+        ).first()
+        invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
     crypto = Crypto.instances[utx.crypto]
     apikey = crypto.wallet.apikey
 
@@ -46,6 +49,8 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
         app.logger.error(
             f"[{utx.crypto}/{utx.txid}] Unconfirmed TX notification failed: {e}"
         )
+        if utx == Notification:
+            print("vasa")
         return False
 
     if r.status_code != 202:
@@ -143,8 +148,15 @@ def list_unconfirmed():
     else:
         print("No unconfirmed transactions found!")
 
-
 def send_callbacks():
+    for utx in Notification.query.filter_by(callback_confirmed=False):
+        try:
+            send_unconfirmed_notification(utx)
+        except Exception as e:
+            app.logger.exception(
+                f"Exception while sending callback for UTX {utx.crypto}/{utx.txid}"
+            )
+
     for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
         try:
             send_unconfirmed_notification(utx)

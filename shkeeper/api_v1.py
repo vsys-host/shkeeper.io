@@ -282,6 +282,7 @@ def autopayout(crypto_name):
     w.pcond = req["policyValue"]
     w.payout = req.get("policyStatus", True)
     w.llimit = req["partiallPaid"]
+    w.callback_url = req["callbackUrl"]
     w.ulimit = req["addedFee"]
     w.confirmations = req["confirationNum"]
     w.recalc = req["recalc"]
@@ -332,9 +333,11 @@ def payout(crypto_name):
         req = request.get_json(force=True)
         crypto = Crypto.instances[crypto_name]
         amount = Decimal(req["amount"])
+        callback_url = req["callback_url"]
         res = crypto.mkpayout(
             req["destination"],
             amount,
+            callback_url,
             req["fee"],
         )
     except Exception as e:
@@ -344,7 +347,7 @@ def payout(crypto_name):
     if "result" in res and res["result"]:
         idtxs = res["result"] if isinstance(res["result"], list) else [res["result"]]
         Payout.add(
-            {"dest": req["destination"], "amount": amount, "txids": idtxs}, crypto_name
+            {"dest": req["destination"], "amount": amount, "callback_url": callback_url, "txids": idtxs}, crypto_name
         )
 
     return res
