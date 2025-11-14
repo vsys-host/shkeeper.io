@@ -5,4 +5,4 @@ class btc(Btc):
         self.crypto = "BTC"
 
     def getname(self):
-        return "BTC"
+        return "Bitcoin"
