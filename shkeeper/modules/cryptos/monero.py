@@ -102,9 +102,21 @@ class Monero(Crypto):
         )
         return {"error": None}
 
-    def getstatus(self) -> str:
+    def getstatus(self, include_blocktime=False) -> str:
         try:
             info = self.monero_daemon.info()
+            block_timestamp = None
+            
+            if include_blocktime:
+                try:
+                    # 获取最新区块的时间戳
+                    last_block = self.monero_daemon.raw_jsonrpc_request("get_last_block_header")
+                    if last_block and "block_header" in last_block:
+                        block_timestamp = int(last_block["block_header"]["timestamp"])
+                except Exception as e:
+                    app.logger.warning(f"Failed to get block timestamp: {e}")
+                    block_timestamp = None
+            
             if info["status"] == "OK":
                 if info["synchronized"]:
                     status = "Synced"
@@ -113,8 +125,13 @@ class Monero(Crypto):
                     status = f"{sync_status}: {info['target_height'] - info['height']} blocks behind"
             else:
                 status = info["status"]
+            
+            if include_blocktime:
+                return status, block_timestamp
             return status
         except Exception as e:
+            if include_blocktime:
+                return "Offline", None
             return "Offline"
 
     def mkaddr(self, **kwargs) -> str:

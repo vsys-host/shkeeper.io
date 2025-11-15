@@ -22,7 +22,7 @@ class BitcoinLikeCrypto(Crypto):
 
         return balance
 
-    def getstatus(self):
+    def getstatus(self, include_blocktime=False):
         try:
             response = requests.post(
                 "http://" + self.gethost(),
@@ -31,14 +31,27 @@ class BitcoinLikeCrypto(Crypto):
                 timeout=10,
             ).json(parse_float=Decimal)
 
+            block_timestamp = None
+            if include_blocktime:
+                try:
+                    block_timestamp = int(response["result"]["time"])
+                except Exception as e:
+                    block_timestamp = None
+
             if response["result"]["headers"] == response["result"]["blocks"]:
-                return "Synced"
+                status = "Synced"
             else:
-                return "Sync In Progress (%.2f%%)" % (
+                status = "Sync In Progress (%.2f%%)" % (
                     response["result"]["verificationprogress"] * 100
                 )
 
+            if include_blocktime:
+                return status, block_timestamp
+            return status
+
         except Exception as e:
+            if include_blocktime:
+                return "Offline", None
             return "Offline"
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):

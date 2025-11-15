@@ -38,7 +38,7 @@ class Xrp(Ethereum):
         ).json(parse_float=Decimal)
         return response
 
-    def getstatus(self):
+    def getstatus(self, include_blocktime=False):
         try:
             response = requests.post(
                 f"http://{self.gethost()}/{self.crypto}/status",
@@ -53,9 +53,15 @@ class Xrp(Ethereum):
             delta = abs(now_ts - block_ts)
             block_interval = 4
             if delta < block_interval * 10:
-                return "Synced"
+                status = "Synced"
             else:
-                return "Sync In Progress (%d blocks behind)" % (delta // block_interval)
+                status = "Sync In Progress (%d blocks behind)" % (delta // block_interval)
+
+            if include_blocktime:
+                return status, block_ts
+            return status
 
         except Exception as e:
+            if include_blocktime:
+                return "Offline", None
             return "Offline"
