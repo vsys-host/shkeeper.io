@@ -149,12 +149,12 @@ def list_unconfirmed():
         print("No unconfirmed transactions found!")
 
 def send_callbacks():
-    for utx in Notification.query.filter_by(callback_confirmed=False):
+    for notif in Notification.query.filter_by(callback_confirmed=False, type="Payout"):
         try:
-            send_unconfirmed_notification(utx)
-        except Exception as e:
+            send_payout_notification(notif)
+        except Exception:
             app.logger.exception(
-                f"Exception while sending callback for UTX {utx.crypto}/{utx.txid}"
+                f"Exception while sending payout callback object_id={notif.object_id}"
             )
 
     for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
@@ -191,6 +191,71 @@ def send_callbacks():
                 f"Exception while sending callback for TX {tx.crypto}/{tx.txid}"
             )
 
+def send_payout_notification(notif: Notification):
+    payout = Payout.query.get(notif.object_id)
+    if not payout:
+        notif.message = "Payout not found"
+        db.session.commit()
+        return False
+
+    # do not retry if previous failure already logged
+    if notif.message:
+        app.logger.warning(f"Payout {payout.id} skipping: message already set")
+        return False
+
+    # only success status triggers callback
+    if payout.status != PayoutStatus.SUCCESS:
+        app.logger.info(f"Payout {payout.id} not SUCCESS, skipping")
+        return False
+
+    # build payload
+    tx = payout.transactions[0] if payout.transactions else None
+    tx_hash = tx.txid if tx else None
+
+    payload = {
+        "payout_id": payout.id,
+        "externalId": payout.id,  # or your field
+        "tx_hash": tx_hash,
+        "status": "SUCCESS",
+        "amount": str(payout.amount),
+        "currency": payout.crypto,
+        "amount_fiat": str(payout.amount),   # you said: at creation moment
+        "currency_fiat": "USD",              # or dynamic
+        "timestamp": payout.created_at.isoformat(),
+    }
+
+    # retry counter stored inside Notification
+    retries = getattr(notif, "retries", 0)
+
+    wait = (retries + 1) ** 2
+
+    app.logger.info(
+        f"[PAYOUT {payout.id}] Sending callback try={retries}, wait={wait} seconds"
+    )
+
+    try:
+        r = requests.post(
+            payout.callback_url,
+            json=payload,
+            timeout=app.config.get("REQUESTS_NOTIFICATION_TIMEOUT"),
+        )
+    except Exception as e:
+        notif.message = str(e)
+        notif.retries = retries + 1
+        db.session.commit()
+        return False
+
+    if r.status_code != 200:
+        notif.message = f"{r.status_code} {r.reason}"
+        notif.retries = retries + 1
+        db.session.commit()
+        return False
+
+    # SUCCESS
+    notif.callback_confirmed = True
+    notif.message = None
+    db.session.commit()
+    return True
 
 def update_confirmations():
     for tx in Transaction.query.filter_by(

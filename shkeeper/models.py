@@ -555,53 +555,6 @@ class UnconfirmedTransaction(db.Model):
         )
         db.session.commit()
 
-class Notification(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    txid = db.Column(db.String)
-    crypto = db.Column(db.String)
-    amount_crypto = db.Column(db.Numeric)
-    callback_confirmed = db.Column(db.Boolean, default=False)
-    id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.String, nullable=False)
-    object_id = db.Column(db.Integer, nullable=False)
-    message = db.Column(db.String, nullable=True)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    __table_args__ = (
-        db.UniqueConstraint("type", "object_id"),
-    )
-
-    def to_json(self):
-        return {
-            "id": self.id,
-            "type": self.type,
-            "object_id": self.object_id,
-            "message": self.message,
-            "amount": remove_exponent(self.amount_crypto),
-            "crypto": self.crypto,
-            "txid": self.txid,
-            "status": "UNCONFIRMED",
-            "created_at": self.created_at.isoformat(),
-        }
-
-    @classmethod
-    def add(cls, type_, object_id, message=None):
-        app.logger.info(f"Add notification {type_} for object {object_id}")
-        notif = Notification(
-            type=type_,
-            object_id=object_id,
-            message=message,
-        )
-        db.session.add(notif)
-        db.session.commit()
-        return notif
-
-    @classmethod
-    def delete(cls, type_, object_id):
-        app.logger.info(f"Delete notification {type_} {object_id}")
-        db.session.execute(
-            db.delete(Notification).filter_by(type=type_, object_id=object_id)
-        )
-        db.session.commit()
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -767,6 +720,53 @@ class Payout(db.Model):
             db.session.add(t)
             db.session.commit()
 
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    txid = db.Column(db.String)
+    crypto = db.Column(db.String)
+    amount_crypto = db.Column(db.Numeric)
+    callback_confirmed = db.Column(db.Boolean, default=False)
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.String, nullable=False)
+    object_id = db.Column(db.Integer, nullable=False)
+    message = db.Column(db.String, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    __table_args__ = (
+        db.UniqueConstraint("type", "object_id"),
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "object_id": self.object_id,
+            "message": self.message,
+            "amount": remove_exponent(self.amount_crypto),
+            "crypto": self.crypto,
+            "txid": self.txid,
+            "status": "UNCONFIRMED",
+            "created_at": self.created_at.isoformat(),
+        }
+
+    @classmethod
+    def add(cls, type_, object_id, message=None):
+        app.logger.info(f"Add notification {type_} for object {object_id}")
+        notif = Notification(
+            type=type_,
+            object_id=object_id,
+            message=message,
+        )
+        db.session.add(notif)
+        db.session.commit()
+        return notif
+
+    @classmethod
+    def delete(cls, type_, object_id):
+        app.logger.info(f"Delete notification {type_} {object_id}")
+        db.session.execute(
+            db.delete(Notification).filter_by(type=type_, object_id=object_id)
+        )
+        db.session.commit()
 
 class PayoutTxStatus(enum.Enum):
     IN_PROGRESS = enum.auto()
