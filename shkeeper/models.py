@@ -6,7 +6,7 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from decimal import Decimal
-
+from sqlalchemy import or_
 import bcrypt
 import pyotp
 from flask import current_app as app
@@ -127,7 +127,6 @@ class Wallet(db.Model):
     last_payout_attempt = db.Column(db.DateTime, default=datetime.min)
     enabled = db.Column(db.Boolean, default=True)
     apikey = db.Column(db.String)
-    callback_url = db.Column(db.String, nullable=True)
     llimit = db.Column(db.Numeric, default=95)
     ulimit = db.Column(db.Numeric, default=105)
     recalc = db.Column(db.Integer, default=0)
@@ -688,37 +687,75 @@ class Payout(db.Model):
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
     callback_url = db.Column(db.String, nullable=True)
+    task_id = db.Column(db.String, unique=True, nullable=True)
+    external_id = db.Column(db.String, unique=True, nullable=True)
     status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
     @classmethod
-    def add(cls, payout, crypto):
+    def update_from_task(cls, task_response, task_id):
+        if task_response.get("status") != "SUCCESS":
+            return
+
+        for r in task_response.get("result", []):
+            dest_addr = r.get("dest")
+            txids = r.get("txids", [])
+            status = r.get("status")
+            payout = cls.query.filter_by(task_id=task_id, dest_addr=dest_addr).first()
+            if not payout:
+                app.logger.warning(f"No payout found for task_id={task_id}, dest={dest_addr}")
+                continue
+            for txid in txids:
+                if not any(t.txid == txid for t in payout.transactions):
+                    db.session.add(PayoutTx(payout_id=payout.id, txid=txid))
+            if status.lower() == "success":
+                payout.status = PayoutStatus.SUCCESS
+            else:
+                payout.status = PayoutStatus.FAIL
+
+        db.session.commit()
+
+    @classmethod
+    def add(cls, payout, crypto, task_id=None, external_id=None):
+        task_id = task_id or None
+        external_id = external_id or None
+        query = cls.query
+        filters = []
+        if task_id:
+            filters.append(cls.task_id == task_id)
+        if external_id:
+            filters.append(cls.external_id == external_id)
+        existing = cls.query.filter(or_(*filters)).first() if filters else None
+        if existing:
+            return existing
         p = cls(
             dest_addr=payout["dest"],
             amount=payout["amount"],
-            callback_url=payout["callback_url"],
+            callback_url=payout.get("callback_url"),
             crypto=crypto,
+            task_id=task_id,
+            external_id=external_id,
         )
         db.session.add(p)
         db.session.commit()
 
-        for txid in payout["txids"]:
+        for txid in payout.get("txids", []):
             ptx = PayoutTx(payout_id=p.id, txid=txid)
             db.session.add(ptx)
-
         db.session.commit()
-        if payout["callback_url"]:
+        callback_url = payout.get("callback_url")
+        if callback_url:
             t = Notification(
-                txid=txid,
+                txid=None,
                 object_id=p.id,
-                type = 'Payout',
+                type='Payout',
                 crypto=crypto,
                 amount_crypto=payout["amount"],
-                callback_url=payout["callback_url"],
-                addr=payout["dest"],
+                callback_url=callback_url,
             )
             db.session.add(t)
             db.session.commit()
+        return p
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -729,6 +766,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String, nullable=False)
     object_id = db.Column(db.Integer, nullable=False)
+    callback_url = db.Column(db.String, nullable=False)
     message = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     __table_args__ = (

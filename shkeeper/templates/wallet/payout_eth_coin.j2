@@ -76,9 +76,19 @@
         <div>
           <div class="d-flex align-items-center">
             <input
-              class="fee-input form-control common-text"
+              class="form-control common-text"
               type="text"
-              name="callback-url"
+              id="callback-url"
+            />
+          </div>
+        </div>
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
             />
           </div>
         </div>
@@ -148,7 +158,21 @@
         console.log(data);
       })
   }
-
+  function validateCallback(element) {
+    if (!element || !element.value) {
+        return "";
+    }
+    element.value = element.value.trim();
+    if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
+        element.classList.remove("red-highlight");
+        return element.value;
+    } else {
+        element.classList.add("red-highlight");
+        alert("Invalid Callback URL! Must start with http:// or https://");
+        check = false;
+        return "";
+    }
+  }
   var not_en_trx_msg = `Not enough {{ crypto.network_currency }} to pay for transaction. Please top up the fee-deposit account.`;
 
   function check_fee() {
@@ -173,7 +197,10 @@
     document.tx_complete = false;
 
     let addr = document.querySelector("#paddress").value.trim();
-    let callback_url = document.querySelector(".callback-url").value.trim();
+    let callbackUrl = validateCallback(document.getElementById("callback-url"));
+    let elExternalId = document.querySelector("#external-id");
+    let externalIdVal = elExternalId ? elExternalId.value : null;
+
     let amount = document.querySelector(".fee-input").value;
     if (!amount) {
       alert('Please enter amount to send.');
@@ -196,7 +223,8 @@
       body: JSON.stringify({
         destination: addr,
         amount: amount,
-        callback_url: callback_url,
+        callback_url: callbackUrl,
+        externalId: externalIdVal,
         fee: 0,
       })
     })

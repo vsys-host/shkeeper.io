@@ -333,24 +333,37 @@ def payout(crypto_name):
         req = request.get_json(force=True)
         crypto = Crypto.instances[crypto_name]
         amount = Decimal(req["amount"])
-        callback_url = req["callback_url"]
+        callback_url = req.get("callback_url")
+        external_id = req.get("externalId")
+        if external_id:
+            existing = Payout.get_by_external_id(crypto_name, external_id)
+            if existing:
+                app.logger.exception(f"Payout error: external_id exists {external_id}")
+                return {
+                    "status": "error",
+                    "message": f"Payout with this externalId already exists: {external_id}"
+                }
         res = crypto.mkpayout(
             req["destination"],
             amount,
-            callback_url,
             req["fee"],
         )
+        task_id = res.get("task_id")
+        Payout.add(
+            {
+                "dest": req["destination"],
+                "amount": amount,
+                "callback_url": callback_url,
+                "txids": res.get("result", [])
+            },
+            crypto_name,
+            task_id=task_id,
+            external_id=external_id
+        )
+        return res
     except Exception as e:
         app.logger.exception("Payout error")
-        return {"status": "error", "message": f"Error: {e}"}
-
-    if "result" in res and res["result"]:
-        idtxs = res["result"] if isinstance(res["result"], list) else [res["result"]]
-        Payout.add(
-            {"dest": req["destination"], "amount": amount, "callback_url": callback_url, "txids": idtxs}, crypto_name
-        )
-
-    return res
+        return {"status": "error", "message": str(e)}
 
 
 @bp.post("/payoutnotify/<crypto_name>")
@@ -568,8 +581,9 @@ def estimate_tx_fee(crypto_name, amount):
 @login_required
 def get_task(crypto_name, id):
     crypto = Crypto.instances[crypto_name]
-    return crypto.get_task(id)
-
+    task_response = crypto.get_task(id)
+    Payout.update_from_task(task_response, id)
+    return task_response
 
 @bp.post("/<crypto_name>/multipayout")
 @basic_auth_optional

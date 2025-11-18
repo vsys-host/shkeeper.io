@@ -49,8 +49,6 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
         app.logger.error(
             f"[{utx.crypto}/{utx.txid}] Unconfirmed TX notification failed: {e}"
         )
-        if utx == Notification:
-            print("vasa")
         return False
 
     if r.status_code != 202:
@@ -151,14 +149,17 @@ def list_unconfirmed():
 def send_callbacks():
     for notif in Notification.query.filter_by(callback_confirmed=False, type="Payout"):
         try:
+            app.logger.info("send send_payout_notification")
+            app.logger.info(f"send send_payout_notification {notif}")
             send_payout_notification(notif)
         except Exception:
             app.logger.exception(
                 f"Exception while sending payout callback object_id={notif.object_id}"
             )
-
+    app.logger.info(f"send UnconfirmedTransaction")
     for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
         try:
+            app.logger.info(f"send send_unconfirmed_notification {utx}")
             send_unconfirmed_notification(utx)
         except Exception as e:
             app.logger.exception(
@@ -169,6 +170,8 @@ def send_callbacks():
         callback_confirmed=False, need_more_confirmations=False
     ):
         try:
+            app.logger.info(f"send delay_until_date")
+            app.logger.info(f"send Transaction {tx}")
             delay_until_date = tx.created_at + timedelta(
                 seconds=app.config.get("NOTIFICATION_TASK_DELAY")
             )
@@ -198,7 +201,6 @@ def send_payout_notification(notif: Notification):
         db.session.commit()
         return False
 
-    # do not retry if previous failure already logged
     if notif.message:
         app.logger.warning(f"Payout {payout.id} skipping: message already set")
         return False
@@ -214,13 +216,13 @@ def send_payout_notification(notif: Notification):
 
     payload = {
         "payout_id": payout.id,
-        "externalId": payout.id,  # or your field
+        "externalId": payout.id,
         "tx_hash": tx_hash,
         "status": "SUCCESS",
         "amount": str(payout.amount),
         "currency": payout.crypto,
-        "amount_fiat": str(payout.amount),   # you said: at creation moment
-        "currency_fiat": "USD",              # or dynamic
+        "amount_fiat": str(payout.amount),
+        "currency_fiat": "USD",
         "timestamp": payout.created_at.isoformat(),
     }
 
