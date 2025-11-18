@@ -7,6 +7,7 @@ from decimal import Decimal
 from flask import current_app as app
 from shkeeper.modules.classes.crypto import Crypto
 
+
 class Btc(Crypto):
     can_set_tx_fee = False
     network_currency = "BTC"
@@ -91,6 +92,7 @@ class Btc(Crypto):
             f"http://{self.gethost()}/{self.crypto}/transaction/{tx}",
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
+        app.logger.warning(f"Transaction {tx} response: {response}")
         result = []
         for address, amount, confirmations, category in response:
             result.append([address, Decimal(amount), confirmations, category])
@@ -117,7 +119,11 @@ class Btc(Crypto):
                 return f"Payout failed: not enought BTC to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
-        current_fee = fee if fee not in (None, 0, 0.0, "0", "") else self.estimate_tx_fee(amount)["fee_satoshi"]
+        current_fee = (
+            fee
+            if fee not in (None, 0, 0.0, "0", "")
+            else self.estimate_tx_fee(amount)["fee_satoshi"]
+        )
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}/{current_fee}",
             auth=self.get_auth_creds(),
