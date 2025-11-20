@@ -336,7 +336,7 @@ def payout(crypto_name):
         callback_url = req.get("callback_url")
         external_id = req.get("externalId")
         if external_id:
-            existing = Payout.get_by_external_id(crypto_name, external_id)
+            existing = existing = Payout.query.filter_by(crypto_name=crypto_name, external_id=external_id).first()
             if existing:
                 app.logger.exception(f"Payout error: external_id exists {external_id}")
                 return {

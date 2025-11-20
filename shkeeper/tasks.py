@@ -15,6 +15,11 @@ def task_callback():
         callback.send_callbacks()
 
 
+@scheduler.task("interval", id="callback", seconds=60)
+def task_callback():
+    with scheduler.app.app_context():
+        callback.send_payout_callback_notifier()
+
 @scheduler.task("interval", id="payout", seconds=60)
 def task_payout():
     scheduler.app.logger.info(f"[Autopayout] Task started")
