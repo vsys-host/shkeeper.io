@@ -1,4 +1,5 @@
 from decimal import Decimal
+from os import environ
 from shkeeper import requests
 
 from shkeeper.modules.classes.bitcoin_like_crypto import BitcoinLikeCrypto
