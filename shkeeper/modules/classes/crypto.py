@@ -52,6 +52,9 @@ class Crypto(abc.ABC):
             "solana_usdt",
             "solana_usdc",
             "solana_pyusd",
+            # Firo
+            "firo",
+            "firo-spark"
 
         ]
         default_on = ["btc", "ltc", "doge"]

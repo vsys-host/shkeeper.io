@@ -19,6 +19,9 @@ class KuCoin(RateSource):
         if crypto in self.BTC_CRYPTOS:
             crypto = "BTC"
 
+        if crypto in self.FIRO_CRYPTOS:
+            crypto = "FIRO"
+
         # https://www.kucoin.com/docs/beginners/introduction
         url = f"https://api.kucoin.com/api/v1/prices?base={fiat}&currencies={crypto}"
         answer = requests.get(url)

@@ -18,6 +18,9 @@ class Kraken(RateSource):
         if crypto in self.BTC_CRYPTOS:
             crypto = "BTC"
 
+        if crypto in self.FIRO_CRYPTOS:
+            crypto = "FIRO"
+
         if fiat == "USD":
             fiat = "USDT"
         url = f"https://api.kraken.com/0/public/Ticker?pair={crypto}{fiat}"
