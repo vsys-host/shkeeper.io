@@ -158,7 +158,11 @@ def create_app(test_config=None):
 
         # Create default user
         default_user = "admin"
-        if not User.query.filter_by(username=default_user).first():
+        if (
+            not User.query.with_entities(User.id)
+            .filter_by(username=default_user)
+            .first()
+        ):
             admin = User(username=default_user)
             db.session.add(admin)
             db.session.commit()
