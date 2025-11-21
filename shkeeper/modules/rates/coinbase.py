@@ -18,6 +18,9 @@ class Coinbase(RateSource):
         if crypto in self.BTC_CRYPTOS:
             crypto = "BTC"
 
+        if crypto in self.FIRO_CRYPTOS:
+            crypto = "FIRO"
+
         if fiat == "USD":
             fiat = "USDT"
         url = f"https://api.coinbase.com/v2/exchange-rates?currency={crypto}"
