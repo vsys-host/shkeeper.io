@@ -21,7 +21,11 @@ class firo_spark(BitcoinLikeCrypto):
     
     def tosat(self, firo_amount):
         return int(Decimal(firo_amount) * 100_000_000)
-    
+
+    def get_rpc_credentials(self):
+        username = environ.get("FIRO_USERNAME", "shkeeper")
+        password = environ.get("FIRO_PASSWORD", "shkeeper")
+        return (username, password)    
      
     def build_spendspark_request(self, method, params_list):
         rrr = {"jsonrpc": "1.0", 
