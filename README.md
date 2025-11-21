@@ -662,12 +662,16 @@ The task results are an array of objects, each containing the original payout re
 {
   "amount": <amount_to_send>,
   "destination": "<addr>",
-  "fee": "<transaction_fee>"
+  "fee": "<transaction_fee>",
+  "callback_url": "<callback_url>",
+  "external_id": "<external_id>"
 }
 ```
 - `amount`: The amount to be sent.
 - `destination`: The address to which the amount should be sent.
   - For XRP, the address must be provided in the X-address format. The X-address format replaces the use of a separate destination tag when sending funds to a multi-user wallet on the XRP ledger, such as those of exchanges and custodial services.
+- `callback_url`: The payout callback_url.
+- `external_id`: The payout external_id.
 - `fee`: The transaction fee.
   - This must always be specified, even for cryptocurrencies with automatically determined fees.
   - For BTC, it is specified in sat/vByte; for LTC and DOGE, it is in sat/Byte.
@@ -685,11 +689,11 @@ Since the payout task is an asynchronous process, the call will always complete 
 curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH-USDC/payout' \
 --header 'Authorization: Basic  nApijGv8djih7ozY' \
 --header 'Content-Type: application/json' \
---data-raw '{"amount":107,"destination":"0xBD26e3512ce84F315e90E3FE75907bfbB5bD0c44","fee":"10"}'
+--data-raw '{"amount":107,"destination":"0xBD26e3512ce84F315e90E3FE75907bfbB5bD0c44","fee":"10", "callback_url": 'https://my.callback.com/payout'}'
 ```
 **Successful Response:**
 ```
-{"task_id":"b2a01bb0-8abe-403b-a3fa-8124c84bcf23"}
+{"task_id":"b2a01bb0-8abe-403b-a3fa-8124c84bcf23", "external_id": ""}
 ```
 <a name="creating-a-multipayout-task"></a>
 ##### 5.2.11.2. Creating a Multipayout Task
@@ -700,7 +704,9 @@ curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH-USDC/payout'
 ```
 {
   "amount": <amount_to_send>,
-  "dest": "<addr>"
+  "dest": "<addr>",
+  "callback_url": "<callback_url>",
+  "external_id": "<external_id>"
 }
 ```
 For sending XRP, you can optionally pass a `dest_tag`. If provided, the address should be given in the regular format, and SHKeeper will automatically convert it to X-address format. Alternatively, you can manually convert the XRP address to X-address format and pass it in the `dest` field; in this case, `dest_tag` does not need to be provided.

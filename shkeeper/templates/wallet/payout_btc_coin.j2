@@ -227,7 +227,6 @@
     let callbackUrl = validateCallback(document.getElementById("callback-url"));
     let elExternalId = document.querySelector("#external-id");
     let externalIdVal = elExternalId ? elExternalId.value : null;
-    {# let callback_url = "https://webhook-test.com/1a7a50832ca169d6eb6dfe1889c96235" #}
     let feeInput = document.querySelector("#fee-input");
     let fee = feeInput ? feeInput.value : 0;
 
@@ -253,7 +252,7 @@
         destination: addr,
         amount: amount,
         callback_url: callbackUrl,
-        externalId: externalIdVal,
+        external_id: externalIdVal,
         fee: fee,
       })
     })

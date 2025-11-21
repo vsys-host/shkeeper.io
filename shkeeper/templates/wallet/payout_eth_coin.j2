@@ -213,7 +213,6 @@
     } #}
 
     tx_progress_on();
-
     fetch("/api/v1/{{crypto.crypto}}/payout", {
       method: 'POST',
       headers: {
@@ -224,7 +223,7 @@
         destination: addr,
         amount: amount,
         callback_url: callbackUrl,
-        externalId: externalIdVal,
+        external_id: externalIdVal,
         fee: 0,
       })
     })

@@ -241,7 +241,7 @@ def send_payout_notification(notif: Notification, max_retries: int = 5):
     amount_fiat = payout.amount * rate
     payload = {
         "payout_id": payout.id,
-        "externalId": payout.id,
+        "external_id": payout.id,
         "tx_hash": tx_hash,
         "status": "SUCCESS",
         "amount": str(payout.amount),
