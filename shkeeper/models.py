@@ -698,10 +698,9 @@ class Payout(db.Model):
             return
 
         for r in task_response.get("result", []):
-            dest_addr = r.get("dest")
             txids = r.get("txids", [])
             status = r.get("status")
-            payout = cls.query.filter_by(task_id=task_id, dest_addr=dest_addr).first()
+            payout = cls.query.filter_by(task_id=task_id).first()
             if not payout:
                 app.logger.warning(f"No payout found for task_id={task_id}, dest={dest_addr}")
                 continue
@@ -717,9 +716,10 @@ class Payout(db.Model):
 
     @classmethod
     def add(cls, payout, crypto, task_id=None, external_id=None):
-        task_id = task_id or None
+        if not task_id:
+          return None
+        task_id = task_id
         external_id = external_id or None
-        query = cls.query
         filters = []
         if task_id:
             filters.append(cls.task_id == task_id)
@@ -744,7 +744,7 @@ class Payout(db.Model):
             db.session.add(ptx)
         db.session.commit()
         callback_url = payout.get("callback_url")
-        if callback_url:
+        if callback_url and app.config.get("ENABLE_PAYOUT_CALLBACK"):
             t = Notification(
                 txid=None,
                 object_id=p.id,

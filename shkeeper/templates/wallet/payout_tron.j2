@@ -251,9 +251,14 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   })
   .then(response => response.json())
   .then(data => {
-      console.log(data);
+    console.log(data);
+    if (data.task_id) {
       get_task(data.task_id);
-    })
+    } else if (data.status === "error") {
+      alert(`Failure!\n\n${data.message}`);
+      location.reload();
+    }
+  })
 
   console.log('submit!')
 });

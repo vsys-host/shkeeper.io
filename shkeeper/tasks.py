@@ -18,6 +18,8 @@ def task_callback():
 @scheduler.task("interval", id="callback", seconds=60)
 def task_callback():
     with scheduler.app.app_context():
+        if not scheduler.app.config.get("ENABLE_PAYOUT_CALLBACK"):
+            return
         callback.send_payout_callback_notifier()
 
 @scheduler.task("interval", id="payout", seconds=60)

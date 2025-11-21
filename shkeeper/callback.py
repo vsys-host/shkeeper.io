@@ -234,18 +234,17 @@ def send_payout_notification(notif: Notification, max_retries: int = 5):
     # if existing:
     #     app.logger.info(f"[PAYOUT {payout.id}] Already notified successfully")
     #     return False
-
     tx = payout.transactions[0] if payout.transactions else None
     tx_hash = tx.txid if tx else None
     rate = ExchangeRate.get(DEFAULT_CURRENCY, payout.crypto).get_rate()
     amount_fiat = payout.amount * rate
     payload = {
         "payout_id": payout.id,
-        "external_id": payout.id,
+        "external_id": payout.external_id,
         "tx_hash": tx_hash,
         "status": "SUCCESS",
         "amount": str(payout.amount),
-        "currency": payout.crypto,
+        "crypto": payout.crypto,
         "amount_fiat": str(amount_fiat),
         "currency_fiat": DEFAULT_CURRENCY,
         "timestamp": payout.created_at.isoformat(),
@@ -274,6 +273,7 @@ def send_payout_notification(notif: Notification, max_retries: int = 5):
         return False
 
     # Success
+
     notif.callback_confirmed = True
     notif.message = None
     db.session.commit()
