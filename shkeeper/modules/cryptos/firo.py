@@ -16,6 +16,19 @@ class firo(BitcoinLikeCrypto):
     def gethost(self):
         return "firod:8332"
     
+    def balance(self):
+        try:
+            response = requests.post(
+                "http://" + self.gethost(),
+                auth=self.get_rpc_credentials(),
+                json=self.build_rpc_request("getbalance"),
+            ).json(parse_float=Decimal)
+            balance = response["result"]
+        except requests.exceptions.RequestException:
+            balance = False
+
+        return balance
+    
     def getaddrbytx(self, txid):
         response = requests.post(
             "http://" + self.gethost(),
