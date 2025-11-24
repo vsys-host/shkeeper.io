@@ -15,6 +15,7 @@ from flask import current_app as app
 from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
+from shkeeper.services.payout_service import PayoutService
 from shkeeper.tasks import schedule_task_polling
 
 from shkeeper import db
@@ -36,6 +37,7 @@ from shkeeper.wallet_encryption import (
 from shkeeper.exceptions import NotRelatedToAnyInvoice
 from shkeeper.services.crypto_cache import get_available_cryptos
 from shkeeper.services.balance_service import get_balances
+from functools import wraps
 
 bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
@@ -45,6 +47,15 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
 # bp.json_decoder = DecimalJSONDecoder
 
+def handle_request_error(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            app.logger.exception("Payout error")
+            return {"status": "error", "message": str(e)}
+    return wrapper
 
 @bp.route("/crypto")
 def list_crypto():
@@ -328,45 +339,10 @@ def balance(crypto_name):
 @bp.post("/<crypto_name>/payout")
 @basic_auth_optional
 @login_required
+@handle_request_error
 def payout(crypto_name):
-    try:
-        req = request.get_json(force=True)
-        crypto = Crypto.instances[crypto_name]
-        amount = Decimal(req["amount"])
-        callback_url = req.get("callback_url")
-        external_id = req.get("external_id")
-        if external_id:
-            existing = existing = Payout.query.filter_by(crypto=crypto_name, external_id=external_id).first()
-            if existing:
-                app.logger.exception(f"Payout error: external_id exists {external_id}")
-                raise Exception(f"Payout with this external_id already exists: {external_id}")
-        res = crypto.mkpayout(
-            req["destination"],
-            amount,
-            req["fee"],
-        )
-        task_id = res.get("task_id")
-        Payout.add(
-            {
-                "dest": req["destination"],
-                "amount": amount,
-                "callback_url": callback_url,
-                "txids": res.get("result", [])
-            },
-            crypto_name,
-            task_id=task_id,
-            external_id=external_id
-        )
-        if task_id:
-            schedule_task_polling(crypto_name, task_id)
-        if app.config.get("ENABLE_PAYOUT_CALLBACK") and external_id:
-           res["external_id"] = external_id
-
-        return res
-    except Exception as e:
-        app.logger.exception("Payout error")
-        return {"status": "error", "message": str(e)}
-
+    req = request.get_json(force=True)
+    return PayoutService.single_payout(crypto_name, req)
 
 @bp.post("/payoutnotify/<crypto_name>")
 def payoutnotify(crypto_name):
@@ -383,9 +359,8 @@ def payoutnotify(crypto_name):
 
         data = request.get_json(force=True)
         app.logger.info(f"Payout notification: {data}")
-
-        for p in data:
-            Payout.add(p, crypto_name)
+        # for p in data:
+        #     Payout.add(p, crypto_name)
 
         return {"status": "success"}
     except Exception as e:
@@ -588,15 +563,10 @@ def get_task(crypto_name, id):
 @bp.post("/<crypto_name>/multipayout")
 @basic_auth_optional
 @login_required
+@handle_request_error
 def multipayout(crypto_name):
-    try:
-        payout_list = request.get_json(force=True)
-        crypto = Crypto.instances[crypto_name]
-    except Exception as e:
-        app.logger.exception("Multipayout error")
-        return {"status": "error", "message": f"Error: {e}"}
-    return crypto.multipayout(payout_list)
-
+    payout_list = request.get_json(force=True)
+    return PayoutService.multiple_payout(crypto_name, payout_list)
 
 @bp.get("/<crypto_name>/addresses")
 @api_key_required

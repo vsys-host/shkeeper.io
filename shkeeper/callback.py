@@ -211,21 +211,6 @@ def send_payout_notification(notif: Notification):
         app.logger.warning(f"[PAYOUT {payout.id}] Skipping: previous error exists")
         return False
 
-    # if payout.status != PayoutStatus.SUCCESS:
-    #     notif.message = f"PAYOUT {payout.id}] Status not SUCCESS"
-    #     db.session.commit()
-    #     app.logger.info(f"[PAYOUT {payout.id}] Status not SUCCESS, skipping")
-    #     return False
-
-    # # Idempotency check
-    # existing = Notification.query.filter_by(
-    #     object_type="payout",
-    #     object_id=payout.id,
-    #     callback_confirmed=True
-    # ).first()
-    # if existing:
-    #     app.logger.info(f"[PAYOUT {payout.id}] Already notified successfully")
-    #     return False
     tx = payout.transactions[0] if payout.transactions else None
     tx_hash = tx.txid if tx else None
     if not tx_hash:

@@ -187,7 +187,7 @@ class Wallet(db.Model):
                 res["result"] if isinstance(res["result"], list) else [res["result"]]
             )
             Payout.add(
-                {"dest": self.pdest, "amount": balance, "txids": idtxs}, crypto.crypto
+                {"dest": self.pdest, "amount": balance, "txids": idtxs}, crypto.crypto, task_id = task_id
             )
 
         return res
@@ -687,7 +687,7 @@ class Payout(db.Model):
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
     callback_url = db.Column(db.String, nullable=True)
-    task_id = db.Column(db.String, unique=True, nullable=False, index=True)
+    task_id = db.Column(db.String, nullable=False, index=True)
     external_id = db.Column(db.String, unique=True, nullable=True)
     status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
@@ -697,16 +697,25 @@ class Payout(db.Model):
         if task_response.get("status") != "SUCCESS":
             return
 
-        for r in task_response.get("result", []):
+        payouts = cls.query.filter_by(task_id=task_id).all()
+        app.logger.warning(f"payouts payouts={payouts}")
+        app.logger.warning(f"task_response task_response={task_response}")
+        if not payouts:
+            app.logger.warning(f"No payouts found for task_id={task_id}")
+            return
+        results = task_response.get("result", [])
+        result_by_dest = {r["dest"]: r for r in results}
+        for payout in payouts:
+            r = result_by_dest.get(payout.dest_addr)
+            if not r:
+                continue
             txids = r.get("txids", [])
             status = r.get("status")
-            payout = cls.query.filter_by(task_id=task_id).first()
-            if not payout:
-                app.logger.warning(f"No payout found for task_id={task_id}, dest={dest_addr}")
-                continue
+
             for txid in txids:
                 if not any(t.txid == txid for t in payout.transactions):
                     db.session.add(PayoutTx(payout_id=payout.id, txid=txid))
+
             if status.lower() == "success":
                 payout.status = PayoutStatus.SUCCESS
             else:
@@ -720,12 +729,7 @@ class Payout(db.Model):
           return None
         task_id = task_id
         external_id = external_id or None
-        filters = []
-        if task_id:
-            filters.append(cls.task_id == task_id)
-        if external_id:
-            filters.append(cls.external_id == external_id)
-        existing = cls.query.filter(or_(*filters)).first() if filters else None
+        existing = cls.query.filter_by(external_id=external_id).first() if external_id else None
         if existing:
             return existing
         p = cls(
@@ -738,7 +742,6 @@ class Payout(db.Model):
         )
         db.session.add(p)
         db.session.commit()
-
         for txid in payout.get("txids", []):
             ptx = PayoutTx(payout_id=p.id, txid=txid)
             db.session.add(ptx)
