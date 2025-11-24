@@ -15,6 +15,7 @@ from flask import current_app as app
 from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
+from shkeeper.tasks import schedule_task_polling
 
 from shkeeper import db
 from shkeeper.auth import basic_auth_optional, login_required, api_key_required
@@ -357,6 +358,11 @@ def payout(crypto_name):
             task_id=task_id,
             external_id=external_id
         )
+        if task_id:
+            schedule_task_polling(crypto_name, task_id)
+        if app.config.get("ENABLE_PAYOUT_CALLBACK") and external_id:
+           res["external_id"] = external_id
+
         return res
     except Exception as e:
         app.logger.exception("Payout error")

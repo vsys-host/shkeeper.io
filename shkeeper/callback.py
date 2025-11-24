@@ -12,21 +12,17 @@ bp = Blueprint("callback", __name__)
 
 DEFAULT_CURRENCY = 'USD'
 MAX_RETRIES = 5
-BASE_DELAY = 1
 
 
 def send_unconfirmed_notification(utx: UnconfirmedTransaction):
     app.logger.info(
         f"send_unconfirmed_notification started for {utx.crypto} {utx.txid}, {utx.addr}, {utx.amount_crypto}"
     )
-    
-    if utx == Notification:
-      invoice = Notification
-    else:    
-        invoice_address = InvoiceAddress.query.filter_by(
-            crypto=utx.crypto, addr=utx.addr
-        ).first()
-        invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
+
+    invoice_address = InvoiceAddress.query.filter_by(
+        crypto=utx.crypto, addr=utx.addr
+    ).first()
+    invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
     crypto = Crypto.instances[utx.crypto]
     apikey = crypto.wallet.apikey
 
@@ -150,11 +146,10 @@ def list_unconfirmed():
     else:
         print("No unconfirmed transactions found!")
 
+
 def send_callbacks():
-    app.logger.info(f"send UnconfirmedTransaction")
     for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
         try:
-            app.logger.info(f"send send_unconfirmed_notification {utx}")
             send_unconfirmed_notification(utx)
         except Exception as e:
             app.logger.exception(
@@ -165,8 +160,6 @@ def send_callbacks():
         callback_confirmed=False, need_more_confirmations=False
     ):
         try:
-            app.logger.info(f"send delay_until_date")
-            app.logger.info(f"send Transaction {tx}")
             delay_until_date = tx.created_at + timedelta(
                 seconds=app.config.get("NOTIFICATION_TASK_DELAY")
             )
@@ -203,7 +196,7 @@ def send_payout_callback_notifier():
             if not success:
                 notif.retries = retries + 1
                 db.session.commit()
-                delay = (retries + 1) ** 2 * BASE_DELAY
+                delay = (retries + 1) ** 2
                 app.logger.info(f"[PAYOUT {notif.object_id}] Will retry in {delay} seconds")
         except Exception:
             notif.retries = retries + 1
@@ -273,11 +266,9 @@ def send_payout_notification(notif: Notification, max_retries: int = 5):
         return False
 
     # Success
-
-    notif.callback_confirmed = True
-    notif.message = None
+    db.session.delete(notif)
     db.session.commit()
-    app.logger.info(f"[PAYOUT {payout.id}] Webhook confirmed")
+    app.logger.info(f"[PAYOUT {payout.id}] Webhook delivered successfully")
     return True
 
 def update_confirmations():

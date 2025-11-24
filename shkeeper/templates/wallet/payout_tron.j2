@@ -75,27 +75,28 @@
           </div>
         </div>
 
-        <div><p>Callback url:</p></div>
-        <div>
-          <div class="d-flex align-items-center">
-            <input
-              class="form-control common-text"
-              type="text"
-              id="callback-url"
-            />
+        {% if enable_payout_callback %}
+          <div><p>Callback url:</p></div>
+          <div>
+            <div class="d-flex align-items-center">
+              <input
+                class="form-control common-text"
+                type="text"
+                id="callback-url"
+              />
+            </div>
           </div>
-        </div>
-        <div><p>External ID:</p></div>
-        <div>
-          <div class="d-flex align-items-center">
-            <input
-              class="form-control common-text"
-              type="text"
-              id="external-id"
-            />
+          <div><p>External ID:</p></div>
+          <div>
+            <div class="d-flex align-items-center">
+              <input
+                class="form-control common-text"
+                type="text"
+                id="external-id"
+              />
+            </div>
           </div>
-        </div>
-
+        {% endif %}
         <div><p>Estimated fee:</p></div>
         <div>
             <p><span id="est_fee">0</span>  {{ crypto.network_currency }}</p>

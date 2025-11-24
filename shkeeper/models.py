@@ -687,7 +687,7 @@ class Payout(db.Model):
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
     callback_url = db.Column(db.String, nullable=True)
-    task_id = db.Column(db.String, unique=True, nullable=False)
+    task_id = db.Column(db.String, unique=True, nullable=False, index=True)
     external_id = db.Column(db.String, unique=True, nullable=True)
     status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)

@@ -95,6 +95,7 @@ def payout(crypto_name):
         fee_deposit_qrcode = None
 
     tmpl = "wallet/payout.j2"
+    enable_payout_callback = app.config.get("ENABLE_PAYOUT_CALLBACK")
     if isinstance(crypto, TronToken):
         tmpl = "wallet/payout_tron.j2"
 
@@ -111,7 +112,7 @@ def payout(crypto_name):
         tmpl = "wallet/payout_btc_lightning.j2"
 
     return render_template(
-        tmpl, crypto=crypto, pdest=pdest, fee_deposit_qrcode=fee_deposit_qrcode
+        tmpl, crypto=crypto, pdest=pdest, enable_payout_callback=enable_payout_callback, fee_deposit_qrcode=fee_deposit_qrcode
     )
 
 

@@ -14,6 +14,28 @@ def task_callback():
         callback.update_confirmations()
         callback.send_callbacks()
 
+def schedule_task_polling(crypto_name, task_id):
+    job_id = f"poll_task_{task_id}"
+    if scheduler.get_job(job_id):
+        return
+    payout = Payout.query.filter_by(task_id=task_id).first()
+    if payout and payout.transactions:
+        return
+
+    run_time = datetime.utcnow() + timedelta(seconds=30)
+    def poll_task_job():
+        with scheduler.app.app_context():
+            crypto = Crypto.instances[crypto_name]
+            task_response = crypto.get_task(task_id)
+            Payout.update_from_task(task_response, task_id)
+
+    scheduler.add_job(
+        id=job_id,
+        func=poll_task_job,
+        trigger='date',
+        run_date=run_time,
+        replace_existing=True
+    )
 
 @scheduler.task("interval", id="callback", seconds=60)
 def task_callback():
