@@ -707,7 +707,6 @@ class Payout(db.Model):
             for txid in txids:
                 if not any(t.txid == txid for t in payout.transactions):
                     db.session.add(PayoutTx(payout_id=payout.id, txid=txid))
-            # payout.status = PayoutStatus.SUCCESS
             if status.lower() == "success":
                 payout.status = PayoutStatus.SUCCESS
             else:

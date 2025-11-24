@@ -211,11 +211,11 @@ def send_payout_notification(notif: Notification):
         app.logger.warning(f"[PAYOUT {payout.id}] Skipping: previous error exists")
         return False
 
-    if payout.status != PayoutStatus.SUCCESS:
-        notif.message = f"PAYOUT {payout.id}] Status not SUCCESS"
-        db.session.commit()
-        app.logger.info(f"[PAYOUT {payout.id}] Status not SUCCESS, skipping")
-        return False
+    # if payout.status != PayoutStatus.SUCCESS:
+    #     notif.message = f"PAYOUT {payout.id}] Status not SUCCESS"
+    #     db.session.commit()
+    #     app.logger.info(f"[PAYOUT {payout.id}] Status not SUCCESS, skipping")
+    #     return False
 
     # # Idempotency check
     # existing = Notification.query.filter_by(
@@ -228,6 +228,9 @@ def send_payout_notification(notif: Notification):
     #     return False
     tx = payout.transactions[0] if payout.transactions else None
     tx_hash = tx.txid if tx else None
+    if not tx_hash:
+        app.logger.info(f"[PAYOUT {payout.id}] No tx_hash yet — skipping callback")
+        return False
     rate = ExchangeRate.get(DEFAULT_CURRENCY, payout.crypto).get_rate()
     amount_fiat = payout.amount * rate
     payload = {
