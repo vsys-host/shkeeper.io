@@ -346,6 +346,7 @@ def payout(crypto_name):
             amount,
             req["fee"],
         )
+        # res = {"task_id": "test_111"}
         task_id = res.get("task_id")
         Payout.add(
             {
@@ -585,6 +586,7 @@ def estimate_tx_fee(crypto_name, amount):
 def get_task(crypto_name, id):
     crypto = Crypto.instances[crypto_name]
     task_response = crypto.get_task(id)
+    # task_response = {'result': [{'amount': Decimal('0.0021762'), 'dest': 'bcrt1q9995vuxd3vv7f2a5sc0d8nfgxllyv8n8ddtweafs', 'status': 'success', 'txids': ['e00f4e9e332984f3b6f06a82cdaa9f774bddds3a24413fa66cc9c4fa24ba2396000']}], 'status': 'SUCCESS'}
     Payout.update_from_task(task_response, id)
     return task_response
 

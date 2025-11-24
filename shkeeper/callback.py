@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 bp = Blueprint("callback", __name__)
 
 DEFAULT_CURRENCY = 'USD'
-MAX_RETRIES = 5
 
 
 def send_unconfirmed_notification(utx: UnconfirmedTransaction):
@@ -184,12 +183,10 @@ def send_callbacks():
 
 def send_payout_callback_notifier():
     # --- Payout Notifications ---
-    for notif in Notification.query.filter_by(callback_confirmed=False, type="Payout"):
-        retries = getattr(notif, "retries", 0)
-        if retries >= MAX_RETRIES:
-            app.logger.warning(f"[PAYOUT {notif.object_id}] Max retries reached, skipping")
-            continue
-
+    max_retries = app.config.get("REQUESTS_NOTIFICATION_RETRIES", 5)
+    notifs_to_send = Notification.query.filter(Notification.retries < max_retries).all()
+    for notif in notifs_to_send:
+        retries = notif.retries or 0
         try:
             app.logger.info(f"[PAYOUT {notif.object_id}] Sending payout notification try={retries}")
             success = send_payout_notification(notif)
@@ -203,7 +200,7 @@ def send_payout_callback_notifier():
             db.session.commit()
             app.logger.exception(f"Exception while sending payout callback object_id={notif.object_id}")
 
-def send_payout_notification(notif: Notification, max_retries: int = 5):
+def send_payout_notification(notif: Notification):
     payout = Payout.query.get(notif.object_id)
     if not payout:
         notif.message = "Payout not found"
@@ -215,6 +212,8 @@ def send_payout_notification(notif: Notification, max_retries: int = 5):
         return False
 
     if payout.status != PayoutStatus.SUCCESS:
+        notif.message = f"PAYOUT {payout.id}] Status not SUCCESS"
+        db.session.commit()
         app.logger.info(f"[PAYOUT {payout.id}] Status not SUCCESS, skipping")
         return False
 
@@ -259,7 +258,8 @@ def send_payout_notification(notif: Notification, max_retries: int = 5):
         db.session.commit()
         return False
 
-    if r.status_code != 202:
+    # r.status_code != 202:
+    if r.status_code != 200:
         notif.message = f"{r.status_code} {r.reason}"
         notif.retries = retries + 1
         db.session.commit()

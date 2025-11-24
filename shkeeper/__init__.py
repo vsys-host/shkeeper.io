@@ -70,6 +70,7 @@ def create_app(test_config=None):
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get("FORCE_WALLET_ENCRYPTION")),
         UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get("UNCONFIRMED_TX_NOTIFICATION")),
         REQUESTS_TIMEOUT=int(os.environ.get("REQUESTS_TIMEOUT", 10)),
+        REQUESTS_NOTIFICATION_RETRIES=int(os.environ.get("MAX_RETRIES", 7)),
         REQUESTS_NOTIFICATION_TIMEOUT=int(
             os.environ.get("REQUESTS_NOTIFICATION_TIMEOUT", 30)
         ),

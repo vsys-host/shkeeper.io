@@ -707,6 +707,7 @@ class Payout(db.Model):
             for txid in txids:
                 if not any(t.txid == txid for t in payout.transactions):
                     db.session.add(PayoutTx(payout_id=payout.id, txid=txid))
+            # payout.status = PayoutStatus.SUCCESS
             if status.lower() == "success":
                 payout.status = PayoutStatus.SUCCESS
             else:
@@ -765,6 +766,7 @@ class Notification(db.Model):
     callback_confirmed = db.Column(db.Boolean, default=False)
     id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String, nullable=False)
+    retries = db.Column(db.Integer, default=0, index=True)
     object_id = db.Column(db.Integer, nullable=False)
     callback_url = db.Column(db.String, nullable=False)
     message = db.Column(db.String, nullable=True)
