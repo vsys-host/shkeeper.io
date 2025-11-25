@@ -181,6 +181,58 @@ def send_callbacks():
                 f"Exception while sending callback for TX {tx.crypto}/{tx.txid}"
             )
 
+def poll_unconfirmed_payouts():
+    app.logger.info("poll_unconfirmed_payouts start")
+    # days
+    cutoff = datetime.utcnow() - timedelta(hours=1)
+    payouts = (
+        Payout.query
+        .filter(
+            Payout.task_id.isnot(None),
+            Payout.status == PayoutStatus.IN_PROGRESS,
+            Payout.created_at >= cutoff
+        )
+        .all()
+    )
+    app.logger.info(f"poll_unconfirmed_payouts finished {payouts}")
+    for payout in payouts:
+        app.logger.info(f"poll_unconfirmed_payouts payout {payout}")
+        crypto = Crypto.instances.get(payout.crypto)
+        if not crypto:
+            continue
+        all_confirmed = False
+        tx_to_notify = None
+        for tx in payout.transactions:
+            if not tx or not getattr(tx, "txid", None):
+                app.logger.warning(f"Skipping invalid transaction {tx}")
+                continue
+            try:
+                app.logger.info(f"poll_unconfirmed_payouts get_confirmations_by_txid {tx.txid}")
+                confirmations = crypto.get_confirmations_by_txid(tx.txid)
+                app.logger.info(f"poll_unconfirmed_payouts confirmations {confirmations}")
+            except Exception:
+                continue
+            if confirmations > app.config.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT"):
+                all_confirmed = True
+                if not tx_to_notify:
+                    tx_to_notify = tx
+        if all_confirmed:
+            app.logger.info(f"poll_unconfirmed_payouts all_confirmed {payout}")
+            app.logger.info(f"poll_unconfirmed_payouts tx_to_notify {tx_to_notify}")
+            payout.status = PayoutStatus.SUCCESS
+            if payout.callback_url and tx_to_notify and app.config.get("ENABLE_PAYOUT_CALLBACK"):
+                app.logger.info(f"Notification create {tx_to_notify}")
+                notification = Notification(
+                    txid=tx_to_notify.txid,
+                    object_id=payout.id,
+                    type='Payout',
+                    crypto=payout.crypto,
+                    amount_crypto=payout.amount,
+                    callback_url=payout.callback_url,
+                )
+                db.session.add(notification)
+    db.session.commit()
+
 def send_payout_callback_notifier():
     # --- Payout Notifications ---
     max_retries = app.config.get("REQUESTS_NOTIFICATION_RETRIES", 5)
@@ -258,6 +310,35 @@ def send_payout_notification(notif: Notification):
     db.session.commit()
     app.logger.info(f"[PAYOUT {payout.id}] Webhook delivered successfully")
     return True
+
+def poll_all_pending_payouts():
+    # cutoff = datetime.utcnow() - timedelta(days=1)
+    cutoff = datetime.utcnow() - timedelta(hours=5)
+    app.logger.info(f"poll_all_pending_payout start")
+    pending_payouts = (
+        Payout.query
+        .filter(
+            Payout.task_id.isnot(None),
+            Payout.status == PayoutStatus.IN_PROGRESS,
+            Payout.created_at >= cutoff
+        )
+        .all()
+    )
+    app.logger.info(f"poll_all_pending_payout pending_payouts {pending_payouts}")
+    for payout in pending_payouts:
+        app.logger.info(f"poll_all_pending_payout payout {payout}")
+        crypto = Crypto.instances.get(payout.crypto)
+        if not crypto:
+            continue
+        task_response = crypto.get_task(payout.task_id)
+        status = task_response.get("status")
+        app.logger.info(f"poll_all_pending_payout task_response {task_response}")
+        if status in ("SUCCESS", "ERROR", "FAILED", "FAILURE"):
+            app.logger.info(f"update_from_task")
+            app.logger.info(f"update_from_task {task_response}")
+            app.logger.info(f"update_from_task {payout.task_id}")
+            Payout.update_from_task(task_response, payout.task_id)
+    db.session.commit()
 
 def update_confirmations():
     for tx in Transaction.query.filter_by(

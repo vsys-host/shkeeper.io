@@ -883,6 +883,54 @@ Partial failures (e.g., RPC error for a coin) result in that coin being omitted;
 
 SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto/balances endpoints. Cached data about available cryptocurrencies and node status may be slightly outdated (up to 60 seconds). In multi-process deployments, each instance keeps its own cache, which may cause minor differences between responses. The cache reduces short-term node or network fluctuations but may briefly delay reflecting real-time status changes.
 
+<a name="checking-payout-status"></a>
+5.2.11.5. Checking Payout Status
+Endpoint: /api/v1/<crypto_name>/payout/status
+Authorization: API Key required (header Authorization: Bearer <API_KEY> или как у вас реализовано в @api_key_required)
+HTTP request method: GET
+Query Parameters:
+```
+curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH-USDC/payout/status?external_id=abc123' \
+--header 'Authorization: Bearer nApijGv8djih7ozY' \
+--header 'Content-Type: application/json'
+```
+**Successful Response:**
+```
+{
+  "id": 114,
+  "external_id": "abc123",
+  "crypto": "ETH-USDC",
+  "status": "SUCCESS",
+  "amount": "100.50",
+  "destination": "0x1234567890abcdef...",
+  "txid": "0f999d988641395b38943d8a9c01581c19fcaa4dcdd4bb35f99e16510fdd10d6"
+}
+```
+When the payout is in progress:
+```
+{
+  "id": 115,
+  "external_id": "abc124",
+  "crypto": "BTC",
+  "status": "IN_PROGRESS",
+  "amount": "50.25",
+  "destination": "0xabcdef1234567890",
+  "txid": null
+}
+```
+Failure Response:
+
+```
+{
+    "amount": "0.0500000000",
+    "crypto": "BTC",
+    "destination": "bcrt1qagdwааааааааlkzc3gn05q3t8v3qrw4saptql8nz8fvt7l",
+    "external_id": "dhjdrewds",
+    "id": 4,
+    "status": "FAIL",
+    "txid": null
+}
+```
 <a name="receiving-callback"></a>
 ### 5.3 Receiving callback
 

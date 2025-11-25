@@ -8,7 +8,8 @@
       {# <th class="status table-subtitle">Status</th> #}
       <th class="date table-subtitle">Tx IDs</th>
       <th class="date table-subtitle">task id</th>
-      <th class="date table-subtitle">external id</th>
+      <th class="date table-subtitle">ExternalId</th>
+      <th class="date table-subtitle">Status</th>
     </tr>
   </thead>
   <tbody>
@@ -28,6 +29,7 @@
       </td>
       <td class="crypto">{{payout.task_id}}</td>
       <td class="crypto">{{payout.external_id}}</td>
+      <td class="crypto">{{payout.status}}</td>
     </tr>
     {% endfor %}
   </tbody>

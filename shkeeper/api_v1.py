@@ -16,7 +16,6 @@ from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
 from shkeeper.services.payout_service import PayoutService
-from shkeeper.tasks import schedule_task_polling
 
 from shkeeper import db
 from shkeeper.auth import basic_auth_optional, login_required, api_key_required
@@ -334,6 +333,31 @@ def balance(crypto_name):
         "amount_fiat": format_decimal(Decimal(crypto_amount) * Decimal(current_rate)),
         "server_status": crypto.getstatus(),
     }
+
+
+@bp.get("/<crypto_name>/payout/status")
+@api_key_required
+def payout_status(crypto_name):
+    external_id = request.args.get("external_id")
+    if not external_id:
+        return {"error": "external_id is required"}, 400
+    payout = Payout.query.filter_by(
+        external_id=external_id,
+        crypto=crypto_name
+    ).first()
+
+    if not payout:
+        return {"error": "Payout not found"}, 404
+    result = {
+        "id": payout.id,
+        "external_id": payout.external_id,
+        "crypto": payout.crypto,
+        "status": payout.status.name,
+        "amount": str(payout.amount),
+        "destination": payout.dest_addr,
+        "txid": payout.transactions[0].txid if payout.transactions else None,
+    }
+    return result, 200
 
 
 @bp.post("/<crypto_name>/payout")

@@ -181,15 +181,20 @@ class Wallet(db.Model):
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
-
-        if "result" in res and res["result"]:
-            idtxs = (
-                res["result"] if isinstance(res["result"], list) else [res["result"]]
-            )
-            Payout.add(
-                {"dest": self.pdest, "amount": balance, "txids": idtxs}, crypto.crypto, task_id = task_id
-            )
-
+        res = crypto.mkpayout(
+            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+        )
+        task_id = res.get("task_id")
+        app.logger.warning(f"payout do_payt create {res}")
+        if task_id:
+            return Payout.add(
+            {
+                "dest": self.pdest,
+                "amount": balance,
+            },
+            self.crypto,
+            task_id=task_id,
+        )
         return res
 
 
@@ -677,7 +682,7 @@ class PayoutStatus(enum.Enum):
 
 class Payout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), index=True)
     updated_at = db.Column(
         db.DateTime,
         default=db.func.current_timestamp(),
@@ -687,57 +692,51 @@ class Payout(db.Model):
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
     callback_url = db.Column(db.String, nullable=True)
-    task_id = db.Column(db.String, nullable=False, index=True)
-    external_id = db.Column(db.String, unique=True, nullable=True)
-    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
+    task_id = db.Column(db.String, nullable=True, index=True)
+    external_id = db.Column(db.String, nullable=True)
+    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS, index=True)
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
     @classmethod
     def update_from_task(cls, task_response, task_id):
-        if task_response.get("status") != "SUCCESS":
-            return
-
+        app.logger.warning(f"payouts task_response {task_response}")
+        app.logger.warning(f"payouts task_id {task_id}")
         payouts = cls.query.filter_by(task_id=task_id).all()
-        app.logger.warning(f"payouts payouts={payouts}")
-        app.logger.warning(f"task_response task_response={task_response}")
         if not payouts:
             app.logger.warning(f"No payouts found for task_id={task_id}")
             return
-        results = task_response.get("result", [])
+        status = task_response.get("status")
+        results = task_response.get("result")
+        if status != "SUCCESS":
+            for payout in payouts:
+                payout.status = PayoutStatus.FAIL
+            db.session.commit()
+            return
         result_by_dest = {r["dest"]: r for r in results}
         for payout in payouts:
             r = result_by_dest.get(payout.dest_addr)
             if not r:
                 continue
             txids = r.get("txids", [])
-            status = r.get("status")
-
             for txid in txids:
                 if not any(t.txid == txid for t in payout.transactions):
                     db.session.add(PayoutTx(payout_id=payout.id, txid=txid))
-
-            if status.lower() == "success":
-                payout.status = PayoutStatus.SUCCESS
-            else:
-                payout.status = PayoutStatus.FAIL
-
         db.session.commit()
 
     @classmethod
     def add(cls, payout, crypto, task_id=None, external_id=None):
         if not task_id:
           return None
+        app.logger.warning(f"payouts add {payout}")
         task_id = task_id
         external_id = external_id or None
-        existing = cls.query.filter_by(external_id=external_id).first() if external_id else None
-        if existing:
-            return existing
         p = cls(
             dest_addr=payout["dest"],
             amount=payout["amount"],
             callback_url=payout.get("callback_url"),
             crypto=crypto,
             task_id=task_id,
+            status=PayoutStatus.IN_PROGRESS,
             external_id=external_id,
         )
         db.session.add(p)
@@ -746,18 +745,6 @@ class Payout(db.Model):
             ptx = PayoutTx(payout_id=p.id, txid=txid)
             db.session.add(ptx)
         db.session.commit()
-        callback_url = payout.get("callback_url")
-        if callback_url and app.config.get("ENABLE_PAYOUT_CALLBACK"):
-            t = Notification(
-                txid=None,
-                object_id=p.id,
-                type='Payout',
-                crypto=crypto,
-                amount_crypto=payout["amount"],
-                callback_url=callback_url,
-            )
-            db.session.add(t)
-            db.session.commit()
         return p
 
 class Notification(db.Model):

@@ -86,17 +86,17 @@
               />
             </div>
           </div>
-          <div><p>External ID:</p></div>
-          <div>
-            <div class="d-flex align-items-center">
-              <input
-                class="form-control common-text"
-                type="text"
-                id="external-id"
-              />
-            </div>
-          </div>
         {% endif %}
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
+            />
+          </div>
+        </div>
         <div><p>Estimated fee:</p></div>
         <div>
             <p><span id="est_fee">0</span>  {{ crypto.network_currency }}</p>
@@ -150,20 +150,20 @@ function delay(fn, ms) {
   }
 }
 function validateCallback(element) {
-    if (!element || !element.value) {
-        return "";
-    }
-    element.value = element.value.trim();
-    if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
-        element.classList.remove("red-highlight");
-        return element.value;
-    } else {
-        element.classList.add("red-highlight");
-        alert("Invalid Callback URL! Must start with http:// or https://");
-        check = false;
-        return "";
-    }
+  if (!element || !element.value.trim()) {
+      element?.classList.remove("red-highlight");
+      return null;
   }
+  element.value = element.value.trim();
+  if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
+      element.classList.remove("red-highlight");
+      return element.value;
+  } else {
+      element.classList.add("red-highlight");
+      alert("Invalid Callback URL! Must start with http:// or https://");
+      return false;
+  }
+}
 
 function show_est_fee() {
   let amount = document.querySelector(".fee-input").value;
@@ -222,6 +222,7 @@ document.querySelector(".send-payment").addEventListener("click", e => {
 
   let amount = document.querySelector(".fee-input").value;
   let callbackUrl = validateCallback(document.getElementById("callback-url"));
+  if (callbackUrl === false) return;
   let elExternalId = document.querySelector("#external-id");
   let externalIdVal = elExternalId ? elExternalId.value : null;
   if (!amount) {

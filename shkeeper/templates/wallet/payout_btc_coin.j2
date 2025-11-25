@@ -95,17 +95,17 @@
               />
             </div>
           </div>
-          <div><p>External ID:</p></div>
-          <div>
-            <div class="d-flex align-items-center">
-              <input
-                class="form-control common-text"
-                type="text"
-                id="external-id"
-              />
-            </div>
-          </div>
         {% endif %}
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
+            />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -186,8 +186,9 @@
       })
   }
   function validateCallback(element) {
-    if (!element || !element.value) {
-        return "";
+    if (!element || !element.value.trim()) {
+        element?.classList.remove("red-highlight");
+        return null;
     }
     element.value = element.value.trim();
     if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
@@ -196,11 +197,9 @@
     } else {
         element.classList.add("red-highlight");
         alert("Invalid Callback URL! Must start with http:// or https://");
-        check = false;
-        return "";
+        return false;
     }
   }
-
   var not_en_trx_msg = `Not enough {{ crypto.network_currency }} to pay for transaction. Please top up the fee-deposit account.`;
 
   function check_fee() {
@@ -227,6 +226,7 @@
     let addr = document.querySelector("#paddress").value.trim();
     let amount = document.querySelector(".fee-input").value;
     let callbackUrl = validateCallback(document.getElementById("callback-url"));
+    if (callbackUrl === false) return;
     let elExternalId = document.querySelector("#external-id");
     let externalIdVal = elExternalId ? elExternalId.value : null;
     let feeInput = document.querySelector("#fee-input");
