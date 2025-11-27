@@ -691,6 +691,8 @@ class Payout(db.Model):
     amount = db.Column(db.Numeric)
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
+    success = db.Column(db.String)
+    error = db.Column(db.String)
     callback_url = db.Column(db.String, nullable=True)
     task_id = db.Column(db.String, nullable=True, index=True)
     external_id = db.Column(db.String, nullable=True)
@@ -710,6 +712,8 @@ class Payout(db.Model):
         if status != "SUCCESS":
             for payout in payouts:
                 payout.status = PayoutStatus.FAIL
+                payout.success = "No"
+                payout.error = results
             db.session.commit()
             return
         result_by_dest = {r["dest"]: r for r in results}

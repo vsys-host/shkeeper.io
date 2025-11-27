@@ -7,7 +7,6 @@
       <th class="crypto table-subtitle">Crypto</th>
       {# <th class="status table-subtitle">Status</th> #}
       <th class="date table-subtitle">Tx IDs</th>
-      <th class="date table-subtitle">task id</th>
       <th class="date table-subtitle">ExternalId</th>
       <th class="date table-subtitle">Status</th>
     </tr>
@@ -27,9 +26,19 @@
         {% endfor %}
         <ul>
       </td>
-      <td class="crypto">{{payout.task_id}}</td>
       <td class="crypto">{{payout.external_id}}</td>
-      <td class="crypto">{{payout.status}}</td>
+      <td class="crypto">
+        {% if payout.success == 'No' %}
+          <span
+            class="tooltip-target"
+            data-tooltip="{{ payout.error }}"
+          >
+            🔴 {{ payout.success }}
+          </span>
+        {% else %}
+          {{ payout.success }}
+        {% endif %}
+      </td>
     </tr>
     {% endfor %}
   </tbody>

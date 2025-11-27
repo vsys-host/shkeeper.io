@@ -183,8 +183,7 @@ def send_callbacks():
 
 def poll_unconfirmed_payouts():
     app.logger.info("poll_unconfirmed_payouts start")
-    # days
-    cutoff = datetime.utcnow() - timedelta(hours=1)
+    cutoff = datetime.utcnow() - timedelta(days=1)
     payouts = (
         Payout.query
         .filter(
@@ -220,6 +219,7 @@ def poll_unconfirmed_payouts():
             app.logger.info(f"poll_unconfirmed_payouts all_confirmed {payout}")
             app.logger.info(f"poll_unconfirmed_payouts tx_to_notify {tx_to_notify}")
             payout.status = PayoutStatus.SUCCESS
+            payout.success = "Yes"
             if payout.callback_url and tx_to_notify and app.config.get("ENABLE_PAYOUT_CALLBACK"):
                 app.logger.info(f"Notification create {tx_to_notify}")
                 notification = Notification(
@@ -236,7 +236,11 @@ def poll_unconfirmed_payouts():
 def send_payout_callback_notifier():
     # --- Payout Notifications ---
     max_retries = app.config.get("REQUESTS_NOTIFICATION_RETRIES", 5)
-    notifs_to_send = Notification.query.filter(Notification.retries < max_retries).all()
+    notifs_to_send = (
+    Notification.query
+        .filter(Notification.retries < max_retries, Notification.callback_confirmed == False)
+        .all()
+    )
     for notif in notifs_to_send:
         retries = notif.retries or 0
         try:
@@ -298,22 +302,20 @@ def send_payout_notification(notif: Notification):
         db.session.commit()
         return False
 
-    # r.status_code != 202:
-    if r.status_code != 200:
+    if r.status_code != 202:
         notif.message = f"{r.status_code} {r.reason}"
         notif.retries = retries + 1
         db.session.commit()
         return False
 
     # Success
-    db.session.delete(notif)
+    notif.callback_confirmed = True
     db.session.commit()
     app.logger.info(f"[PAYOUT {payout.id}] Webhook delivered successfully")
     return True
 
 def poll_all_pending_payouts():
-    # cutoff = datetime.utcnow() - timedelta(days=1)
-    cutoff = datetime.utcnow() - timedelta(hours=5)
+    cutoff = datetime.utcnow() - timedelta(days=1)
     app.logger.info(f"poll_all_pending_payout start")
     pending_payouts = (
         Payout.query
