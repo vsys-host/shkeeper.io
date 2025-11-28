@@ -71,6 +71,28 @@
             <p class="ms-2">{{ crypto.crypto|upper }}</p>
           </div>
         </div>
+        {% if enable_payout_callback %}
+          <div><p>Callback url:</p></div>
+          <div>
+            <div class="d-flex align-items-center">
+              <input
+                class="form-control common-text"
+                type="text"
+                id="callback-url"
+              />
+            </div>
+          </div>
+        {% endif %}
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
+            />
+          </div>
+        </div>
         <div><p></p></div>
         <div>
           <div class="d-flex align-items-center">
@@ -137,7 +159,21 @@
         console.log(data);
       })
   }
-
+  function validateCallback(element) {
+    if (!element || !element.value.trim()) {
+        element?.classList.remove("red-highlight");
+        return null;
+    }
+    element.value = element.value.trim();
+    if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
+        element.classList.remove("red-highlight");
+        return element.value;
+    } else {
+        element.classList.add("red-highlight");
+        alert("Invalid Callback URL! Must start with http:// or https://");
+        return false;
+    }
+  }
   var not_en_trx_msg = `Not enough {{ crypto.network_currency }} to pay for transaction. Please top up the fee-deposit account.`;
 
   function check_fee() {
@@ -162,6 +198,11 @@
     document.tx_complete = false;
 
     let addr = document.querySelector("#paddress").value.trim();
+    let callbackUrl = validateCallback(document.getElementById("callback-url"));
+    if (callbackUrl === false) return;
+    let elExternalId = document.querySelector("#external-id");
+    let externalIdVal = elExternalId ? elExternalId.value : null;
+
     let amount = document.querySelector(".fee-input").value;
     if (!amount) {
       alert('Please enter amount to send.');
@@ -174,7 +215,6 @@
     } #}
 
     tx_progress_on();
-
     fetch("/api/v1/{{crypto.crypto}}/payout", {
       method: 'POST',
       headers: {
@@ -184,13 +224,20 @@
       body: JSON.stringify({
         destination: addr,
         amount: amount,
+        callback_url: callbackUrl,
+        external_id: externalIdVal,
         fee: 0,
       })
     })
       .then(response => response.json())
       .then(data => {
         console.log(data);
-        get_task(data.task_id);
+        if (data.task_id) {
+          get_task(data.task_id);
+        } else if (data.status === "error") {
+          alert(`Failure!\n\n${data.message}`);
+          location.reload();
+        }
       })
 
     console.log('submit!')
