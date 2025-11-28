@@ -68,9 +68,10 @@ https://demo.shkeeper.io/
 
 <a name="available-coins"></a>
 ## 2. Available coins
-SHKeeper offers a direct way to receive BTC, ETH, LTC, DOGE, XMR, XRP, TRX, BNB, MATIC, AVAX, USDT (ERC20, TRC20, BEP-20, Polygon, Avalanche), USDC (ERC20, TRC20, BEP-20, Polygon, Avalanche).
+SHKeeper offers a direct way to receive BTC, ETH, LTC, DOGE, XMR, XRP, TRX, BNB, SOL, MATIC, AVAX, FIRO, USDT (ERC20, TRC20, BEP-20, Polygon, Avalanche), USDC (ERC20, TRC20, BEP-20, Polygon, Avalanche).
 
-![Coins](https://github.com/user-attachments/assets/b4137f13-0018-40b1-8c25-d639235b7fc2)
+<img width="2060" height="800" alt="Group 2614" src="https://github.com/user-attachments/assets/d44d5343-cd90-473f-a63f-dd1b1b74e8c5" />
+
 <a name="features"></a>
 ## 3. Features
 
