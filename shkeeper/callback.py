@@ -211,7 +211,7 @@ def poll_unconfirmed_payouts():
                 app.logger.info(f"poll_unconfirmed_payouts confirmations {confirmations}")
             except Exception:
                 continue
-            if confirmations > app.config.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT"):
+            if confirmations > int(app.config.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT")):
                 all_confirmed = True
                 if not tx_to_notify:
                     tx_to_notify = tx
@@ -234,23 +234,28 @@ def poll_unconfirmed_payouts():
     db.session.commit()
 
 def send_payout_callback_notifier():
-    # --- Payout Notifications ---
-    max_retries = app.config.get("REQUESTS_NOTIFICATION_RETRIES", 5)
-    notifs_to_send = (
-    Notification.query
-        .filter(Notification.retries < max_retries, Notification.callback_confirmed == False)
-        .all()
-    )
-    for notif in notifs_to_send:
+    max_retries = app.config.get("REQUESTS_NOTIFICATION_RETRIES", 10)
+    now = datetime.utcnow()
+    notifs = Notification.query.filter(
+        Notification.retries < max_retries,
+        Notification.callback_confirmed == False
+    ).all()
+    for notif in notifs:
         retries = notif.retries or 0
+        delay_total = sum((i + 1) ** 2 for i in range(retries + 1))
+        next_try_time = notif.created_at + timedelta(seconds=delay_total)
+        if now < next_try_time:
+            continue
         try:
-            app.logger.info(f"[PAYOUT {notif.object_id}] Sending payout notification try={retries}")
+            app.logger.info(f"[PAYOUT {notif.object_id}] Sending payout callback try={retries}")
             success = send_payout_notification(notif)
             if not success:
                 notif.retries = retries + 1
                 db.session.commit()
-                delay = (retries + 1) ** 2
-                app.logger.info(f"[PAYOUT {notif.object_id}] Will retry in {delay} seconds")
+                app.logger.info(
+                    f"[PAYOUT {notif.object_id}] Retry #{retries+1}. "
+                    f"Next in {(retries+2)**2} sec"
+                )
         except Exception:
             notif.retries = retries + 1
             db.session.commit()
@@ -261,10 +266,6 @@ def send_payout_notification(notif: Notification):
     if not payout:
         notif.message = "Payout not found"
         db.session.commit()
-        return False
-
-    if notif.message:
-        app.logger.warning(f"[PAYOUT {payout.id}] Skipping: previous error exists")
         return False
 
     tx = payout.transactions[0] if payout.transactions else None

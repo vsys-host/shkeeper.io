@@ -53,7 +53,7 @@ def handle_request_error(func):
             return func(*args, **kwargs)
         except Exception as e:
             app.logger.exception("Payout error")
-            return {"status": "error", "message": str(e)}
+            return {"status": "error", "message": str(e)}, 500
     return wrapper
 
 @bp.route("/crypto")
@@ -355,7 +355,7 @@ def payout_status(crypto_name):
         "status": payout.status.name,
         "amount": str(payout.amount),
         "destination": payout.dest_addr,
-        "txid": payout.transactions[0].txid if payout.transactions else None,
+        "txid": payout.transactions[0].txid if payout.transactions and len(payout.transactions) > 0 else None,
     }
     return result, 200
 

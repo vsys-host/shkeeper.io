@@ -76,7 +76,7 @@ def create_app(test_config=None):
         ),
         DEV_MODE=bool(os.environ.get("DEV_MODE", False)),
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
-        ENABLE_PAYOUT_CALLBACK=os.environ.get("ENABLE_PAYOUT_CALLBACK", False),
+        ENABLE_PAYOUT_CALLBACK=bool(os.environ.get("ENABLE_PAYOUT_CALLBACK")),
         MIN_CONFIRMATION_BLOCK_FOR_PAYOUT=os.environ.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT", 1),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,

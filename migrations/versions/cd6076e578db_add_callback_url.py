@@ -1,7 +1,7 @@
 """Add callback_url
 
 Revision ID: cd6076e578db
-Revises: 0319bf7b9426
+Revises: cd6076e578ca
 Create Date: 2024-07-31 10:39:30.170808
 
 """

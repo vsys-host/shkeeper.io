@@ -62,7 +62,7 @@ class PayoutService:
         )
         task_id = res.get("task_id")
         cls.create_payout_record(req, crypto_name, task_id=task_id, txids=res.get("result", []))
-        if app.config.get("ENABLE_PAYOUT_CALLBACK") and req.get("external_id"):
+        if req.get("external_id"):
             res["external_id"] = req["external_id"]
         return res
 
@@ -81,16 +81,9 @@ class PayoutService:
             cls.validate_callback_url(req.get("callback_url"))
             payout = cls.create_payout_record(req, crypto_name, task_id=task_id)
             created_ids.append(payout.id)
-
-        if task_id:
-            for pid in created_ids:
-                p = Payout.query.get(pid)
-                p.task_id = task_id
-            db.session.commit()
-        if app.config.get("ENABLE_PAYOUT_CALLBACK"):
-            res["external_ids"] = [
-                req.get("external_id")
-                for req in payout_list
-                if req.get("external_id")
-            ]
+        res["external_ids"] = [
+            req.get("external_id")
+            for req in payout_list
+            if req.get("external_id")
+        ]
         return res

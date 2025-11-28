@@ -8,7 +8,7 @@
 .tooltip-target::after {
     content: attr(data-tooltip);
     position: absolute;
-    left: -5px; /* слева */
+    left: -5px;
     top: 50%;
     transform: translate(-100%, -50%);
     background-color: rgba(0,0,0,0.8);

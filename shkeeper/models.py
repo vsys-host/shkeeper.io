@@ -6,7 +6,6 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from decimal import Decimal
-from sqlalchemy import or_
 import bcrypt
 import pyotp
 from flask import current_app as app
@@ -732,7 +731,6 @@ class Payout(db.Model):
         if not task_id:
           return None
         app.logger.warning(f"payouts add {payout}")
-        task_id = task_id
         external_id = external_id or None
         p = cls(
             dest_addr=payout["dest"],
@@ -757,7 +755,6 @@ class Notification(db.Model):
     crypto = db.Column(db.String)
     amount_crypto = db.Column(db.Numeric)
     callback_confirmed = db.Column(db.Boolean, default=False)
-    id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.String, nullable=False)
     retries = db.Column(db.Integer, default=0, index=True)
     object_id = db.Column(db.Integer, nullable=False)
@@ -782,12 +779,16 @@ class Notification(db.Model):
         }
 
     @classmethod
-    def add(cls, type_, object_id, message=None):
+    def add(cls, type_, object_id, message=None, txid=None, crypto=None, amount_crypto=None, callback_url=None):
         app.logger.info(f"Add notification {type_} for object {object_id}")
         notif = Notification(
             type=type_,
             object_id=object_id,
             message=message,
+            txid=txid,
+            crypto=crypto,
+            amount_crypto=amount_crypto,
+            callback_url=callback_url,
         )
         db.session.add(notif)
         db.session.commit()
