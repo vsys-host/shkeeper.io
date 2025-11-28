@@ -137,24 +137,33 @@ class BitcoinLightning(Crypto):
             "tls.cert",
         )
 
-    def getstatus(self) -> str:
+    def getstatus(self, include_blocktime=False) -> str:
         try:
             info = self.session.get(
                 f"{self.LND_REST_URL}/v1/getinfo",
                 timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
             ).json()
             if "message" in info:
+                if include_blocktime:
+                    return info["message"], None
                 return info["message"]
+            
+            block_ts = int(info["best_header_timestamp"])
+            
             if info["synced_to_chain"]:
                 status = "Synced"
             else:
-                block_ts = int(info["best_header_timestamp"])
                 now_ts = int(datetime.datetime.now().timestamp())
                 delta = abs(now_ts - block_ts)
                 status = f"{delta} seconds lag"
+            
+            if include_blocktime:
+                return status, block_ts
             return status
         except Exception as e:
             app.logger.exception(f"Can't get status: {e}")
+            if include_blocktime:
+                return "Offline", None
             return "Offline"
 
     @staticmethod

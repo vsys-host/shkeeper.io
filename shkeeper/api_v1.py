@@ -3,6 +3,7 @@ import traceback
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
 from operator import  itemgetter
+import datetime
 
 
 from werkzeug.datastructures import Headers
@@ -57,12 +58,18 @@ def list_crypto():
             filtered_cryptos.append(crypto)
 
     def get_crypto_status(crypto):
-        return crypto, crypto.getstatus()
+        status_result = crypto.getstatus(True)
+        if isinstance(status_result, tuple):
+            status, block_timestamp = status_result
+        else:
+            status = status_result
+            block_timestamp = None
+        return crypto, status, block_timestamp
 
     with ThreadPoolExecutor() as executor:
         results = list(executor.map(get_crypto_status, filtered_cryptos))
 
-    for crypto, status in results:
+    for crypto, status, block_timestamp in results:
         if status == "Offline":
             continue
         if disable_on_lags and status != "Synced":
@@ -70,13 +77,17 @@ def list_crypto():
         filtered_list.append(crypto.crypto)
         crypto_list.append({
             "name": crypto.crypto,
-            "display_name": crypto.display_name
+            "display_name": crypto.display_name,
+            "block_timestamp": block_timestamp
         })
+
+    server_timestamp = int(datetime.datetime.now().timestamp())
 
     return {
         "status": "success",
         "crypto": sorted(filtered_list),
         "crypto_list": sorted(crypto_list, key=itemgetter("name")),
+        "server_timestamp": server_timestamp
     }
 
 
