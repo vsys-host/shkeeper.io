@@ -275,6 +275,9 @@ def autopayout(crypto_name):
 
     if req["policy"] not in [i.value for i in PayoutPolicy]:
         return {"status": "error", "message": f"Unknown payout policy: {req['policy']}"}
+    
+    if req["prespolicyOption"] not in [i.value for i in PayoutReservePolicy]:
+        return {"status": "error", "message": f"Unknown payout reserve policy: {req['prespolicyOption']}"}
 
     w = Wallet.query.filter_by(crypto=crypto_name).first()
     if autopayout_destination := req.get("add"):
@@ -282,6 +285,13 @@ def autopayout(crypto_name):
     if autopayout_fee := req.get("fee"):
         w.pfee = autopayout_fee
     w.ppolicy = PayoutPolicy(req["policy"])
+    w.prespolicy = PayoutReservePolicy(req["prespolicyOption"])
+    if w.prespolicy == PayoutReservePolicy.AMOUNT:
+        w.presamount = req["prespolicyValue"]
+    elif w.prespolicy == PayoutReservePolicy.PERCENT:
+        w.presamount = int(req["prespolicyValue"]) / 100 # make it float
+    else:
+        w.presamount = None
     w.pcond = req["policyValue"]
     w.payout = req.get("policyStatus", True)
     w.llimit = req["partiallPaid"]
