@@ -8,10 +8,10 @@
         <div
           class="col d-flex flex-column align-items-center justify-content-center"
         >
-          <img class="big-logo" width="280" src="{{ url_for('static', filename='images/vsys-logo.' + theme + '.png') }}" alt="logo" />
+          <img class="big-logo" width="280" src="{{ url_for('static', filename='images/shk-logo.' + theme + '.svg') }}" alt="logo" />
 
           {% for message in get_flashed_messages() %}
-            <div class="alert alert-danger" role="alert">{{ message }}</div>
+            <div class="alert alert-danger alert-danger__customization common-text d-flex" role="alert"><span class="icon">!!</span>{{ message }}</div>
           {% endfor %}
 
           <form class="d-flex flex-column align-items-center" method="post">

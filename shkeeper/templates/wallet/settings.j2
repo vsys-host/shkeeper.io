@@ -8,52 +8,74 @@
     </div>
   </div>
 
-  {% for category, message in get_flashed_messages(with_categories=true) %}
-    <div class="alert alert-{{ 'warning' if category == 'warning' else 'success' if category == 'success' else 'danger' }}" role="alert">
-      {{ message }}
-    </div>
-  {% endfor %}
+  {% set alert_map = {
+  'success': {
+    'bs': 'success',
+    'custom': 'alert-success__customization',
+    'icon': '☑'
+  },
+  'warning': {
+    'bs': 'warning',
+    'custom': 'alert-warning__customization',
+    'icon': '⚠︎'
+  },
+  'danger': {
+    'bs': 'danger',
+    'custom': 'alert-danger__customization',
+    'icon': '!!'
+  },
+  'info': {
+    'bs': 'info',
+    'custom': 'alert-info__customization',
+    'icon': 'ⓘ'
+  }
+} %}
 
-  <div class="row justify-content-center">
+{% for category, message in get_flashed_messages(with_categories=true) %}
+  {% set cfg = alert_map.get(category, alert_map['info']) %}
+
+  <div class="alert alert-{{ cfg.bs }} {{ cfg.custom }} common-text d-flex" role="alert">
+    <span class="icon">{{ cfg.icon }}</span>
+    {{ message }}
+  </div>
+{% endfor %}
+
+  <div class="row justify-content-center mb-5">
     <div class="col-lg-8">
       <div class="card mb-4">
-        <div class="card-body">
-          <h3 class="card-title mb-4">Two-Factor Authentication</h3>
+        <div class="card-body functional-card common-text">
+          <h3 class="card-title mb-4 text-center subtitle-text">Two-Factor Authentication</h3>
 
           {% if user.totp_enabled %}
-            <div class="alert alert-success d-flex align-items-center" role="alert">
-              <svg width="24" height="24" class="me-2" fill="currentColor">
-                <circle cx="12" cy="12" r="10" fill="#198754"/>
-                <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" fill="none"/>
-              </svg>
+            <div class="alert alert-success alert-success__customization d-flex align-items-center" role="alert">
+            <span class="icon">☑</span>
               <div>
-                <strong>2FA is enabled</strong>
-                <div class="small">Enabled on {{ user.totp_enabled_at.strftime('%Y-%m-%d %H:%M') if user.totp_enabled_at else 'Unknown' }}</div>
+                <strong class="notification-text">2FA is enabled</strong>
+                <div class="small common-text">Enabled on {{ user.totp_enabled_at.strftime('%Y-%m-%d %H:%M') if user.totp_enabled_at else 'Unknown' }}</div>
               </div>
             </div>
 
-            <p class="mb-3">Two-factor authentication adds an extra layer of security to your account by requiring a code from your authenticator app in addition to your password.</p>
+            <p class="mb-4 common-text">Two-factor authentication adds an extra layer of security to your account by requiring a code from your authenticator app in addition to your password.</p>
 
-            <div class="d-grid gap-2">
-              <a href="{{ url_for('auth.regenerate_backup_codes') }}" class="btn btn-outline-primary">
-                🔄 Regenerate Backup Codes
+            <div class="d-grid gap-3">
+              <a href="{{ url_for('auth.regenerate_backup_codes') }}" class="btn btn-outline-primary btn-outline-primary__customization">
+                <span style="display:inline-block; transform: scale(1.5); vertical-align: 2px;">↻</span> &nbsp;Regenerate Backup Codes
               </a>
-              <a href="{{ url_for('auth.disable_2fa') }}" class="btn btn-outline-danger">
-                ❌ Disable Two-Factor Authentication
+              <a href="{{ url_for('auth.disable_2fa') }}" class="btn btn-outline-dark disable-button__custom">
+                <span style="display:inline-block; transform: scale(1.2); vertical-align: 1px;">⏻</span> &nbsp;Disable Two-Factor Authentication
               </a>
             </div>
 
           {% else %}
-            <div class="alert alert-warning d-flex align-items-center" role="alert">
-              <svg width="24" height="24" class="me-2" fill="currentColor">
-                <circle cx="12" cy="12" r="10" fill="#ffc107"/>
-                <text x="12" y="16" font-size="16" text-anchor="middle" fill="white" font-weight="bold">!</text>
-              </svg>
+            <div class="alert alert-warning alert-warning__customization common-text" role="alert">
+              <span class="icon">⚠︎</span>
               <div>
                 <strong>2FA is not enabled</strong>
-                <div class="small">Protect your account with two-factor authentication</div>
+                <br>
+                Protect your account with two-factor authentication
               </div>
             </div>
+
 
             <p class="mb-3">Two-factor authentication (2FA) significantly enhances your account security by requiring:</p>
             <ul class="mb-4">
@@ -68,8 +90,8 @@
             </ul>
 
             <div class="d-grid">
-              <a href="{{ url_for('auth.setup_2fa') }}" class="btn btn-primary btn-lg">
-                🔒 Enable Two-Factor Authentication
+              <a href="{{ url_for('auth.setup_2fa') }}" class="btn btn-outline-primary btn-outline-primary__customization">
+                <span style="display: inline-block; transform: scale(1.5)">⏼</span> &nbsp; Enable Two-Factor Authentication
               </a>
             </div>
           {% endif %}

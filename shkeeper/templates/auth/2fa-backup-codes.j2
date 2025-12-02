@@ -4,14 +4,17 @@
     <div class="container login-container">
       <div class="row align-items-center h-100">
         <div class="col d-flex flex-column align-items-center justify-content-center">
-          <img class="big-logo" width="200" src="{{ url_for('static', filename='images/vsys-logo.' + theme + '.png') }}" alt="logo" />
-
-          <h3 class="mb-4">{% if regenerate %}Backup Codes Regenerated{% else %}2FA Enabled Successfully{% endif %}</h3>
+          <img class="big-logo" width="200" src="{{ url_for('static', filename='images/shk-logo.' + theme + '.svg') }}" alt="logo" />
 
           <div class="card mx-auto" style="max-width: 650px;">
-            <div class="card-body">
-              <div class="alert alert-warning" role="alert">
-                <strong>⚠️ Important:</strong> Save these backup codes in a safe place. Each code can only be used once.
+            <div class="card-body functional-card common-text">
+
+                <h3 class="mb-4 text-center title-text">{% if regenerate %}Backup Codes Regenerated{% else %}2FA Enabled Successfully{% endif %}</h3>
+
+              <div class="alert alert-warning alert-warning__customization common-text" role="alert">
+                <span class="icon">⚠︎</span>
+                <strong>Warning:</strong> 
+                Save these backup codes in a safe place. Each code can only be used once.
               </div>
 
               <h5 class="card-title mb-3">Your Backup Codes</h5>
@@ -20,22 +23,22 @@
               <div class="row mt-3">
                 {% for code in backup_codes %}
                   <div class="col-md-6 col-12 mb-3">
-                    <div class="alert alert-secondary text-center mb-0" style="font-family: monospace; font-size: 1.1rem; padding: 0.75rem;">
+                    <div class="alert alert-secondary alert-secondary__customization text-center mb-0" style="font-family: monospace; font-size: 1rem; padding: 0.75rem;">
                       {{ code }}
                     </div>
                   </div>
                 {% endfor %}
               </div>
 
-              <div class="alert alert-info mt-4" role="alert">
-                💡 <strong>Tip:</strong> Print these codes or save them in a password manager.
+              <div class="alert alert-info alert-info__customization mt-4" role="alert">
+                <span class="icon">ⓘ</span> <strong>Tip:</strong> &nbsp;Print these codes or save them in a password manager.
               </div>
 
               <div class="d-grid gap-2 mt-4">
-                <button class="btn btn-outline-secondary" onclick="window.print()">
-                  🖨️ Print Backup Codes
+                <button class="btn btn-outline-dark btn-outline-dark__customization" onclick="window.print()">
+                  <span style="display:inline-block; transform: scale(1.6); vertical-align: 2px;">⎙</span>&nbsp;&nbsp;Print Backup Codes
                 </button>
-                <a href="{{ url_for('wallet.settings') }}" class="btn btn-primary">Continue to Settings</a>
+                <a href="{{ url_for('wallet.settings') }}" class="btn btn-outline-primary btn-outline-primary__customization"><span style="display:inline-block; transform: scale(1.4);">→</span>&nbsp;&nbsp;Continue to Settings</a>
               </div>
             </div>
           </div>
