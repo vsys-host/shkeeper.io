@@ -283,13 +283,15 @@ def setup_2fa():
                 "auth/2fa-backup-codes.j2", backup_codes=backup_codes
             )
         else:
-            flash(
-                "Invalid code. Please scan the QR code again and enter the current code."
-            )
-
-    # Generate new secret for setup
-    secret = pyotp.random_base32()
-    session["temp_totp_secret"] = secret
+            flash("Invalid code. Please try again.")
+            # Use the existing secret from session instead of generating a new one
+            secret = temp_secret
+    else:
+        # Generate new secret only for initial GET request or when no secret exists
+        secret = session.get("temp_totp_secret")
+        if not secret:
+            secret = pyotp.random_base32()
+            session["temp_totp_secret"] = secret
 
     # Generate provisioning URI
     totp = pyotp.TOTP(secret)
