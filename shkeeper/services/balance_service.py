@@ -18,7 +18,7 @@ def _build_balance(crypto_name: str, logger, app):
             amount_fiat = crypto_amount * Decimal(rate)
             server_status = crypto.getstatus()
         except Exception as e:
-            logger.warning(f"_build_balance Exception: {e}")
+            logger.exception(f"_build_balance exception for {crypto_name}")
             return None
         return {
             "name": crypto.crypto,

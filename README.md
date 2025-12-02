@@ -341,6 +341,11 @@ curl --location --request GET
 Use the `crypto_list` array; the `crypto` array exists only for backward compatibility. In the `crypto_list` array:
 - `name` is used when forming the endpoint for invoice creation requests,
 - `display_name` is the cryptocurrency human-readable format.
+
+**Notes & caveats**
+
+SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto endpoints. Cached data about available cryptocurrencies and node status may be slightly outdated (up to 60 seconds). In multi-process deployments, each instance keeps its own cache, which may cause minor differences between responses. The cache reduces short-term node or network fluctuations but may briefly delay reflecting real-time status changes.
+
 <a name="invoice-creation"></a>
 #### 5.2.3. Invoice Creation
 
@@ -860,12 +865,16 @@ Failure Response (invalid includes / no valid cryptos requested):
     "message": "No valid cryptos requested"
 }
 ```
-Notes:
+
+**Notes & caveats**
+
 The response is always a plain JSON array, no extra envelope or metadata.
 The order of items is deterministic:
 If includes is provided → preserves order from request (valid entries only)
 If includes is absent → sorted alphabetically by name.
 Partial failures (e.g., RPC error for a coin) result in that coin being omitted; no new error fields are introduced.
+
+SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto/balances endpoints. Cached data about available cryptocurrencies and node status may be slightly outdated (up to 60 seconds). In multi-process deployments, each instance keeps its own cache, which may cause minor differences between responses. The cache reduces short-term node or network fluctuations but may briefly delay reflecting real-time status changes.
 
 <a name="receiving-callback"></a>
 ### 5.3 Receiving callback
