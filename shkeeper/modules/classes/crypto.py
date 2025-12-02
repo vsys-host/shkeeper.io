@@ -19,6 +19,7 @@ class Crypto(abc.ABC):
         if inspect.isabstract(cls):
             return
 
+        # use class name, not file name!
         default_off = [
             # Tron
             "trx",
@@ -54,8 +55,7 @@ class Crypto(abc.ABC):
             "solana_pyusd",
             # Firo
             "firo",
-            "firo-spark"
-
+            "firo_spark",
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
