@@ -109,19 +109,22 @@ class Wallet(db.Model):
             )
         elif crypto.wallet.prespolicy == PayoutReservePolicy.AMOUNT:
             should_payout = balance - Decimal(crypto.wallet.presamount)
-            if should_payout < 0:
-                raise Exception(f"Unable to autopayout, reserved amount is bigger than balance: {balance} < {crypto.wallet.presamount}")
+            if should_payout <= 0:
+                raise Exception(f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}")
             else:
                 res = crypto.mkpayout(
                     self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
                 )
         elif crypto.wallet.prespolicy == PayoutReservePolicy.PERCENT:
-            should_payout = balance * (1 - Decimal(crypto.wallet.presamount))
+            should_payout = balance * (1 - (Decimal(crypto.wallet.presamount) / 100)) # presamount is stored as integer percent
             res = crypto.mkpayout(
                 self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
             )
         else:
-            raise Exception(f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}")
+            app.logger.info(f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation")
+            res = crypto.mkpayout(
+                self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+            )
 
         if "result" in res and res["result"]:
             idtxs = (

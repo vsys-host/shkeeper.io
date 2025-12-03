@@ -289,7 +289,7 @@ def autopayout(crypto_name):
     if w.prespolicy == PayoutReservePolicy.AMOUNT:
         w.presamount = req["prespolicyValue"]
     elif w.prespolicy == PayoutReservePolicy.PERCENT:
-        w.presamount = int(req["prespolicyValue"]) / 100 # make it float
+        w.presamount = int(req["prespolicyValue"]) # store percent as integer
     else:
         w.presamount = None
     w.pcond = req["policyValue"]
