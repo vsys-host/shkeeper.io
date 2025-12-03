@@ -222,6 +222,8 @@ def parts_transactions():
             field = getattr(Transaction, arg)
             if isinstance(field, property):
                 continue
+            elif "crypto" == arg:
+                query = query.filter(Transaction.crypto == request.args[arg])
             else:
                 query = query.filter(field.contains(request.args[arg]))
 
