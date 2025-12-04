@@ -342,6 +342,11 @@ curl --location --request GET
 Use the `crypto_list` array; the `crypto` array exists only for backward compatibility. In the `crypto_list` array:
 - `name` is used when forming the endpoint for invoice creation requests,
 - `display_name` is the cryptocurrency human-readable format.
+
+**Notes & caveats**
+
+SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto endpoints. Cached data about available cryptocurrencies and node status may be slightly outdated (up to 60 seconds). In multi-process deployments, each instance keeps its own cache, which may cause minor differences between responses. The cache reduces short-term node or network fluctuations but may briefly delay reflecting real-time status changes.
+
 <a name="invoice-creation"></a>
 #### 5.2.3. Invoice Creation
 
@@ -809,6 +814,68 @@ curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH/balance' \
   "status":"error"
 }
 ```
+
+<a name="get-all-balances"></a>
+##### 5.2.11.5. Get All Crypto Balances
+
+**Endpoint:** `/api/v1/crypto/balances`.    
+**Authorization:** ApiKey.       
+**HTTP request method:** GET.       
+**Query Parameters: (optional)**.       
+includes — Comma-separated list of crypto identifiers to return balances for (e.g., BTC,ETH,TRX). Case-insensitive. If omitted or empty, returns balances for all enabled cryptos. Unknown/disabled cryptos are ignored.
+
+**Curl Example:**
+```
+curl --location --request GET 'https://demo.shkeeper.io/api/v1/crypto/balances' \
+--header 'X-Shkeeper-API-Key: nApijGv8djih7ozY' \
+--header 'Content-Type: application/json'
+```
+Example Request (subset of cryptos):
+```
+curl --location --request GET 'https://demo.shkeeper.io/api/v1/crypto/balances?includes=BTC,ETH'
+--header 'X-Shkeeper-API-Key: nApijGv8djih7ozY' \
+--header 'Content-Type: application/json'
+```
+Successful Response:
+```
+[
+  {
+    "name": "BTC",
+    "display_name": "Bitcoin",
+    "amount_crypto": "0.12345678",
+    "rate": "70616.07",
+    "fiat": "USD",
+    "amount_fiat": "8700.12",
+    "server_status": "online"
+  },
+  {
+    "name": "ETH",
+    "display_name": "Ethereum",
+    "amount_crypto": "1.2345",
+    "rate": "3015.50",
+    "fiat": "USD",
+    "amount_fiat": "3721.05",
+    "server_status": "online"
+  }
+]
+```
+Failure Response (invalid includes / no valid cryptos requested):
+```
+{
+    "status": "error",
+    "message": "No valid cryptos requested"
+}
+```
+
+**Notes & caveats**
+
+The response is always a plain JSON array, no extra envelope or metadata.
+The order of items is deterministic:
+If includes is provided → preserves order from request (valid entries only)
+If includes is absent → sorted alphabetically by name.
+Partial failures (e.g., RPC error for a coin) result in that coin being omitted; no new error fields are introduced.
+
+SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto/balances endpoints. Cached data about available cryptocurrencies and node status may be slightly outdated (up to 60 seconds). In multi-process deployments, each instance keeps its own cache, which may cause minor differences between responses. The cache reduces short-term node or network fluctuations but may briefly delay reflecting real-time status changes.
 
 <a name="receiving-callback"></a>
 ### 5.3 Receiving callback
