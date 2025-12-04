@@ -23,7 +23,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     passhash = db.Column(db.String(120))
     api_key = db.Column(db.String)
-    totp_secret = db.Column(db.String(32))  # Base32 encoded TOTP secret
+    totp_secret = db.Column(db.String(64))  # Base32 encoded TOTP secret
     totp_enabled = db.Column(db.Boolean, default=False)
     backup_codes = db.Column(db.Text)  # JSON array of hashed backup codes
     totp_enabled_at = db.Column(db.DateTime)
