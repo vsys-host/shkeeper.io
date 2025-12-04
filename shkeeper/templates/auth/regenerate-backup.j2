@@ -1,0 +1,65 @@
+{% extends 'base.j2' %}
+
+{% block body %}
+    <div class="container login-container">
+      <div class="row align-items-center h-100">
+        <div class="col d-flex flex-column align-items-center justify-content-center">
+          <img class="big-logo" width="200" src="{{ url_for('static', filename='images/shk-logo.' + theme + '.svg') }}" alt="logo" />
+
+          {% for message in get_flashed_messages() %}
+            <div class="alert alert-danger alert-danger__customization common-text" role="alert"><span class="icon">!!</span>{{ message }}</div>
+          {% endfor %}
+
+          <div class="card mx-auto" style="max-width: 500px;">
+            <div class="card-body functional-card common-text">
+            <h3 class="mb-4 subtitle-text text-center">Regenerate Backup Codes</h3>
+
+              <div class="alert alert-warning alert-warning__customization common-text" role="alert">
+                <span class="icon">⚠︎</span>
+                <strong>Warning:</strong> 
+                This will invalidate all existing backup codes.
+              </div>
+
+              <p class="card-text mb-4">To generate new backup codes, please confirm with your password and current 2FA code:</p>
+
+              <form method="post">
+                <div class="mb-3">
+                  <label for="password" class="form-label">Password</label>
+                  <input
+                    type="password"
+                    name="password"
+                    class="form-control"
+                    id="password"
+                    autofocus
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="token" class="form-label">2FA Code</label>
+                  <input
+                    type="text"
+                    name="token"
+                    class="form-control text-center"
+                    style="font-size: 1.25rem; letter-spacing: 0.25em;"
+                    id="token"
+                    placeholder="000000"
+                    maxlength="6"
+                    pattern="[0-9]{6}"
+                    autocomplete="one-time-code"
+                    inputmode="numeric"
+                    required
+                  />
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                  <button type="submit" class="btn btn-outline-primary btn-outline-primary__customization"><span style="display:inline-block; transform: scale(1.2);">⧉</span>&nbsp; Generate New Codes</button>
+                  <a href="{{ url_for('wallet.settings') }}" class="btn btn-outline-secondary btn-outline-secondary__customization"><span style="display:inline-block; transform: scale(1.2); vertical-align: -3px;">↩</span> &nbsp;Cancel</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock %}

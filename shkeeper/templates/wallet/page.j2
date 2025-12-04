@@ -59,6 +59,14 @@
               </a>
             </li>
             <li class="nav-item">
+              <a id="settings-link" href="{{ url_for('wallet.settings') }}" class="nav-link">
+                <svg height="32" width="32" class="nav-icon">
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-settings"></use>
+                </svg>
+                <span class="nav-label">Settings</span>
+              </a>
+            </li>
+            <li class="nav-item">
               <a href="{{ url_for('auth.logout') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
                   <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-logout"></use>
@@ -72,13 +80,13 @@
           <img
             class="menu-logo-big menu-logo align-self-center"
             width="151"
-            src="/static/images/vsys-logo.{{theme}}.png"
+            src="/static/images/shk-logo.{{theme}}.svg"
             alt=""
           />
           <img
             class="menu-logo-small menu-logo align-self-center"
             width="80"
-            src="/static/images/vsys-logo-small.{{theme}}.png"
+            src="/static/images/shk-logo-short.{{theme}}.svg"
             alt=""
           />
         </div>

@@ -1,0 +1,122 @@
+{% extends 'wallet/page.j2' %}
+
+{% block content %}
+<div class="content-container px-5 py-4">
+  <div class="wallets-title__wrapper d-flex flex-wrap justify-content-center mb-5">
+    <div class="w-100">
+      <h1 class="title-text">Settings</h1>
+    </div>
+  </div>
+
+  {% set alert_map = {
+  'success': {
+    'bs': 'success',
+    'custom': 'alert-success__customization',
+    'icon': '☑'
+  },
+  'warning': {
+    'bs': 'warning',
+    'custom': 'alert-warning__customization',
+    'icon': '⚠︎'
+  },
+  'danger': {
+    'bs': 'danger',
+    'custom': 'alert-danger__customization',
+    'icon': '!!'
+  },
+  'info': {
+    'bs': 'info',
+    'custom': 'alert-info__customization',
+    'icon': 'ⓘ'
+  }
+} %}
+
+{% for category, message in get_flashed_messages(with_categories=true) %}
+  {% set cfg = alert_map.get(category, alert_map['info']) %}
+
+  <div class="alert alert-{{ cfg.bs }} {{ cfg.custom }} common-text d-flex" role="alert">
+    <span class="icon">{{ cfg.icon }}</span>
+    {{ message }}
+  </div>
+{% endfor %}
+
+  <div class="row justify-content-center mb-5">
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-body functional-card common-text">
+          <h3 class="card-title mb-4 text-center subtitle-text">Two-Factor Authentication</h3>
+
+          {% if user.totp_enabled %}
+            <div class="alert alert-success alert-success__customization d-flex align-items-center" role="alert">
+            <span class="icon">☑</span>
+              <div>
+                <strong class="notification-text">2FA is enabled</strong>
+                <div class="small common-text">Enabled on {{ user.totp_enabled_at.strftime('%Y-%m-%d %H:%M') if user.totp_enabled_at else 'Unknown' }}</div>
+              </div>
+            </div>
+
+            <p class="mb-4 common-text">Two-factor authentication adds an extra layer of security to your account by requiring a code from your authenticator app in addition to your password.</p>
+
+            <div class="d-grid gap-3">
+              <a href="{{ url_for('auth.regenerate_backup_codes') }}" class="btn btn-outline-primary btn-outline-primary__customization">
+                <span style="display:inline-block; transform: scale(1.5); vertical-align: 2px;">↻</span> &nbsp;Regenerate Backup Codes
+              </a>
+              <a href="{{ url_for('auth.disable_2fa') }}" class="btn btn-outline-dark disable-button__custom">
+                <span style="display:inline-block; transform: scale(1.2); vertical-align: 1px;">⏻</span> &nbsp;Disable Two-Factor Authentication
+              </a>
+            </div>
+
+          {% else %}
+            <div class="alert alert-warning alert-warning__customization common-text" role="alert">
+              <span class="icon">⚠︎</span>
+              <div>
+                <strong>2FA is not enabled</strong>
+                <br>
+                Protect your account with two-factor authentication
+              </div>
+            </div>
+
+
+            <p class="mb-3">Two-factor authentication (2FA) significantly enhances your account security by requiring:</p>
+            <ul class="mb-4">
+              <li>Your password (something you know)</li>
+              <li>A code from your authenticator app (something you have)</li>
+            </ul>
+
+            <p class="mb-3"><strong>To enable 2FA, you'll need:</strong></p>
+            <ul class="mb-4">
+              <li>An authenticator app like Google Authenticator, Authy, or Microsoft Authenticator</li>
+              <li>A few minutes to complete the setup</li>
+            </ul>
+
+            <div class="d-grid">
+              <a href="{{ url_for('auth.setup_2fa') }}" class="btn btn-outline-primary btn-outline-primary__customization">
+                <span style="display: inline-block; transform: scale(1.5)">⏼</span> &nbsp; Enable Two-Factor Authentication
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Additional settings sections can be added here -->
+      {# <div class="card">
+        <div class="card-body">
+          <h3 class="card-title mb-3">Account Information</h3>
+          <div class="row mb-2">
+            <div class="col-4"><strong>Username:</strong></div>
+            <div class="col-8">{{ user.username }}</div>
+          </div>
+          <div class="row">
+            <div class="col-4"><strong>User ID:</strong></div>
+            <div class="col-8">{{ user.id }}</div>
+          </div>
+        </div>
+      </div> #}
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("settings-link").classList.add("nav-link--active");
+</script>
+{% endblock %}

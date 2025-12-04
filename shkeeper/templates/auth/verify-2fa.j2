@@ -1,0 +1,61 @@
+{% extends 'base.j2' %}
+
+{% block body %}
+    <div class="container login-container">
+      <div class="row align-items-center h-100">
+        <div class="col d-flex flex-column align-items-center justify-content-center">
+          <img class="big-logo" width="280" src="{{ url_for('static', filename='images/shk-logo.' + theme + '.svg') }}" alt="logo" />
+
+          <p class="h3 mb-3 subtitle-text">Two-Factor Authentication</p>
+          <p class="text-center mb-4 common-text">Enter the 6-digit code from your authenticator app</p>
+
+          {% for message in get_flashed_messages() %}
+            <div class="alert alert-danger" role="alert">{{ message }}</div>
+          {% endfor %}
+
+          <form class="d-flex flex-column align-items-center" method="post" id="totp-form">
+            <input
+              placeholder="000000"
+              type="text"
+              name="token"
+              class="form-control login-input text-center"
+              id="totp-token"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              autofocus
+              required
+            />
+            <button type="submit" class="btn button">Verify</button>
+          </form>
+
+          <details class="mt-4 text-center">
+            <summary class="text-muted common-text" style="cursor: pointer; list-style-position: inside;">Lost your device?</summary>
+            <form class="d-flex flex-column align-items-center mt-3" method="post" id="backup-form">
+              <input type="hidden" name="use_backup" value="1">
+              <input
+                placeholder="Backup Code"
+                type="text"
+                name="token"
+                class="form-control login-input text-center common-text"
+                id="backup-code"
+                autocomplete="off"
+                required
+              />
+              <button type="submit" class="btn button mt-2">Use Backup Code</button>
+            </form>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Auto-submit when 6 digits entered
+      document.getElementById('totp-token').addEventListener('input', function(e) {
+        if (e.target.value.length === 6) {
+          document.getElementById('totp-form').submit();
+        }
+      });
+    </script>
+{% endblock %}

@@ -21,6 +21,7 @@ import prometheus_client
 
 from shkeeper import db
 from shkeeper.auth import login_required, metrics_basic_auth
+from shkeeper.models import User
 from shkeeper.schemas import TronError
 from shkeeper.wallet_encryption import (
     wallet_encryption,
@@ -208,6 +209,14 @@ def transactions():
         cryptos=Crypto.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
     )
+
+
+@bp.get("/settings")
+@login_required
+def settings():
+    """User settings page including 2FA management"""
+    user = g.user
+    return render_template("wallet/settings.j2", user=user)
 
 
 @bp.get("/parts/transactions")
