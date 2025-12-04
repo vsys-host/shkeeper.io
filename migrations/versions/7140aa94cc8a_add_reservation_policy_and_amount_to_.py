@@ -1,7 +1,7 @@
 """Add reservation policy and amount to wallet
 
 Revision ID: 7140aa94cc8a
-Revises: cd6076e578ca
+Revises: e4f8a9b2c1d3
 Create Date: 2025-12-02 15:32:23.374120
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '7140aa94cc8a'
-down_revision = 'cd6076e578ca'
+down_revision = 'e4f8a9b2c1d3'
 branch_labels = None
 depends_on = None
 
