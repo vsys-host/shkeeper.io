@@ -26,7 +26,7 @@
         {% endfor %}
         <ul>
       </td>
-      <td class="crypto">{{payout.external_id}}</td>
+      <td class="crypto">{{ payout.external_id or '' }}</td>
       <td class="crypto">
         {% if payout.success == 'No' %}
           <span class="tooltip-target tooltip-red" data-tooltip="{{ payout.error }}">
@@ -35,7 +35,7 @@
         {% elif payout.success == 'Yes' %}
             🟢 {{ payout.success }}
         {% else %}
-          {{ payout.success }}
+          {{ payout.success or '' }}
         {% endif %}
       </td>
     </tr>
