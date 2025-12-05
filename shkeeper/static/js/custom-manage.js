@@ -107,14 +107,18 @@ let deleteAdd = function(){
 
 function policyFunc(){
   let policyOption = document.getElementById("ppolicy");
+  let prespolicyOption = document.getElementById("prespolicy");
   if (!policyOption) return;
+  if (!prespolicyOption) return;
   policyOption.addEventListener("click",policyChange);
+  prespolicyOption.addEventListener("click", prespolicyChange);
   let policyStatus = document.getElementById("pstatus");
   policyStatus.addEventListener("click",policyStatusChange);
 
   window.addEventListener('DOMContentLoaded',function(){
     policyChange();
     setPolicyStatus();
+    prespolicyChange();
   });
 
   function policyChange()
@@ -148,6 +152,40 @@ function policyFunc(){
         break;
     }
   }
+
+  
+  function prespolicyChange()
+  {
+    let prespolicyOption = document.getElementById("prespolicy");
+    if (!prespolicyOption) return;
+    let prespolicyString = prespolicyOption.parentElement;
+    //let status = document.querySelector(".success-text");
+    switch(prespolicyOption.value){
+      case "disable":
+        prespolicyString.children[1].classList.add("policy-element-hide");
+        prespolicyString.children[2].classList.add("policy-element-hide");
+        prespolicyString.children[3].classList.add("policy-element-hide");
+        //status.style.color = "var(--danger-color)";
+        //status.innerText = "Off";
+        break;
+      case "amount":
+        prespolicyString.children[1].classList.remove("policy-element-hide");
+        prespolicyString.children[2].classList.remove("policy-element-hide");
+        prespolicyString.children[3].classList.add("policy-element-hide");
+        //status.style.color = "var(--success-color)";
+        //status.innerText = "On";
+        setSheduledParam();
+        break;
+      case "percent":
+        prespolicyString.children[1].classList.remove("policy-element-hide");
+        prespolicyString.children[2].classList.add("policy-element-hide");
+        prespolicyString.children[3].classList.remove("policy-element-hide");
+        //status.style.color = "var(--success-color)";
+        //status.innerText = "On";
+        break;
+    }
+  }
+
   function setSheduledParam()
   {
     const hour = 60;
@@ -289,7 +327,9 @@ function sendAction()
         break
     }
     let policyOption = document.getElementById("ppolicy").value;
+    let prespolicyOption = document.getElementById("prespolicy").value;
     let policyValue;
+    let prespolicyValue;
     switch(policyOption)
     {
       case "manual":
@@ -302,6 +342,20 @@ function sendAction()
         policyValue = validateFloatValue(document.getElementById("polimit-val"));
         break;
     }
+
+    switch(prespolicyOption)
+    {
+      case "disable":
+        prespolicyValue = "none";
+        break;
+      case "percent":
+        prespolicyValue = validatePercentNumValue(document.getElementById("presamount-percent-val"));
+        break;
+      case "amount":
+        prespolicyValue = validateFloatValue(document.getElementById("presamount-val"));
+        break;
+    }
+
     let paymentPartiallyPaid = validateFloatValue(document.getElementById("llimit"));
     let paymentAddedFee = validateFloatValue(document.getElementById("ulimit"));
     let recalculateTerm = getRecalcTermHour();
@@ -317,6 +371,8 @@ function sendAction()
       policy: policyOption,
       policyStatus: policyStatus,
       policyValue: policyValue,
+      prespolicyOption: prespolicyOption,
+      prespolicyValue: prespolicyValue,
       partiallPaid:  paymentPartiallyPaid,
       addedFee: paymentAddedFee,
       confirationNum: confirationNumber,
@@ -333,6 +389,27 @@ function sendAction()
         element.classList.add("red-highlight");
         check = false;
       }
+      return element.value;
+    }
+    function validatePercentNumValue(element)
+    {
+      element.value = element.value.trim();
+      if(element.value.match(/^\d+$/))
+      {
+        if ((element.value - 100) < 0){
+          element.classList.remove("red-highlight");
+        }
+        else{
+          element.classList.add("red-highlight");
+          check = false;
+        }
+        
+      }
+      else{
+        element.classList.add("red-highlight");
+        check = false;
+      }
+      
       return element.value;
     }
     function validateFloatValue(element)
@@ -418,7 +495,6 @@ function sendAction()
         return value*term;
 
     }
-
 
   }
 }

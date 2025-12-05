@@ -139,6 +139,26 @@
           </div>
         </div>
       </div>
+
+       <div class="d-flex flex-row common-text align-items-center mb-3">
+        <div class="autopayout-width"> Reserve:</div>
+        <div class="policy-block d-flex align-items-center">
+          <select class="form-select form-select--width common-text" id="prespolicy">
+            {% for policy in prespolicy %}
+            <option {% if policy == crypto.wallet.prespolicy.value %} selected {% endif %}>{{policy}}</option>
+            {% endfor %}
+          </select>
+          <p class="common-text text-nowrap mx-2"> leave untouched </p>
+          <div class="d-flex flex-row align-items-center">
+            <input placeholder="Float" id="presamount-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="presamount" value="{{ crypto.wallet.presamount }}"/>
+            <div class="common-text text-nowrap mx-2">coin</div>
+          </div>
+          <div class="d-flex flex-row align-items-center">
+            <input placeholder="Int" id="presamount-percent-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="presamount" value="{{ crypto.wallet.presamount }}"/>
+            <div class="common-text text-nowrap mx-2">% of amount </div>
+          </div>
+        </div>
+      </div>
     {% elif crypto.crypto == 'ETH' %}
       <div class="d-flex flex-row common-text align-items-center mb-3">
         <div class="autopayout-2-width">

@@ -103,6 +103,11 @@ class PayoutPolicy(enum.Enum):
     SCHEDULED = "scheduled"
     LIMIT = "limit"
 
+class PayoutReservePolicy(enum.Enum):
+    DISABLE = "disable"
+    AMOUNT = "amount"
+    PERCENT = "percent"
+
 
 class Fiat:
     @classmethod
@@ -127,6 +132,9 @@ class Wallet(db.Model):
     recalc = db.Column(db.Integer, default=0)
     confirmations = db.Column(db.Integer, default=1)
     bkey = db.Column(db.String)
+    prespolicy = db.Column(db.Enum(PayoutReservePolicy), default=PayoutReservePolicy.DISABLE)
+    presamount = db.Column(db.String)
+
 
     @classmethod
     def register_currency(cls, crypto):
@@ -151,9 +159,28 @@ class Wallet(db.Model):
 
         crypto = Crypto.instances[self.crypto]
         balance = crypto.balance()
-        res = crypto.mkpayout(
-            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
-        )
+        if crypto.wallet.prespolicy == PayoutReservePolicy.DISABLE:
+            res = crypto.mkpayout(
+                self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+            )
+        elif crypto.wallet.prespolicy == PayoutReservePolicy.AMOUNT:
+            should_payout = balance - Decimal(crypto.wallet.presamount)
+            if should_payout <= 0:
+                raise Exception(f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}")
+            else:
+                res = crypto.mkpayout(
+                    self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
+                )
+        elif crypto.wallet.prespolicy == PayoutReservePolicy.PERCENT:
+            should_payout = balance * (1 - (Decimal(crypto.wallet.presamount) / 100)) # presamount is stored as integer percent
+            res = crypto.mkpayout(
+                self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
+            )
+        else:
+            app.logger.info(f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation")
+            res = crypto.mkpayout(
+                self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+            )
 
         if "result" in res and res["result"]:
             idtxs = (

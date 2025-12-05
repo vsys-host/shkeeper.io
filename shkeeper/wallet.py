@@ -43,6 +43,7 @@ from shkeeper.models import (
     PayoutTxStatus,
     Wallet,
     PayoutPolicy,
+    PayoutReservePolicy,
     ExchangeRate,
     InvoiceStatus,
     Transaction,
@@ -147,6 +148,7 @@ def manage(crypto_name):
         crypto=crypto,
         pdest=pdest,
         ppolicy=[i.value for i in PayoutPolicy],
+        prespolicy = [i.value for i in PayoutReservePolicy],
         recalc=recalc,
         server_templates=server_templates,
     )
