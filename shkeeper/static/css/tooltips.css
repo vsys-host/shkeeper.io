@@ -1,0 +1,30 @@
+.tooltip-target {
+    position: relative;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tooltip-target::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: -5px;
+    top: 50%;
+    transform: translate(-100%, -50%);
+    background-color: rgba(0,0,0,0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 9999;
+    white-space: normal;
+    max-width: 150px;
+    word-wrap: break-word;
+}
+
+.tooltip-target:hover::after {
+    opacity: 1;
+}

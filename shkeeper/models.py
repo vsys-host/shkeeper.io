@@ -6,7 +6,6 @@ import json
 import secrets
 from datetime import datetime, timedelta
 from decimal import Decimal
-
 import bcrypt
 import pyotp
 from flask import current_app as app
@@ -181,15 +180,20 @@ class Wallet(db.Model):
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
-
-        if "result" in res and res["result"]:
-            idtxs = (
-                res["result"] if isinstance(res["result"], list) else [res["result"]]
-            )
-            Payout.add(
-                {"dest": self.pdest, "amount": balance, "txids": idtxs}, crypto.crypto
-            )
-
+        res = crypto.mkpayout(
+            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+        )
+        task_id = res.get("task_id")
+        app.logger.warning(f"payout do_payt create {res}")
+        if task_id:
+            return Payout.add(
+            {
+                "dest": self.pdest,
+                "amount": balance,
+            },
+            self.crypto,
+            task_id=task_id,
+        )
         return res
 
 
@@ -677,7 +681,7 @@ class PayoutStatus(enum.Enum):
 
 class Payout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), index=True)
     updated_at = db.Column(
         db.DateTime,
         default=db.func.current_timestamp(),
@@ -686,25 +690,117 @@ class Payout(db.Model):
     amount = db.Column(db.Numeric)
     crypto = db.Column(db.String)
     dest_addr = db.Column(db.String)
-    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS)
+    success = db.Column(db.String)
+    error = db.Column(db.String)
+    callback_url = db.Column(db.String, nullable=True)
+    task_id = db.Column(db.String, nullable=True, index=True)
+    external_id = db.Column(db.String, nullable=True)
+    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS, index=True)
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
     @classmethod
-    def add(cls, payout, crypto):
+    def update_from_task(cls, task_response, task_id):
+        app.logger.warning(f"payouts task_response {task_response}")
+        app.logger.warning(f"payouts task_id {task_id}")
+        payouts = cls.query.filter_by(task_id=task_id).all()
+        if not payouts:
+            app.logger.warning(f"No payouts found for task_id={task_id}")
+            return
+        status = task_response.get("status")
+        results = task_response.get("result")
+        if status != "SUCCESS":
+            for payout in payouts:
+                payout.status = PayoutStatus.FAIL
+                payout.success = "No"
+                payout.error = results
+            db.session.commit()
+            return
+        result_by_dest = {r["dest"]: r for r in results}
+        for payout in payouts:
+            r = result_by_dest.get(payout.dest_addr)
+            if not r:
+                continue
+            txids = r.get("txids", [])
+            for txid in txids:
+                if not any(t.txid == txid for t in payout.transactions):
+                    db.session.add(PayoutTx(payout_id=payout.id, txid=txid))
+        db.session.commit()
+
+    @classmethod
+    def add(cls, payout, crypto, task_id=None, external_id=None):
+        if not task_id:
+          return None
+        app.logger.warning(f"payouts add {payout}")
+        external_id = external_id or None
         p = cls(
             dest_addr=payout["dest"],
             amount=payout["amount"],
+            callback_url=payout.get("callback_url"),
             crypto=crypto,
+            task_id=task_id,
+            status=PayoutStatus.IN_PROGRESS,
+            external_id=external_id,
         )
         db.session.add(p)
         db.session.commit()
-
-        for txid in payout["txids"]:
+        for txid in payout.get("txids", []):
             ptx = PayoutTx(payout_id=p.id, txid=txid)
             db.session.add(ptx)
-
         db.session.commit()
+        return p
 
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    txid = db.Column(db.String)
+    crypto = db.Column(db.String)
+    amount_crypto = db.Column(db.Numeric)
+    callback_confirmed = db.Column(db.Boolean, default=False)
+    type = db.Column(db.String, nullable=False)
+    retries = db.Column(db.Integer, default=0, index=True)
+    object_id = db.Column(db.Integer, nullable=False)
+    callback_url = db.Column(db.String, nullable=False)
+    message = db.Column(db.String, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    __table_args__ = (
+        db.UniqueConstraint("type", "object_id"),
+    )
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "type": self.type,
+            "object_id": self.object_id,
+            "message": self.message,
+            "amount": remove_exponent(self.amount_crypto),
+            "crypto": self.crypto,
+            "txid": self.txid,
+            "status": "UNCONFIRMED",
+            "created_at": self.created_at.isoformat(),
+        }
+
+    @classmethod
+    def add(cls, type_, object_id, message=None, txid=None, crypto=None, amount_crypto=None, callback_url=None):
+        app.logger.info(f"Add notification {type_} for object {object_id}")
+        notif = Notification(
+            type=type_,
+            object_id=object_id,
+            message=message,
+            txid=txid,
+            crypto=crypto,
+            amount_crypto=amount_crypto,
+            callback_url=callback_url,
+        )
+        db.session.add(notif)
+        db.session.commit()
+        return notif
+
+    @classmethod
+    def delete(cls, type_, object_id):
+        app.logger.info(f"Delete notification {type_} {object_id}")
+        db.session.execute(
+            db.delete(Notification).filter_by(type=type_, object_id=object_id)
+        )
+        db.session.commit()
 
 class PayoutTxStatus(enum.Enum):
     IN_PROGRESS = enum.auto()

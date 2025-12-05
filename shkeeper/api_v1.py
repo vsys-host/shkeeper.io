@@ -15,6 +15,7 @@ from flask import current_app as app
 from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
+from shkeeper.services.payout_service import PayoutService
 
 from shkeeper import db
 from shkeeper.auth import basic_auth_optional, login_required, api_key_required
@@ -35,6 +36,7 @@ from shkeeper.wallet_encryption import (
 from shkeeper.exceptions import NotRelatedToAnyInvoice
 from shkeeper.services.crypto_cache import get_available_cryptos
 from shkeeper.services.balance_service import get_balances
+from functools import wraps
 
 bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
@@ -44,6 +46,15 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
 # bp.json_decoder = DecimalJSONDecoder
 
+def handle_request_error(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            app.logger.exception("Payout error")
+            return {"status": "error", "message": str(e)}, 500
+    return wrapper
 
 @bp.route("/crypto")
 def list_crypto():
@@ -324,31 +335,38 @@ def balance(crypto_name):
     }
 
 
+@bp.get("/<crypto_name>/payout/status")
+@api_key_required
+def payout_status(crypto_name):
+    external_id = request.args.get("external_id")
+    if not external_id:
+        return {"error": "external_id is required"}, 400
+    payout = Payout.query.filter_by(
+        external_id=external_id,
+        crypto=crypto_name
+    ).first()
+
+    if not payout:
+        return {"error": "Payout not found"}, 404
+    result = {
+        "id": payout.id,
+        "external_id": payout.external_id,
+        "crypto": payout.crypto,
+        "status": payout.status.name,
+        "amount": str(payout.amount),
+        "destination": payout.dest_addr,
+        "txid": payout.transactions[0].txid if payout.transactions and len(payout.transactions) > 0 else None,
+    }
+    return result, 200
+
+
 @bp.post("/<crypto_name>/payout")
 @basic_auth_optional
 @login_required
+@handle_request_error
 def payout(crypto_name):
-    try:
-        req = request.get_json(force=True)
-        crypto = Crypto.instances[crypto_name]
-        amount = Decimal(req["amount"])
-        res = crypto.mkpayout(
-            req["destination"],
-            amount,
-            req["fee"],
-        )
-    except Exception as e:
-        app.logger.exception("Payout error")
-        return {"status": "error", "message": f"Error: {e}"}
-
-    if "result" in res and res["result"]:
-        idtxs = res["result"] if isinstance(res["result"], list) else [res["result"]]
-        Payout.add(
-            {"dest": req["destination"], "amount": amount, "txids": idtxs}, crypto_name
-        )
-
-    return res
-
+    req = request.get_json(force=True)
+    return PayoutService.single_payout(crypto_name, req)
 
 @bp.post("/payoutnotify/<crypto_name>")
 def payoutnotify(crypto_name):
@@ -365,9 +383,8 @@ def payoutnotify(crypto_name):
 
         data = request.get_json(force=True)
         app.logger.info(f"Payout notification: {data}")
-
-        for p in data:
-            Payout.add(p, crypto_name)
+        # for p in data:
+        #     Payout.add(p, crypto_name)
 
         return {"status": "success"}
     except Exception as e:
@@ -567,19 +584,13 @@ def get_task(crypto_name, id):
     crypto = Crypto.instances[crypto_name]
     return crypto.get_task(id)
 
-
 @bp.post("/<crypto_name>/multipayout")
 @basic_auth_optional
 @login_required
+@handle_request_error
 def multipayout(crypto_name):
-    try:
-        payout_list = request.get_json(force=True)
-        crypto = Crypto.instances[crypto_name]
-    except Exception as e:
-        app.logger.exception("Multipayout error")
-        return {"status": "error", "message": f"Error: {e}"}
-    return crypto.multipayout(payout_list)
-
+    payout_list = request.get_json(force=True)
+    return PayoutService.multiple_payout(crypto_name, payout_list)
 
 @bp.get("/<crypto_name>/addresses")
 @api_key_required

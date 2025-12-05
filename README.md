@@ -662,12 +662,16 @@ The task results are an array of objects, each containing the original payout re
 {
   "amount": <amount_to_send>,
   "destination": "<addr>",
-  "fee": "<transaction_fee>"
+  "fee": "<transaction_fee>",
+  "callback_url": "<callback_url>", (OPTIONAL)
+  "external_id": "<external_id>" (OPTIONAL)
 }
 ```
 - `amount`: The amount to be sent.
 - `destination`: The address to which the amount should be sent.
   - For XRP, the address must be provided in the X-address format. The X-address format replaces the use of a separate destination tag when sending funds to a multi-user wallet on the XRP ledger, such as those of exchanges and custodial services.
+- `callback_url`: (optional) The URL to which SHKeeper will send notifications when payouts occur.
+- `external_id`: (optional) A unique order_id from your store.
 - `fee`: The transaction fee.
   - This must always be specified, even for cryptocurrencies with automatically determined fees.
   - For BTC, it is specified in sat/vByte; for LTC and DOGE, it is in sat/Byte.
@@ -685,39 +689,71 @@ Since the payout task is an asynchronous process, the call will always complete 
 curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH-USDC/payout' \
 --header 'Authorization: Basic  nApijGv8djih7ozY' \
 --header 'Content-Type: application/json' \
---data-raw '{"amount":107,"destination":"0xBD26e3512ce84F315e90E3FE75907bfbB5bD0c44","fee":"10"}'
+--data-raw '{"amount":107,"destination":"0xBD26e3512ce84F315e90E3FE75907bfbB5bD0c44","fee":"10", "callback_url": "https://my.payout.com/notification", "external_id": "435345534"}'
 ```
 **Successful Response:**
 ```
-{"task_id":"b2a01bb0-8abe-403b-a3fa-8124c84bcf23"}
+{"task_id":"b2a01bb0-8abe-403b-a3fa-8124c84bcf23", "external_id": "435345534"}
+```
+Note:
+If enable_payout_callback is enabled in SHKeeper, a callback will be sent automatically upon a successful payout.
+If a callback_url is provided in the request, SHKeeper will send the notification to that URL.
+Callback Notification Example:
+```
+{
+  "payout_id": 14,
+  "external_id": "435345534",
+  "tx_hash": "AF732D1D1254C97A77F4DD08553725E6ECC011CA6DCD12BC65FA1D8551E54E6D",
+  "status": "SUCCESS",
+  "amount": "2.0000000000",
+  "crypto": "XRP",
+  "amount_fiat": "4.364200000000000000",
+  "currency_fiat": "USD",
+  "timestamp": "2024-11-27T13:49:22"
+}
 ```
 <a name="creating-a-multipayout-task"></a>
 ##### 5.2.11.2. Creating a Multipayout Task
 
-**Endpoint:** `/api/v1/<crypto_name>/multipayout`  
-**Authorization:** HTTP Basic Auth.   
+**Endpoint:** `/api/v1/<crypto_name>/multipayout`   
+**Authorization:** HTTP Basic Auth.    
 **HTTP request method:**  POST request with a JSON object in the following format:  
 ```
-{
+[{
   "amount": <amount_to_send>,
-  "dest": "<addr>"
-}
+  "dest": "<addr>",
+  "callback_url": "<callback_url>", (OPTIONAL)
+  "external_id": "<external_id>" (OPTIONAL)
+}]
 ```
 For sending XRP, you can optionally pass a `dest_tag`. If provided, the address should be given in the regular format, and SHKeeper will automatically convert it to X-address format. Alternatively, you can manually convert the XRP address to X-address format and pass it in the `dest` field; in this case, `dest_tag` does not need to be provided.
+
+
+Note:
+If enable_payout_callback is enabled in SHKeeper, a callback will be sent automatically upon a successful payout.
+If a callback_url is provided in the request, SHKeeper will send the notification to that URL.
 
 **Curl Example:**
 ```
 curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH-USDT/multipayout' \
 --header 'Authorization: Basic  nApijGv8djih7ozY' \
 --header 'Content-Type: application/json' \
---data-raw '[{"dest":"0xE77895BAda700d663f033510f73f1E988CF55756","amount":"100"},{"dest":"0x7C4C7D3010d31329dd8244617C46e460E5EF8a6F","amount":"200.11"}]'
+--data-raw '[{"dest":"0xE77895BAda700d663f033510f73f1E988CF55756","amount":"100", "external_id": "43234", "callback_url": "https://my.payout.com/notification"},{"dest":"0x7C4C7D3010d31329dd8244617C46e460E5EF8a6F","amount":"200.11", "external_id": "43235", "callback_url": "https://my.payout.com/notification"}]'
 ```
 **Successful Response:**
 ```
 {
-    "task_id": "0471adec-5de5-4668-bc1d-e8e7729cb676"
+  "task_id": "0471adec-5de5-4668-bc1d-e8e7729cb676",
+  "external_ids": [
+    "43234",
+    "43235"
+  ]
 }
 ```
+
+Note:
+The order of the external_ids array is guaranteed to match the exact order in which the payout items were provided in the request.
+
 **Error Response:**
 ```
 {
@@ -877,6 +913,57 @@ Partial failures (e.g., RPC error for a coin) result in that coin being omitted;
 
 SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto/balances endpoints. Cached data about available cryptocurrencies and node status may be slightly outdated (up to 60 seconds). In multi-process deployments, each instance keeps its own cache, which may cause minor differences between responses. The cache reduces short-term node or network fluctuations but may briefly delay reflecting real-time status changes.
 
+<a name="checking-payout-status"></a>
+5.2.11.5. Checking Payout Status
+
+**Endpoint:** `/api/v1/<crypto_name>/payout/status`        
+**Authorization:** ApiKey.        
+**HTTP request method:**  GET         
+
+**Query Parameters:**
+external_id	is Required.	External ID assigned to the payout. Used to query its status.
+```
+curl --location --request GET 'https://demo.shkeeper.io/api/v1/BTC/payout/status?external_id=abc123' \
+--header 'X-Shkeeper-API-Key: nApijGv8djih7ozY' \
+--header 'Content-Type: application/json'
+```
+**Successful Response:**
+```
+{
+  "id": 114,
+  "external_id": "abc123",
+  "crypto": "BTC",
+  "status": "SUCCESS",
+  "amount": "100.50",
+  "destination": "0x1234567890abcdef...",
+  "txid": "0f999d988641395b38943d8a9c01581c19fcaa4dcdd4bb35f99e16510fdd10d6"
+}
+```
+When the payout is in progress:
+```
+{
+  "id": 115,
+  "external_id": "abc124",
+  "crypto": "BTC",
+  "status": "IN_PROGRESS",
+  "amount": "50.25",
+  "destination": "0xabcdef1234567890",
+  "txid": null
+}
+```
+Failure Response:
+
+```
+{
+    "amount": "0.0500000000",
+    "crypto": "BTC",
+    "destination": "bcrt1qagdwааааааааlkzc3gn05q3t8v3qrw4saptql8nz8fvt7l",
+    "external_id": "dhjdrewds",
+    "id": 4,
+    "status": "FAIL",
+    "txid": null
+}
+```
 <a name="receiving-callback"></a>
 ### 5.3 Receiving callback
 

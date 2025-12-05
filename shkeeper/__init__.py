@@ -70,11 +70,14 @@ def create_app(test_config=None):
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get("FORCE_WALLET_ENCRYPTION")),
         UNCONFIRMED_TX_NOTIFICATION=bool(os.environ.get("UNCONFIRMED_TX_NOTIFICATION")),
         REQUESTS_TIMEOUT=int(os.environ.get("REQUESTS_TIMEOUT", 10)),
+        REQUESTS_NOTIFICATION_RETRIES=int(os.environ.get("MAX_RETRIES", 7)),
         REQUESTS_NOTIFICATION_TIMEOUT=int(
             os.environ.get("REQUESTS_NOTIFICATION_TIMEOUT", 30)
         ),
         DEV_MODE=bool(os.environ.get("DEV_MODE", False)),
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
+        ENABLE_PAYOUT_CALLBACK=bool(os.environ.get("ENABLE_PAYOUT_CALLBACK")),
+        MIN_CONFIRMATION_BLOCK_FOR_PAYOUT=os.environ.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT", 1),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
         DISABLE_CRYPTO_WHEN_LAGS=bool(

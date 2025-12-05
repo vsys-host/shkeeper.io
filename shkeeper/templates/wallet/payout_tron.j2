@@ -75,6 +75,28 @@
           </div>
         </div>
 
+        {% if enable_payout_callback %}
+          <div><p>Callback url:</p></div>
+          <div>
+            <div class="d-flex align-items-center">
+              <input
+                class="form-control common-text"
+                type="text"
+                id="callback-url"
+              />
+            </div>
+          </div>
+        {% endif %}
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
+            />
+          </div>
+        </div>
         <div><p>Estimated fee:</p></div>
         <div>
             <p><span id="est_fee">0</span>  {{ crypto.network_currency }}</p>
@@ -125,6 +147,21 @@ function delay(fn, ms) {
   return function(...args) {
     clearTimeout(timer)
     timer = setTimeout(fn.bind(this, ...args), ms || 0)
+  }
+}
+function validateCallback(element) {
+  if (!element || !element.value.trim()) {
+      element?.classList.remove("red-highlight");
+      return null;
+  }
+  element.value = element.value.trim();
+  if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
+      element.classList.remove("red-highlight");
+      return element.value;
+  } else {
+      element.classList.add("red-highlight");
+      alert("Invalid Callback URL! Must start with http:// or https://");
+      return false;
   }
 }
 
@@ -184,6 +221,10 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   }
 
   let amount = document.querySelector(".fee-input").value;
+  let callbackUrl = validateCallback(document.getElementById("callback-url"));
+  if (callbackUrl === false) return;
+  let elExternalId = document.querySelector("#external-id");
+  let externalIdVal = elExternalId ? elExternalId.value : null;
   if (!amount) {
     alert('Please enter amount to send.');
     return;
@@ -205,14 +246,21 @@ document.querySelector(".send-payment").addEventListener("click", e => {
     body: JSON.stringify({
       destination: addr,
       amount: amount,
+      callback_url: callbackUrl,
+      external_id: externalIdVal,
       fee: document.querySelector("#est_fee").innerText,
     })
   })
   .then(response => response.json())
   .then(data => {
-      console.log(data);
+    console.log(data);
+    if (data.task_id) {
       get_task(data.task_id);
-    })
+    } else if (data.status === "error") {
+      alert(`Failure!\n\n${data.message}`);
+      location.reload();
+    }
+  })
 
   console.log('submit!')
 });
