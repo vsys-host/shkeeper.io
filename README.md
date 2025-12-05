@@ -116,11 +116,6 @@ storageClassName: local-path
 # BTC and forks
 #
 
-shkeeper:
-  image: vsyshost/shkeeper:2.4.3
-  port: 5000
-  enable_payout_callback: false
-
 btc:
   enabled: true
 ltc:

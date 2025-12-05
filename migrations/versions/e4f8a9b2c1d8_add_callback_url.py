@@ -1,15 +1,15 @@
 """Add callback_url
 
-Revision ID: cd6076e578db
-Revises: cd6076e578ca
+Revision ID: e4f8a9b2c1d8
+Revises: 7140aa94cc8a
 Create Date: 2024-07-31 10:39:30.170808
 
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'cd6076e578db'
-down_revision = 'cd6076e578ca'
+revision = 'e4f8a9b2c1d8'
+down_revision = '7140aa94cc8a'
 branch_labels = None
 depends_on = None
 
