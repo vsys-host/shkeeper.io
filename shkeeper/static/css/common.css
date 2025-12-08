@@ -16,6 +16,23 @@ dialog::backdrop {
   opacity: .9;
 }
 
+.theme-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--theme-transition-color, #000);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s ease;
+  z-index: 9999;
+}
+
+html[data-theme="light"] .theme-transition-overlay {
+  --theme-transition-color: #ffffff;
+}
+
+html[data-theme="dark"] .theme-transition-overlay {
+  --theme-transition-color: #000000;
+}
 
 .htmx-indicator{
     display:none;

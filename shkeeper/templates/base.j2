@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tooltips.css') }}">
   </head>
   <body>
+  <div class="theme-transition-overlay"></div>
 
      {% block body %}{% endblock %}
 
@@ -59,13 +60,26 @@
         document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
       }
 
-      function forceColorScheme(is_dark) {
-        if (is_dark) {
-          setDark();
-        } else {
-          setLight();
-        }
-      }
+function forceColorScheme(is_dark) {
+  const overlay = document.querySelector('.theme-transition-overlay');
+
+  overlay.style.opacity = '1';
+
+  setTimeout(() => {
+    if (is_dark) {
+      setDark();
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      setLight();
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  }, 150);
+
+  setTimeout(() => {
+    overlay.style.opacity = '0';
+  }, 350);
+}
+
 
       function useMediaRequestColorScheme() {
           if (document.cookie.match(/theme=(dark|light)/)) return;
