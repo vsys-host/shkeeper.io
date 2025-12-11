@@ -8,12 +8,4 @@ COPY . .
 
 RUN pip3 install -r requirements.txt
 
-CMD gunicorn \
-    --access-logfile - \
-    --reload \
-    --workers 1 \
-    --threads 32 \
-    --worker-class gthread \
-    --timeout 30 \
-    -b 0.0.0.0:5000 \
-    "shkeeper:create_app()"
+CMD ["gunicorn", "--access-logfile", "-", "--reload", "--workers", "1", "--threads", "32", "--worker-class", "gthread", "--timeout", "30", "-b", "0.0.0.0:5000", "shkeeper:create_app()"]
