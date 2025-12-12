@@ -93,9 +93,34 @@ class Btc(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         app.logger.warning(f"Transaction {tx} response: {response}")
+
+        # Handle error / non-iterable responses
+        if isinstance(response, dict):
+            msg = response.get("msg")
+            status = response.get("status")
+
+            # "txid is not related to any known address" should be non-fatal
+            if msg == "txid is not related to any known address" or status in ("not_related", "not_found"):
+                return []
+
+            # Other dict responses: log and return empty
+            app.logger.error(f"getaddrbytx(): unexpected dict response for {tx}: {response}")
+            return []
+
         result = []
-        for address, amount, confirmations, category in response:
+        for item in response:
+            # Normalize tuple length
+            if len(item) == 3:
+                address, amount, confirmations = item
+                category = None
+            elif len(item) == 4:
+                address, amount, confirmations, category = item
+            else:
+                app.logger.error(f"getaddrbytx(): unexpected item {item} for {tx}")
+                continue
+
             result.append([address, Decimal(amount), confirmations, category])
+
         return result
 
     def dump_wallet(self):

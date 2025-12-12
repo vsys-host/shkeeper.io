@@ -412,7 +412,31 @@ def walletnotify(crypto_name, txid):
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
 
-        for addr, amount, confirmations, category in crypto.getaddrbytx(txid):
+        # 2) Call getaddrbytx ONCE and handle the "no addresses" case
+        try:
+            addr_infos = crypto.getaddrbytx(txid)
+        except Exception as e:
+            app.logger.exception(
+                f"walletnotify(): error in getaddrbytx for {crypto.crypto}/{txid}: {e}"
+            )
+            return {
+                "status": "error",
+                "message": f"Exception while resolving tx addresses: {e}",
+            }, 500
+
+        # No known addresses = normal case, not an error
+        if not addr_infos:
+            app.logger.info(
+                f"[{crypto.crypto}/{txid}] TX not related to any known address; ignoring"
+            )
+            return {
+                "status": "success",
+                "message": "Transaction not related to any known address",
+                "ignored": True,
+            }
+
+        # 3) Existing processing, now looping over a clean list
+        for addr, amount, confirmations, category in addr_infos:
             try:
                 if category not in ("send", "receive"):
                     app.logger.warning(
@@ -451,7 +475,7 @@ def walletnotify(crypto_name, txid):
                 app.logger.info(f"[{crypto.crypto}/{txid}] TX has been added to db")
                 if not tx.need_more_confirmations:
                     send_notification(tx)
-            except sqlalchemy.exc.IntegrityError as e:
+            except sqlalchemy.exc.IntegrityError:
                 app.logger.warning(f"[{crypto.crypto}/{txid}] TX already exist in db")
                 db.session.rollback()
         return {"status": "success"}
@@ -461,7 +485,7 @@ def walletnotify(crypto_name, txid):
             "status": "success",
             "message": "Transaction is not related to any invoice",
         }
-    except Exception as e:
+    except Exception:
         app.logger.exception(
             f"Exception while processing transaction notification: {crypto_name}/{txid}"
         )
