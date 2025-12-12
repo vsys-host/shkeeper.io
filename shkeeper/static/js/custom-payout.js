@@ -1,7 +1,7 @@
 const crypto = document.getElementById('cryptoname').getAttribute("cryptoname");
 // const BTC = "BTC";
 // const LTC = "LTC";
-const DOGE = "DOGE";
+// const DOGE = "DOGE";
 function dropdown()
 {
   function addEventsToDropdown()
@@ -214,26 +214,26 @@ function addAddress()
         //     check = false;
         //   }
         // }
-        if(crypto == DOGE)
-        {
-          let DOGERegExp = new RegExp('^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$');
-          if(DOGERegExp.test(element.value))
-          {
-            document.querySelector(".dropdown__header").classList.remove("red-highlight");
-          }
-          else
-          {
-            alert("Destination Address doesn't match Valid Dogecoin address.");
-            document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;
-          }
-        }
+      //   if(crypto == DOGE)
+      //   {
+      //     let DOGERegExp = new RegExp('^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$');
+      //     if(DOGERegExp.test(element.value))
+      //     {
+      //       document.querySelector(".dropdown__header").classList.remove("red-highlight");
+      //     }
+      //     else
+      //     {
+      //       alert("Destination Address doesn't match Valid Dogecoin address.");
+      //       document.querySelector(".dropdown__header").classList.add("red-highlight");
+      //       check = false;
+      //     }
+      //   }
 
-      }
-      else{
-        document.querySelector(".dropdown__header").classList.add("red-highlight");
-        check = false;
-      }
+      // }
+      // else{
+      //   document.querySelector(".dropdown__header").classList.add("red-highlight");
+      //   check = false;
+      // }
       return element.value;
     }
   }

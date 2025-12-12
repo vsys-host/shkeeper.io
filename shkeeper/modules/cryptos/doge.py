@@ -1,14 +1,8 @@
-from shkeeper.modules.classes.bitcoin_like_crypto import BitcoinLikeCrypto
+from shkeeper.modules.classes.doge import Doge
 
-
-class doge(BitcoinLikeCrypto):
-    wallet_created = True
-
+class doge(Doge):
     def __init__(self):
         self.crypto = "DOGE"
 
     def getname(self):
-        return "Dogecoin"
-
-    def gethost(self):
-        return "dogecoind:22555"
+        return "DOGE"
