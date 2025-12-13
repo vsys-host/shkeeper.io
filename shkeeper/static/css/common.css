@@ -22,7 +22,7 @@ dialog::backdrop {
   background: var(--theme-transition-color, #000);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .35s ease;
+  transition: opacity .4s ease;
   z-index: 9999;
 }
 
