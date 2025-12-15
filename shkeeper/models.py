@@ -715,9 +715,9 @@ class Payout(db.Model):
                 payout.error = results
             db.session.commit()
             return
-        result_by_dest = {r["dest"]: r for r in results}
+        result_by_dest = {r["dest"].lower(): r for r in results}
         for payout in payouts:
-            r = result_by_dest.get(payout.dest_addr)
+            r = result_by_dest.get(payout.dest_addr.lower())
             if not r:
                 continue
             txids = r.get("txids", [])
