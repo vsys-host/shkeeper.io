@@ -11,6 +11,7 @@ from flask import request
 from flask import Response
 from flask import stream_with_context
 from shkeeper.modules.cryptos.btc import Btc
+from shkeeper.modules.cryptos.ltc import Ltc
 from flask import current_app as app
 from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
@@ -530,7 +531,7 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, BitcoinLightning)):
+    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, Ltc, BitcoinLightning)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add("Content-Type", "application/json")
