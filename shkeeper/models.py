@@ -180,9 +180,6 @@ class Wallet(db.Model):
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
-        res = crypto.mkpayout(
-            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
-        )
         task_id = res.get("task_id")
         app.logger.warning(f"payout do_payt create {res}")
         if task_id:
