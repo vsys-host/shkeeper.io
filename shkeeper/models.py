@@ -182,8 +182,7 @@ class Wallet(db.Model):
             )
         task_id = res.get("task_id")
         app.logger.warning(f"payout do_payt create {res}")
-        if task_id:
-            return Payout.add(
+        Payout.add(
             {
                 "dest": self.pdest,
                 "amount": balance,
@@ -725,8 +724,6 @@ class Payout(db.Model):
 
     @classmethod
     def add(cls, payout, crypto, task_id=None, external_id=None):
-        if not task_id:
-          return None
         app.logger.warning(f"payouts add {payout}")
         external_id = external_id or None
         p = cls(
