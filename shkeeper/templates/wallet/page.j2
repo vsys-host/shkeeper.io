@@ -5,17 +5,19 @@
 
         <!-- Theme switcher -->
 
-       <div class="theme-switch__box">
-         <input type="checkbox" id="themeSwitch" name="theme-switch" class="theme-switch__input" {{'checked' if theme == 'dark'}}/>
-	<label for="themeSwitch" class="theme-switch__label">
-	<span></span>
-	</label>
+       <div data-theme-desktop>
+         <div class="theme-switch__box">
+           <input type="checkbox" id="themeSwitch" name="theme-switch" class="theme-switch__input" {{'checked' if theme == 'dark'}}/>
+                  <label for="themeSwitch" class="theme-switch__label">
+                  <span></span>
+                  </label>
+         </div>
        </div>
 
 
       <aside
         data-menu
-        class="side-menu is-open d-flex flex-column justify-content-between"
+        class="side-menu d-flex justify-content-between"
       >
         <div class="arrow-button-wrapper w-100">
           <button data-menu-button type="button" class="arrow-button btn">
@@ -24,6 +26,10 @@
             </svg>
           </button>
         </div>
+        <div data-theme-mobile></div>
+        <button class="menu-close" data-menu-button aria-label="Close menu">
+          ✕
+        </button>
         <nav>
           <ul class="nav-list">
             <li class="nav-item">
@@ -78,19 +84,31 @@
         </nav>
         <div class="logo-thumb">
           <img
-            class="menu-logo-big menu-logo align-self-center"
-            width="151"
+            class="menu-logo-big menu-logo"
             src="/static/images/shk-logo.{{theme}}.svg"
             alt=""
           />
           <img
-            class="menu-logo-small menu-logo align-self-center"
-            width="80"
+            class="menu-logo-small menu-logo"
             src="/static/images/shk-logo-short.{{theme}}.svg"
             alt=""
           />
         </div>
       </aside>
+
+      <div class="bottom-bar">
+          <img
+            class="bottom-bar-img"
+            width="70"
+            src="/static/images/shk-logo-short.{{theme}}.svg"
+            alt=""
+          />
+
+        <button class="bottom-bar__burger" data-menu-button aria-label="Open menu" > 
+          ☰
+        </button>
+      </div>
+
 	  {% block content %}{% endblock %}
     </div>
     <script src="{{ url_for('static', filename='js/mobile-menu.js') }}"></script>
