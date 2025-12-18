@@ -10,6 +10,9 @@ class Binance(RateSource):
     name = "binance"
 
     def get_rate(self, fiat, crypto):
+        if fiat == "EUR":
+            fiat = "USD"
+
         if fiat == "USD" and crypto in self.USDT_CRYPTOS:
             return Decimal(1.0)
 
