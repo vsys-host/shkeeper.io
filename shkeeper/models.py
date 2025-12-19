@@ -737,10 +737,14 @@ class Payout(db.Model):
         )
         db.session.add(p)
         db.session.commit()
-        for txid in payout.get("txids", []):
-            ptx = PayoutTx(payout_id=p.id, txid=txid)
-            db.session.add(ptx)
-        db.session.commit()
+        txids = payout.get("txids")
+        if txids:
+            if isinstance(txids, str):
+                txids = [txids]
+            for txid in txids:
+                ptx = PayoutTx(payout_id=p.id, txid=txid)
+                db.session.add(ptx)
+            db.session.commit()
         return p
 
 class Notification(db.Model):

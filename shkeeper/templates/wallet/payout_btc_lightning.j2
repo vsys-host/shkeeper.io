@@ -31,7 +31,16 @@
             <p class="ms-2">{{crypto.display_name}}</p>
           </div>
         </div>
-
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
+            />
+          </div>
+        </div>
         <div><p>Estimated fee:</p></div>
         <div>
             <p><span id="est_fee" style="font-weight: bolder;">0</span>  {{ crypto.network_currency }}</p>
@@ -115,6 +124,8 @@ document.querySelector(".send-payment").addEventListener("click", e => {
     paddress.focus();
     return;
   }
+  let elExternalId = document.querySelector("#external-id");
+  let externalIdVal = elExternalId ? elExternalId.value : null;
 
   if ("block" == fee_err.style.display) {
     alert(fee_err.innerHTML);
@@ -122,6 +133,7 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   }
 
   tx_progress_on();
+
 
   fetch("/api/v1/{{crypto.crypto}}/payout", {
     method: 'POST',
@@ -132,6 +144,7 @@ document.querySelector(".send-payment").addEventListener("click", e => {
     body: JSON.stringify({
       destination: paddress.value.trim(),
       amount: amount_btc.innerText,
+      external_id: externalIdVal,
       fee: est_fee.innerText,
     })
   })
@@ -146,6 +159,5 @@ document.querySelector(".send-payment").addEventListener("click", e => {
       location.reload();
     })
 });
-
 </script>
 {% endblock %}
