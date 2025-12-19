@@ -284,8 +284,6 @@ function sendPayment()
     let fee = validateFloatValue(document.querySelector('[name="fee"]'));
     let externalInput = document.querySelector('[name="external-id"]');
     let externalId = externalInput ? externalInput.value.trim() : "";
-    console.log("test externalId")
-    console.log(externalId)
     if(check == false)
     {
       return false;
