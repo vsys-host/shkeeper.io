@@ -1,137 +1,146 @@
 {% extends 'wallet/page.j2' %}
 
 {% block content %}
-<div class="content-container overflow-auto">
-  <div class="row">
+<div class="content-container overflow-auto rates__page">
     <h1 class="title-text">Source of rates</h1>
-  </div>
-  <div class="row">
-    <form id="rates_form" method="post">
-      <div class="col">
-        <div class="d-flex flex-column source-grid text-nowrap">
-
-          {% for crypto in cryptos %}
-          <div class="d-flex align-items-center w-100">
-            <div class="rates-name" crypto="{{crypto.crypto}}" fiat="{{ fiat }}">
-              <p class="common-text">{{crypto.display_name}}</p>
-            </div>
-            <div class="rates-switcher d-flex align-items-center">
-              <p class="common-text me-3">Source of rate:</p>
-              <select name="rates__{{crypto.crypto}}__source"
-                class="rates-source-value form-select form-select-sm common-text select-rate">
-                {% for provider in rate_providers %}
-                <option value="{{provider}}" {% if provider==crypto.rate.source %} selected {% endif %}>{{provider}}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <div class="rates-price coin-cost">
-              <div class="d-flex align-items-center">
-                <p class="common-text">$</p>
-                <input name="rates__{{crypto.crypto}}__rate"
-                  class="rates-cost-value form-control form-control-sm common-text source-manual-price mx-2"
-                  type="number" step="any" min="0" {% if crypto.rate.source=='manual' %}
-                  value="{{ crypto.rate.rate|format_decimal }}" {% endif %} data-pairname="{{crypto.crypto}}USDT"
-                  data-manual_rate="{{ crypto.rate.rate|format_decimal }}" style="background-color: inherit;" />
-                <p class="common-text">per coin</p>
-              </div>
-            </div>
-
-            <p class="common-text">Added fee:</p>&nbsp;&nbsp;
-            <select name="rates__{{crypto.crypto}}__fee_policy"
-              class="fee_policy_select form-select form-select-sm common-text">
-              {% for pol in fee_calculation_policy %}
-              <option value="{{pol.value.name}}" {% if pol==crypto.rate.fee_policy %}selected{% endif %}>
-                {{pol.value.desc}}</option>
-              {% endfor %}
-            </select>
-
-            &nbsp;&nbsp;
-            <div class="percent-fee rates-fee added-fee" {% if crypto.rate.fee_policy not in
-              (fee_calculation_policy.PERCENT_FEE, fee_calculation_policy.PERCENT_OR_MINIMAL_FIXED_FEE)
-              %}style="display: none;" {%endif%}>
-              <div class="d-flex align-items-center">
-                <p class="common-text">%:</p>
-                <input name="rates__{{crypto.crypto}}__fee"
-                  class="percent-fee-value form-control form-control-sm source-added-input common-text mx-2"
-                  type="number" step="any" min="0" value="{{crypto.rate.fee|format_decimal}}" />
-              </div>
-            </div>
-
-            &nbsp;&nbsp;
-            <div class="fixed-fee rates-fee added-fee" {% if crypto.rate.fee_policy not in
-              (fee_calculation_policy.FIXED_FEE,fee_calculation_policy.PERCENT_OR_MINIMAL_FIXED_FEE)
-              %}style="display: none;" {% endif %}>
-              <div class="d-flex align-items-center">
-                <p class="common-text">$:</p>
-                <input name="rates__{{crypto.crypto}}__fixed_fee"
-                  class="fixed-fee-value form-control form-control-sm source-added-input common-text mx-2" type="number"
-                  step="any" min="0" value="{{crypto.rate.fixed_fee|format_decimal}}" />
-              </div>
-            </div>
-          </div>
-
-
-          {% endfor %}
-
-
-          <div class="d-flex align-items-center w-100">
-            <div class="set-all-name">
-              <p class="common-text">Set all</p>
-            </div>
-            <div class="rates-switcher d-flex align-items-center">
-              <p class="common-text me-3">Source of rate:</p>
-              <select id="select-all" name="bitcoin-rate"
-                class="all-source-value form-select form-select-sm common-text">
-                {% for provider in rate_providers %}
-                {% if provider != 'manual' %}<option value="{{provider}}">{{provider}}</option>{% endif %}
-                {% endfor %}
-              </select>
-            </div>
-            <div class=" rates-fee">
-              <div class="d-flex align-items-center">
-                <p class="common-text">Added fee:</p>&nbsp;&nbsp;
-                <select id="all_fee_policy" class="form-select form-select-sm common-text">
-                  {% for pol in fee_calculation_policy %}
-                  <option value="{{pol.value.name}}">{{pol.value.desc}}</option>
-                  {% endfor %}
-                </select>
-
-                <div id="percent-fee-for-all-container" style="display: none;">
-                  <div class="d-flex align-items-center">
-                    <p class="common-text">&nbsp;&nbsp;%:</p>
-                    <input id="percent-fee-value-for-all"
-                      class="form-control form-control-sm source-added-input common-text mx-2" type="number" step="any"
-                      min="0" value="" />
-                  </div>
-                </div>
-
-                <div id="fixed-fee-for-all-container" style="display: none;">
-                  <div class="d-flex align-items-center">
-                    <p class="common-text">&nbsp;&nbsp;$:</p>
-                    <input id="fixed-fee-value-for-all"
-                      class="form-control form-control-sm source-added-input common-text mx-2" type="number" step="any"
-                      min="0" value="" />
-                  </div>
-                </div>
-                &nbsp;&nbsp;
-                <div class="col d-flex">
-                  <button id="set-all" class="btn btn-outline-primary btn-outline-primary__customization" type="button">Set all</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="rates-wrapper">
+      <div class="rates-card rates-header common-text fw-bold">
+        <div>Currency</div>
+        <div>Source of rate</div>
+        <div class="price-header">Price per coin</div>
+        <div>Fee calculation</div>
       </div>
-    </form>
-  </div>
-  <div class="row">
-    <div class="mt-5 col d-flex justify-content-end">
-      <button id="save-rates" class="btn btn-outline-primary btn-outline-primary__customization" type="submit" form="rates_form">Save
-        changes</button>
+      <form id="rates_form" method="post">
+          <div class="rates-list">
+            {% for crypto in cryptos %}
+            <article class="rates-card">
+              <div class="rates-name" crypto="{{crypto.crypto}}" fiat="{{ fiat }}">
+                <p class="common-text">{{crypto.display_name}}</p>
+              </div>
+      
+              <div class="rates-block rates-switcher">
+                <div class="field">
+                  <label class="common-text field-label" for="rates__{{crypto.crypto}}__source">Source of rate:</label>
+                  <select name="rates__{{crypto.crypto}}__source" id="rates__{{crypto.crypto}}__source"
+                    class="rates-source-value form-select form-select-sm common-text select-rate">
+                    {% for provider in rate_providers %}
+                    <option value="{{provider}}" {% if provider==crypto.rate.source %} selected {% endif %}>{{provider}}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="rates-block rates-price">
+                <div class="field">
+                  <label class="common-text field-label" for="rates__{{crypto.crypto}}__rate">Price per coin:</label>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="common-text">$</span>
+                    <input name="rates__{{crypto.crypto}}__rate" id="rates__{{crypto.crypto}}__rate"
+                      class="rates-cost-value form-control form-control-sm common-text source-manual-price"
+                      type="number" step="any" min="0" {% if crypto.rate.source=='manual' %}
+                      value="{{ crypto.rate.rate|format_decimal }}" {% endif %} data-pairname="{{crypto.crypto}}USDT"
+                      data-manual_rate="{{ crypto.rate.rate|format_decimal }}" />
+                  </div>
+                </div>
+              </div>
+              <div class="rates-block rates-fee">
+                <div class="field">
+                  <label class="common-text field-label" for="rates__{{crypto.crypto}}__fee_policy">Fee calculation:</label>
+                  <select name="rates__{{crypto.crypto}}__fee_policy" id="rates__{{crypto.crypto}}__fee_policy"
+                    class="fee_policy_select form-select common-text">
+                    {% for pol in fee_calculation_policy %}
+                    <option value="{{pol.value.name}}" {% if pol==crypto.rate.fee_policy %}selected{% endif %}>
+                      {{pol.value.desc}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="fee-values">
+                  <div class="percent-fee rates-fee added-fee" {% if crypto.rate.fee_policy not in
+                    (fee_calculation_policy.PERCENT_FEE, fee_calculation_policy.PERCENT_OR_MINIMAL_FIXED_FEE)
+                    %}style="display: none;" {%endif%}>
+                    <div class="field">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="common-text symbol-prefix">%</span>
+                        <input name="rates__{{crypto.crypto}}__fee" id="rates__{{crypto.crypto}}__fee"
+                          class="percent-fee-value form-control form-control-sm source-added-input common-text"
+                          type="number" step="any" min="0" value="{{crypto.rate.fee|format_decimal}}" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fixed-fee rates-fee added-fee" {% if crypto.rate.fee_policy not in
+                    (fee_calculation_policy.FIXED_FEE,fee_calculation_policy.PERCENT_OR_MINIMAL_FIXED_FEE)
+                    %}style="display: none;" {% endif %}>
+                    <div class="field">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="common-text symbol-prefix">$</span>
+                        <input name="rates__{{crypto.crypto}}__fixed_fee" id="rates__{{crypto.crypto}}__fixed_fee"
+                          class="fixed-fee-value form-control form-control-sm source-added-input common-text" type="number"
+                          step="any" min="0" value="{{crypto.rate.fixed_fee|format_decimal}}" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+            <div class="rates-card rates-bulk">
+              <div class="rates-name">
+                <p class="common-text">Set all</p>
+              </div>
+              <div class="rates-block rates-switcher">
+                <div class="field">
+                  <label class="field-label common-text" for="select-all">Source of rate:</label>
+                  <select id="select-all" name="bitcoin-rate"
+                    class="all-source-value form-select form-select-sm common-text">
+                    {% for provider in rate_providers %}
+                    {% if provider != 'manual' %}<option value="{{provider}}">{{provider}}</option>{% endif %}
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="rates-block rates-price is-empty"></div>
+              <div class="rates-block rates-fee">
+                <div class="field">
+                  <label class="field-label common-text" for="all_fee_policy">Fee calculation:</label>
+                  <select id="all_fee_policy" class="form-select form-select-sm common-text">
+                    {% for pol in fee_calculation_policy %}
+                    <option value="{{pol.value.name}}">{{pol.value.desc}}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+      
+                <div class="fee-values">
+                  <div id="percent-fee-for-all-container" style="display: none;">
+                    <div class="d-flex align-items-center">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="common-text symbol-prefix">%</span>
+                        <input id="percent-fee-value-for-all"
+                            class="form-control form-control-sm source-added-input common-text" type="number" step="any"
+                            min="0" value="" />
+                      </div>
+                    </div>
+                  </div>
+                  <div id="fixed-fee-for-all-container" style="display: none;">
+                    <div class="d-flex align-items-center">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="common-text symbol-prefix">$</span>
+                        <input id="fixed-fee-value-for-all"
+                            class="form-control form-control-sm source-added-input common-text" type="number" step="any"
+                            min="0" value="" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+              </div>
+              <button id="set-all" class="btn btn-outline-secondary btn-outline-secondary__customization" type="button">Set all</button>
+            </div>
+      </form>
+      <div class="mt-5 d-flex justify-content-end">
+        <button id="save-rates" class="btn btn-outline-primary btn-outline-primary__customization" type="submit" form="rates_form">Save changes</button>
+      </div>
     </div>
-  </div>
 </div>
 <script src="{{ url_for('static', filename='js/custom-rates.js') }}"></script>
 <script>document.getElementById("rates-link").classList.add("nav-link--active");</script>

@@ -537,19 +537,6 @@ input {
   margin-right: 4px
 }
 
-.source-manual-price {
-  width: 90px;
-  height: 23px;
-  font-size: 12px
-}
-
-.source-added-input {
-  padding: 4px 6px;
-  text-align: center;
-  width: 51px;
-  height: 23px
-}
-
 .source-added-input::-webkit-input-placeholder {
   font-size: 12px;
   color: var(--input-placeholder-color-grey05)
@@ -747,4 +734,10 @@ nav .nav-item:last-child {
   color: var(--danger-color);
   font-size: 2rem;
   margin-right: 0.5rem;
+}
+
+@media (max-width: 1024px) {
+  .rates-card.rates-bulk {
+    background-color: var(--grey-02);
+  }
 }

@@ -34,22 +34,6 @@
   width: 16%;
 }
 
-.rates-name {
-  width: 15%;
-}
-
-.rates-switcher {
-  width: 32%;
-}
-
-.rates-price {
-  width: 21%
-}
-
-.rates-fee {
-  width: 21%;
-}
-
 .transaction-hide {
   display: none;
 }
@@ -313,10 +297,6 @@
 
 .policy-limit_height {
   height: 29.96px;
-}
-
-.set-all-name {
-  width: 15%;
 }
 
 .address-val:hover {

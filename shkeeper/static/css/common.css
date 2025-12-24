@@ -221,7 +221,7 @@ html[data-theme="dark"] .theme-transition-overlay {
   .content-container {
     width: 100%;
     margin-left: 0;
-    padding-bottom: 64px;
+    padding-bottom: 94px;
     padding-inline: 2rem;
   }
 
@@ -297,6 +297,12 @@ html[data-theme="dark"] .theme-transition-overlay {
   }
 }
 
+@media (max-width: 570px) {
+  .content-container {
+    padding-inline: 1.5rem;
+  }
+}
+
 
 /* Basic Page Elements */
 
@@ -307,6 +313,12 @@ html[data-theme="dark"] .theme-transition-overlay {
   line-height: 1.2;
   letter-spacing: 0.05em;
   margin-bottom: 5rem;
+}
+
+@media (max-width: 570px) {
+  .title-text {
+    margin-bottom: 3rem;
+  }
 }
 
 /* Theme switcher */
@@ -382,4 +394,187 @@ html.menu-ready .theme-switch__box {
 
 .theme-switch__input:checked~.theme-switch__label span::after {
   transform: translate3d(24px, 0, 0);
+}
+
+
+/* Source of rates Page */
+
+.rates-wrapper {
+  max-width: 980px;
+  margin-inline: auto;
+}
+
+.rates-card {
+  margin-bottom: 1.25rem;
+}
+
+.rates-header {
+  padding-inline: 0;
+}
+
+.rates-header .price-header {
+  text-align: center;
+}
+
+.rates-price .align-items-center {
+  justify-content: center;
+}
+
+.source-manual-price {
+  width: 90px;
+  height: 23px;
+  font-size: 12px;
+  filter: brightness(-20%);
+}
+
+.source-manual-price:hover {
+  background-color: inherit;
+}
+
+.source-added-input {
+  padding: 4px 6px;
+  text-align: center;
+  width: 51px;
+  height: 23px
+}
+
+.fee_policy_select,
+#all_fee_policy {
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fee-values {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  /* justify-content: center; */
+}
+
+.rates-bulk {
+  /* margin-bottom: 0; */
+  padding-block: 2rem;
+  border-top: 1px solid var(--grey-02);
+  border-bottom: 1px solid var(--grey-02);
+}
+
+.rates-bulk .rates-name {
+  text-transform: uppercase;
+}
+
+.rates-fee {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+#all_fee_policy {
+  min-width: 0;
+}
+
+button#set-all {
+  grid-column: 4;
+  margin-left: auto;
+  margin-top: 1.5rem;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 1025px) {
+  .rates-card {
+    display: grid;
+    grid-template-columns:
+      minmax(100px, 3fr) minmax(100px, 4fr) minmax(100px, 4fr) minmax(300px, 9fr);
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .field-label {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .rates-wrapper {
+    max-width: 600px;
+    margin-inline: auto;
+  }
+
+  .rates-card.rates-header {
+    display: none;
+  }
+
+  .rates-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: var(--secondary-bcg-color-grey01);
+    padding: 1rem 1.5rem;
+    border-radius: 0.25rem;
+    border: none;
+  }
+
+  .rates-card .rates-name {
+    margin-bottom: 0.5rem;
+  }
+
+  .rates-card .rates-name p {
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .rates-card .field {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .rates-card .field .field-label {
+    white-space: nowrap;
+  }
+
+  .rates-card .form-select {
+    width: fit-content;
+    background-color: var(--background-color);
+  }
+
+  .rates-card .form-control {
+    background-color: var(--background-color);
+    border: 1px solid var(--grey-02);
+  }
+
+  .rates-card.rates-bulk {
+    background-color: var(--secondary-bcg-color-grey01);
+  }
+
+  @media (max-width: 570px) {
+    .rates-card .form-select {
+      max-width: 200px;
+    }
+
+    .rates-card .fee_policy_select,
+    #all_fee_policy {
+      max-width: 200px;
+    }
+  }
+}
+
+/* Bootstrap Overrides */
+
+.form-control:disabled,
+.form-control[readonly] {
+  background-color: inherit;
+  box-shadow: none;
+  border: 0.5px solid var(--main-text-color-grey07);
+}
+
+.form-control[readonly]:hover,
+.form-control[readonly]:focus,
+.form-control[readonly]:active {
+  background-color: inherit;
+  cursor: default;
+  border-color: inherit;
+  outline: none;
 }
