@@ -1,42 +1,23 @@
 (() => {
   const menuButtons = document.querySelectorAll("[data-menu-button]");
   const menuRef = document.querySelector("[data-menu]");
-  const themeBox = document.querySelector(".theme-switch__box");
-  const desktopSlot = document.querySelector("[data-theme-desktop]");
-  const mobileSlot = document.querySelector("[data-theme-mobile]");
 
-  if (!menuRef || !menuButtons.length || !themeBox) return;
+  if (!menuRef || !menuButtons.length) return;
 
-  const MODE = {
-    MOBILE: "mobile",
-    TABLET: "tablet",
-    DESKTOP: "desktop",
-  };
+  const DESKTOP_BREAKPOINT = 1025;
 
-  const getMode = () => {
-    const w = window.innerWidth;
-    if (w <= 768) return MODE.MOBILE;
-    if (w >= 1025) return MODE.DESKTOP;
-    return MODE.TABLET;
-  };
+  const isDesktop = () => window.innerWidth >= DESKTOP_BREAKPOINT;
 
-  let currentMode = null;
+  let desktopMode = null;
 
-  const placeThemeSwitcher = () => {
-    const mode = getMode();
-    if (mode === currentMode) return;
-
-    currentMode = mode;
-
-    if (mode === MODE.MOBILE) {
-      mobileSlot.appendChild(themeBox);
-    } else {
-      desktopSlot.appendChild(themeBox);
-    }
+  const updateMode = () => {
+    desktopMode = isDesktop();
   };
 
   const initMenuState = () => {
-    if (getMode() !== MODE.DESKTOP) {
+    updateMode();
+
+    if (!desktopMode) {
       menuRef.classList.remove("is-open");
       return;
     }
@@ -45,16 +26,14 @@
     menuRef.classList.toggle("is-open", stored !== "false");
   };
 
-  placeThemeSwitcher();
   initMenuState();
-
-  window.addEventListener("resize", placeThemeSwitcher);
+  window.addEventListener("resize", updateMode);
 
   menuButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       const isOpen = menuRef.classList.toggle("is-open");
 
-      if (currentMode === MODE.DESKTOP) {
+      if (desktopMode) {
         localStorage.setItem("menu-is-open", isOpen);
       }
     });
@@ -62,11 +41,9 @@
 
   menuRef.querySelectorAll(".nav-link").forEach(link => {
     link.addEventListener("click", () => {
-      if (currentMode !== MODE.DESKTOP) {
+      if (!desktopMode) {
         menuRef.classList.remove("is-open");
       }
     });
   });
-
-  document.documentElement.classList.add("menu-ready");
 })();

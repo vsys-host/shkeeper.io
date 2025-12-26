@@ -3,33 +3,32 @@
 {% block body %}
     <div class="d-flex page-container">
 
-        <!-- Theme switcher -->
-
-       <div data-theme-desktop>
-         <div class="theme-switch__box">
-           <input type="checkbox" id="themeSwitch" name="theme-switch" class="theme-switch__input" {{'checked' if theme == 'dark'}}/>
-                  <label for="themeSwitch" class="theme-switch__label">
-                  <span></span>
-                  </label>
-         </div>
-       </div>
-
 
       <aside
         data-menu
         class="side-menu d-flex justify-content-between"
       >
-        <div class="arrow-button-wrapper w-100">
-          <button data-menu-button type="button" class="arrow-button btn">
-            <svg width="32" height="32" class="arrow">
-              <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-arrow"></use>
-            </svg>
+
+        <div class="side-header">
+          <div class="theme-switch__box">
+            <input type="checkbox" id="themeSwitch" name="theme-switch" class="theme-switch__input" {{'checked' if theme == 'dark'}}/>
+                  <label for="themeSwitch" class="theme-switch__label">
+                  <span></span>
+                  </label>
+          </div>
+          <div class="arrow-button-wrapper w-100">
+            <button data-menu-button type="button" class="arrow-button btn">
+              <svg width="32" height="32" class="arrow">
+                <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-arrow"></use>
+              </svg>
+            </button>
+          </div>
+          
+          <button class="menu-close" data-menu-button aria-label="Close menu">
+            ✕
           </button>
         </div>
-        <div data-theme-mobile></div>
-        <button class="menu-close" data-menu-button aria-label="Close menu">
-          ✕
-        </button>
+
         <nav>
           <ul class="nav-list">
             <li class="nav-item">
@@ -82,6 +81,7 @@
             </li>
           </ul>
         </nav>
+        
         <div class="logo-thumb">
           <img
             class="menu-logo-big menu-logo"

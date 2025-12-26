@@ -37,7 +37,8 @@
 }
 
 .arrow {
-  fill: var(--main-text-color-grey07)
+  fill: var(--main-text-color-grey07);
+  transition: fill 200ms ease;
 }
 
 .nav-list .nav-link {
@@ -45,11 +46,6 @@
   padding: 0;
   color: var(--main-text-color-grey07);
   font-size: 16px
-}
-
-.nav-list .nav-link:focus {
-  outline: 3px solid var(--focus-btn-color);
-  border-radius: 5px
 }
 
 .nav-list .nav-link.nav-link--active {
@@ -278,14 +274,6 @@ input {
 
 .form-control:active {
   background-color: var(--background-color);
-}
-
-.form-select {
-  border: none;
-  border-radius: 100px;
-  padding: 8px 32px 8px 8px;
-  outline: 1px solid var(--grey-02);
-  background-color: transparent;
 }
 
 .form-select option:disabled {
