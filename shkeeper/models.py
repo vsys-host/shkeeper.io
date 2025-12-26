@@ -180,13 +180,9 @@ class Wallet(db.Model):
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
-        res = crypto.mkpayout(
-            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
-        )
         task_id = res.get("task_id")
         app.logger.warning(f"payout do_payt create {res}")
-        if task_id:
-            return Payout.add(
+        Payout.add(
             {
                 "dest": self.pdest,
                 "amount": balance,
@@ -715,9 +711,9 @@ class Payout(db.Model):
                 payout.error = results
             db.session.commit()
             return
-        result_by_dest = {r["dest"]: r for r in results}
+        result_by_dest = {r["dest"].lower(): r for r in results}
         for payout in payouts:
-            r = result_by_dest.get(payout.dest_addr)
+            r = result_by_dest.get(payout.dest_addr.lower())
             if not r:
                 continue
             txids = r.get("txids", [])
@@ -728,8 +724,6 @@ class Payout(db.Model):
 
     @classmethod
     def add(cls, payout, crypto, task_id=None, external_id=None):
-        if not task_id:
-          return None
         app.logger.warning(f"payouts add {payout}")
         external_id = external_id or None
         p = cls(
@@ -743,10 +737,14 @@ class Payout(db.Model):
         )
         db.session.add(p)
         db.session.commit()
-        for txid in payout.get("txids", []):
-            ptx = PayoutTx(payout_id=p.id, txid=txid)
-            db.session.add(ptx)
-        db.session.commit()
+        txids = payout.get("txids")
+        if txids:
+            if isinstance(txids, str):
+                txids = [txids]
+            for txid in txids:
+                ptx = PayoutTx(payout_id=p.id, txid=txid)
+                db.session.add(ptx)
+            db.session.commit()
         return p
 
 class Notification(db.Model):
