@@ -210,9 +210,9 @@ input {
 .form-control {
   padding: 4px 8px;
   background-color: var(--secondary-bcg-color-grey01);
-  border: none;
+  border: 0.5px solid var(--grey-02);
   -webkit-box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.04);
-  box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.04)
+  box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .form-control::-webkit-input-placeholder {
@@ -614,39 +614,6 @@ input {
 
 .form-select--width {
   width: 130px
-}
-
-.transactions-settings-table {
-  display: -ms-grid;
-  display: grid;
-  -ms-grid-columns: 2fr 1fr 1fr;
-  grid-template-columns: 2fr 1fr 1fr;
-  grid-row-gap: 16px
-}
-
-.transactions-select {
-  width: 161px
-}
-
-.transactions-address-input {
-  max-width: 360px
-}
-
-.transactions-invoice-input {
-  max-width: 106px
-}
-
-.transactions-data-table {
-  font-size: 10px
-}
-
-.transactions-data-table thead {
-  border-bottom: 1px solid var(--grey-02)
-}
-
-.transactions-data-table th,
-.transactions-data-table td {
-  padding: 14px 16px
 }
 
 .transactions-data-table .table-subtitle {

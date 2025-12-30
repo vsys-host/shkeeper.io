@@ -4,23 +4,21 @@
 
 
 <div class="content-container overflow-auto px-5">
+  <h1 class="title-text">Payouts</h1>
+
   <div class="row">
-    <div class="col">
-      <h1 class="title-text">Payouts</h1>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col common-text">
-      <div class="transactions-settings-table">
-        <div class="d-flex align-items-center">
-          <input
-            class="checkbox form-check-input me-2"
-            type="checkbox"
-            name="transactions"
-            checked
-          />
-          <div class="flex-grow-1 pe-5">
-            <p class="mb-1">Tx ID</p>
+    <div class="common-text">
+      <div class="payouts-settings-table">
+
+        <div>
+          <p class="mb-1">Tx ID</p>
+          <div class="d-flex align-items-center flex-grow-1 pe-5">
+            <input
+              class="checkbox form-check-input me-2"
+              type="checkbox"
+              name="transactions"
+              checked
+            />
             <input
               class="form-control form-control-sm common-text"
               type="text"
@@ -43,9 +41,9 @@
           >
             <option value="" disabled>Select crypto</option>
             <option value="" selected>Any crypto</option>
-  {% for crypto in cryptos %}
+            {% for crypto in cryptos %}
             <option value="{{crypto}}">{{crypto}}</option>
-{% endfor %}
+            {% endfor %}
           </select>
         </div>
 
@@ -68,15 +66,15 @@
           </select>
         </div> #}
 
-        <div class="d-flex align-items-center">
-          <input
+        <div>
+          <p class="mb-1">Destination address</p>
+          <div class="d-flex align-items-center flex-grow-1 pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="address"
             checked
-          />
-          <div class="flex-grow-1 pe-5">
-            <p class="mb-1">Destination address</p>
+            />
             <input
               class="transactions-address-input form-control form-control-sm common-text"
               type="text"
@@ -86,17 +84,15 @@
           </div>
         </div>
 
-
-
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Payout date</p>
+          <div class="d-flex align-items-center pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="date"
             checked
-          />
-          <div class="pe-5">
-            <p class="mb-1">Payout date</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="date"
@@ -106,15 +102,26 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+
+        <div class="settings-daterange pe-5">
+          <input class="checkbox form-check-input me-2 d-none" type="checkbox" />
+          <p class="mb-1">Date range</p>
+          <div class="input-group">
+            <input id="daterange" name="daterange" class="form-control form-control-sm common-text" type="text"/>
+            <a id="report-download" class="btn btn-outline-secondary btn-outline-secondary__customization common-text accent-text">Download</a>
+          </div>
+        </div>
+
+        <div class="settings-confined">
+          <p class="mb-1">Payout amount (crypto)</p>
+          
+          <div class="d-flex align-items-center">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="amount"
             checked
-          />
-          <div>
-            <p class="mb-1">Payout amount (crypto)</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="text"
@@ -124,24 +131,13 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-                  <input class="checkbox form-check-input me-2" type="checkbox" style="visibility: hidden;" />
-          <div >
-            <p class="mb-1">Date range</p>
-            <div class="d-flex" style="align-items: center;">
-              <input id="daterange" name="daterange" class="form-control form-control-sm common-text me-2" type="text"  />
-              <a id="report-download" class="common-text accent-text">Download</a>
-            </div>
-          </div>
-        </div>
-
 
       </div>
     </div>
   </div>
-  <div class="row">
-    <div class="col pt-4 transactions-table-wrapper">
 
+  <div class="row overflow-auto">
+    <div class="col pt-4 transactions-table-wrapper">
         <div class="d-flex justify-content-center align-items-center" style="height: 200px;">
             <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>

@@ -4,40 +4,37 @@
 
 
 <div class="content-container overflow-auto">
+  <h1 class="title-text">Transactions</h1>
+
   <div class="row">
-    <div class="col">
-      <h1 class="title-text">Transactions</h1>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col common-text">
+    <div class="common-text">
       <div class="transactions-settings-table">
-        <div class="d-flex align-items-center">
-          <input
+
+        <div>
+          <p class="mb-1">Tx ID</p>
+          <div class="d-flex align-items-center pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="transactions"
-            checked
-          />
-          <div class="flex-grow-1 pe-5">
-            <p class="mb-1">Tx ID</p>
+            checked/>
             <input
-              class="form-control form-control-sm common-text"
+              class="flex-grow-1 form-control form-control-sm common-text"
               type="text"
               name="transactionID"
-              value=""
-            />
+              value=""/>
           </div>
         </div>
-        <div class="d-flex align-items-center">
-          <input
+
+        <div>
+          <p class="mb-1">External invoice ID</p>
+          <div class="d-flex align-items-center pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="invoice"
             checked
           />
-          <div class="pe-5">
-            <p class="mb-1">External invoice ID</p>
             <input
               class="form-control form-control-sm common-text"
               type="text"
@@ -47,17 +44,15 @@
           </div>
         </div>
 
-
-
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Invoice amount (crypto)</p>
+          <div class="d-flex align-items-center">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="invoice-crpt"
             checked
-          />
-          <div class="flex-grow-1">
-            <p class="mb-1">Invoice amount (crypto)</p>
+            />
             <input
               class="transactions-invoice-input form-control form-control-sm common-text"
               type="text"
@@ -67,15 +62,15 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+        <div>
+          <p class="mb-1">Address</p>
+          <div class="d-flex align-items-center pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="address"
             checked
-          />
-          <div class="flex-grow-1 pe-5">
-            <p class="mb-1">Address</p>
+            />
             <input
               class="transactions-address-input form-control form-control-sm common-text"
               type="text"
@@ -84,15 +79,16 @@
             />
           </div>
         </div>
-        <div class="d-flex align-items-center">
-          <input
+
+        <div class="settings-confined">
+          <p class="mb-1">Invoice date</p>
+          <div class="d-flex align-items-center pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="inv-date"
             checked
-          />
-          <div class="pe-5">
-            <p class="mb-1">Invoice date</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="date"
@@ -102,15 +98,15 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Invoice time</p>
+          <div class="d-flex align-items-center">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="inv-time"
             checked
-          />
-          <div>
-            <p class="mb-1">Invoice time</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="time"
@@ -139,15 +135,15 @@
           </select>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Tx amount (USD)</p>
+          <div class="d-flex align-items-center  me-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="amount-bucks"
             checked
-          />
-          <div>
-            <p class="mb-1">Tx amount (USD)</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="text"
@@ -157,15 +153,15 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Tx amount (crypto)</p>
+          <div class="d-flex align-items-center">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="amount"
             checked
-          />
-          <div>
-            <p class="mb-1">Tx amount (crypto)</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="text"
@@ -174,8 +170,6 @@
             />
           </div>
         </div>
-
-
 
         <div class="d-flex align-items-center">
           <input
@@ -190,21 +184,21 @@
           >
             <option value="" disabled>Select crypto</option>
             <option value="" selected>Any crypto</option>
-  {% for crypto in cryptos %}
+            {% for crypto in cryptos %}
             <option value="{{crypto}}">{{crypto}}</option>
-{% endfor %}
+            {% endfor %}
           </select>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Tx date</p>
+          <div class="d-flex align-items-center pe-5">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="date"
             checked
-          />
-          <div class="pe-5">
-            <p class="mb-1">Tx date</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="date"
@@ -214,15 +208,15 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input
+        <div class="settings-confined">
+          <p class="mb-1">Tx time</p>
+          <div class="d-flex align-items-center">
+            <input
             class="checkbox form-check-input me-2"
             type="checkbox"
             name="time"
             checked
-          />
-          <div>
-            <p class="mb-1">Tx time</p>
+            />
             <input
               class="form-control form-control-sm common-text"
               type="time"
@@ -232,21 +226,20 @@
           </div>
         </div>
 
-        <div class="d-flex align-items-center">
-          <input class="checkbox form-check-input me-2" type="checkbox" style="visibility: hidden;" />
-          <div>
-            <p class="mb-1">Date range</p>
-            <div class="d-flex" style="align-items: center;">
-              <input id="daterange" name="daterange" class="form-control form-control-sm common-text me-2" type="text" />
-              <a id="report-download" class="common-text accent-text">Download</a>
-            </div>
+        <div class="settings-daterange mt-5">
+          <input class="checkbox form-check-input me-2 d-none" type="checkbox" />
+          <p class="mb-1">Date range</p>
+          <div class="input-group">
+            <input id="daterange" name="daterange" class="form-control form-control-sm common-text" type="text" />
+              <a id="report-download" class="btn btn-outline-secondary btn-outline-secondary__customization common-text accent-text">Download</a>
           </div>
         </div>
 
       </div>
     </div>
   </div>
-  <div class="row">
+
+  <div class="row overflow-auto">
     <div class="col pt-4 transactions-table-wrapper">
       <div>
         <div class="spinner-border text-primary" role="status">

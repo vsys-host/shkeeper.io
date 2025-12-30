@@ -640,39 +640,6 @@ input {
 }
 
 
-.transactions-settings-table {
-  display: -ms-grid;
-  display: grid;
-  -ms-grid-columns: 2fr 1fr 1fr;
-  grid-template-columns: 2fr 1fr 1fr;
-  grid-row-gap: 16px
-}
-
-.transactions-select {
-  width: 161px
-}
-
-.transactions-address-input {
-  max-width: 360px
-}
-
-.transactions-invoice-input {
-  max-width: 106px
-}
-
-.transactions-data-table {
-  font-size: 10px
-}
-
-.transactions-data-table thead {
-  border-bottom: 1px solid var(--grey-02)
-}
-
-.transactions-data-table th,
-.transactions-data-table td {
-  padding: 14px 16px
-}
-
 .transactions-data-table td:hover {
   background-color: var(--accent-color);
   color: var(--background-color);
@@ -681,6 +648,7 @@ input {
 .transactions-data-table .table-subtitle {
   color: var(--input-placeholder-color-grey05)
 }
+
 
 .payout-wrapper {
   max-width: 450px
