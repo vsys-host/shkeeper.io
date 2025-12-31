@@ -1,16 +1,49 @@
 (() => {
-  const menuBtnRef = document.querySelector("[data-menu-button]");
-  const mobileMenuRef = document.querySelector("[data-menu]");
+  const menuButtons = document.querySelectorAll("[data-menu-button]");
+  const menuRef = document.querySelector("[data-menu]");
 
+  if (!menuRef || !menuButtons.length) return;
 
-  menuBtnRef.addEventListener("click", () => {
-    mobileMenuRef.classList.toggle("is-open");
+  const DESKTOP_BREAKPOINT = 1025;
 
-    localStorage.setItem('menu-is-open', mobileMenuRef.classList.contains("is-open"));
+  const isDesktop = () => window.innerWidth >= DESKTOP_BREAKPOINT;
+
+  let desktopMode = null;
+
+  const updateMode = () => {
+    desktopMode = isDesktop();
+  };
+
+  const initMenuState = () => {
+    updateMode();
+
+    if (!desktopMode) {
+      menuRef.classList.remove("is-open");
+      return;
+    }
+
+    const stored = localStorage.getItem("menu-is-open");
+    menuRef.classList.toggle("is-open", stored !== "false");
+  };
+
+  initMenuState();
+  window.addEventListener("resize", updateMode);
+
+  menuButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const isOpen = menuRef.classList.toggle("is-open");
+
+      if (desktopMode) {
+        localStorage.setItem("menu-is-open", isOpen);
+      }
+    });
   });
 
-  // if (localStorage.getItem('menu-is-open') === 'false') {
-  //   mobileMenuRef.classList.remove("is-open");
-  // }
-
+  menuRef.querySelectorAll(".nav-link").forEach(link => {
+    link.addEventListener("click", () => {
+      if (!desktopMode) {
+        menuRef.classList.remove("is-open");
+      }
+    });
+  });
 })();
