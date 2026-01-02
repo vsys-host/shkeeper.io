@@ -282,6 +282,8 @@ function sendPayment()
     let destinationAdd = validateAddressValue(document.querySelector('.dropdown__current'));
     let amount = validateFloatValue(document.querySelector('input[name="amount"]'));
     let fee = validateFloatValue(document.querySelector('[name="fee"]'));
+    let externalInput = document.querySelector('[name="external-id"]');
+    let externalId = externalInput ? externalInput.value.trim() : "";
     if(check == false)
     {
       return false;
@@ -290,6 +292,7 @@ function sendPayment()
     return JSON.stringify({
       destination: destinationAdd,
       fee: fee,
+      external_id: externalId,
       amount: amount
     });
     function validateFloatValue(element)
