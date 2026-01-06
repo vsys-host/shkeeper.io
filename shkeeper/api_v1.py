@@ -24,6 +24,7 @@ from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
+from shkeeper.modules.classes.nano import Nano
 from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification, send_unconfirmed_notification
@@ -530,7 +531,7 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, BitcoinLightning)):
+    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, BitcoinLightning, Nano)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add("Content-Type", "application/json")
