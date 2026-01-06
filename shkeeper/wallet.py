@@ -74,10 +74,11 @@ def wallets():
     return render_template("wallet/wallets.j2", cryptos=cryptos)
 
 
-@bp.get("/<crypto_name>/get-rate")
+@bp.get("/<crypto_name>/get-rate", defaults={"fiat": "USD"})
+@bp.get("/<crypto_name>/get-rate/<fiat>")
 @login_required
-def get_source_rate(crypto_name):
-    fiat = "USD"
+def get_source_rate(crypto_name, fiat):
+    #fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
     current_rate = rate.get_rate()
     return {crypto_name: current_rate}
@@ -201,7 +202,7 @@ def save_rates(fiat):
 
         ExchangeRate.query.filter_by(crypto=symbol, fiat=fiat).update(fields)
     db.session.commit()
-    return redirect(url_for("wallet.list_rates"))
+    return redirect(url_for("wallet.list_rates", fiat = fiat))
 
 
 @bp.get("/transactions")
