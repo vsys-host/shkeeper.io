@@ -1,0 +1,60 @@
+:root {
+  --background-color: #ffffff;
+  --secondary-bcg-color: #f8f9fa;
+  --main-text-color: #495057;
+  --inactive-text-color: #ced4da;
+  --input-placeholder-color: #adb5bd;
+  --accent-color: #0d6efd;
+  --accent-secondary-color: #cfe2ff;
+  --success-color: #198754;
+  --danger-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #0dcaf0;
+  --muted-color: #e9ecef;
+  --hover-btn-color: #0a58ca;
+  --focus-btn-color: #9ec5fe;
+  --active-btn-color: #052c65;
+  --box-shadow-color: #3635351a;
+}
+
+
+.form-check-input:checked:hover {
+  background-color: var(--hover-btn-color);
+}
+
+
+/* Bootstrap Customizations */
+.alert-success__customization {
+  border: 1px solid var(--success-color);
+}
+
+.alert-warning__customization {
+  border: 1px solid var(--warning-color);
+}
+
+.alert-info__customization {
+  border: 1px solid var(--accent-color);
+  color: var(--main-text-color);
+}
+
+.alert-danger__customization {
+  border: 1px solid var(--danger-color);
+  color: var(--main-text-color);
+}
+/* --- */
+
+/* Source of Rates */
+@media (max-width: 1024px) {
+  .rates-card.rates-bulk {
+    background-color: var(--muted-color);
+  }
+}
+
+
+
+/* Manage Page */
+
+.dropdown {
+  background-color: var(--secondary-bcg-color);
+}
+/* --- */
