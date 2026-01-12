@@ -10,4 +10,4 @@ class Manual(RateSource):
     name = "manual"
 
     def get_rate(self, fiat, crypto):
-        raise Exception(f"Manual rate provider has no get_rate()")
+        raise Exception("Manual rate provider has no get_rate()")

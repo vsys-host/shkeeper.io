@@ -19,8 +19,8 @@ class Polygon(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"POLYGON_USERNAME", "shkeeper")
-        password = environ.get(f"POLYGON_PASSWORD", "shkeeper")
+        username = environ.get("POLYGON_USERNAME", "shkeeper")
+        password = environ.get("POLYGON_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):

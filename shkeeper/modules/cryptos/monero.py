@@ -80,7 +80,7 @@ class Monero(Crypto):
         try:
             return self.monero_wallet.balance(unlocked=True)
         except Exception as e:
-            app.logger.exception(f"Can't get balance")
+            app.logger.exception("Can't get balance")
             return Decimal(0)
 
     def create_wallet(self):

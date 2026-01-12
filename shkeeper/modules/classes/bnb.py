@@ -19,8 +19,8 @@ class Bnb(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"BNB_USERNAME", "shkeeper")
-        password = environ.get(f"BNB_PASSWORD", "shkeeper")
+        username = environ.get("BNB_USERNAME", "shkeeper")
+        password = environ.get("BNB_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):

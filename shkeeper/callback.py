@@ -328,7 +328,7 @@ def send_payout_notification(notif: Notification):
 
 def poll_all_pending_payouts():
     cutoff = datetime.utcnow() - timedelta(days=1)
-    app.logger.info(f"poll_all_pending_payout start")
+    app.logger.info("poll_all_pending_payout start")
     pending_payouts = Payout.query.filter(
         Payout.task_id.isnot(None),
         Payout.status == PayoutStatus.IN_PROGRESS,
@@ -344,7 +344,7 @@ def poll_all_pending_payouts():
         status = task_response.get("status")
         app.logger.info(f"poll_all_pending_payout task_response {task_response}")
         if status in ("SUCCESS", "ERROR", "FAILED", "FAILURE"):
-            app.logger.info(f"update_from_task")
+            app.logger.info("update_from_task")
             app.logger.info(f"update_from_task {task_response}")
             app.logger.info(f"update_from_task {payout.task_id}")
             Payout.update_from_task(task_response, payout.task_id)

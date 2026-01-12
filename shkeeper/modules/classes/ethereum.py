@@ -19,8 +19,8 @@ class Ethereum(Crypto):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"ETH_USERNAME", "shkeeper")
-        password = environ.get(f"ETH_PASSWORD", "shkeeper")
+        username = environ.get("ETH_USERNAME", "shkeeper")
+        password = environ.get("ETH_PASSWORD", "shkeeper")
         return (username, password)
 
     def estimate_tx_fee(self, amount, **kwargs):

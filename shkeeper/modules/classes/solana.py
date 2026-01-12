@@ -19,8 +19,8 @@ class Solana(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"SOLANA_USERNAME", "shkeeper")
-        password = environ.get(f"SOLANA_PASSWORD", "shkeeper")
+        username = environ.get("SOLANA_USERNAME", "shkeeper")
+        password = environ.get("SOLANA_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):

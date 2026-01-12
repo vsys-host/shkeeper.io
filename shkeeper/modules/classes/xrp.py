@@ -19,8 +19,8 @@ class Xrp(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"XRP_USERNAME", "shkeeper")
-        password = environ.get(f"XRP_PASSWORD", "shkeeper")
+        username = environ.get("XRP_USERNAME", "shkeeper")
+        password = environ.get("XRP_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):

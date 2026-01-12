@@ -36,7 +36,7 @@ def task_send_payout_callback_notifier():
 
 @scheduler.task("interval", id="payout", seconds=60)
 def task_payout():
-    scheduler.app.logger.info(f"[Autopayout] Task started")
+    scheduler.app.logger.info("[Autopayout] Task started")
     with scheduler.app.app_context():
         for crypto in Crypto.instances.values():
             if crypto.wallet.ppolicy == PayoutPolicy.LIMIT:
@@ -93,7 +93,7 @@ def task_create_wallet():
     with scheduler.app.app_context():
         if all([c.wallet_created for c in Crypto.instances.values()]):
             scheduler.app.logger.info(
-                f"[Create Wallet] All cryptos has its wallets loaded. Deleting the task."
+                "[Create Wallet] All cryptos has its wallets loaded. Deleting the task."
             )
             scheduler.delete_job("create_wallet")
             return

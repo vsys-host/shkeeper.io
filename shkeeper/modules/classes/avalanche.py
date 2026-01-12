@@ -19,8 +19,8 @@ class Avalanche(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"AVALANCHE_USERNAME", "shkeeper")
-        password = environ.get(f"AVALANCHE_PASSWORD", "shkeeper")
+        username = environ.get("AVALANCHE_USERNAME", "shkeeper")
+        password = environ.get("AVALANCHE_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):

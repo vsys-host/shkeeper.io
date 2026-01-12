@@ -18,8 +18,8 @@ class Btc(Crypto):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"BTC_USERNAME", "shkeeper")
-        password = environ.get(f"BTC_PASSWORD", "shkeeper")
+        username = environ.get("BTC_USERNAME", "shkeeper")
+        password = environ.get("BTC_PASSWORD", "shkeeper")
         return (username, password)
 
     def estimate_tx_fee(self, amount, **kwargs):
