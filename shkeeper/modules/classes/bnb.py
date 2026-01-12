@@ -1,12 +1,7 @@
-from abc import abstractmethod
 from os import environ
-import json
 from shkeeper import requests
 import datetime
-from collections import namedtuple
 from decimal import Decimal
-from flask import current_app as app
-from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.ethereum import Ethereum
 
 

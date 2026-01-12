@@ -1,5 +1,3 @@
-import base64
-import codecs
 from collections import namedtuple
 import enum
 import json

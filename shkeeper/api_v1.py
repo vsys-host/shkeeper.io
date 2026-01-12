@@ -1,8 +1,6 @@
 from decimal import Decimal
 import traceback
 from os import environ
-from concurrent.futures import ThreadPoolExecutor
-from operator import itemgetter
 
 
 from werkzeug.datastructures import Headers
@@ -12,7 +10,6 @@ from flask import Response
 from flask import stream_with_context
 from shkeeper.modules.cryptos.btc import Btc
 from flask import current_app as app
-from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
 from shkeeper.services.payout_service import PayoutService
@@ -24,7 +21,6 @@ from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
-from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal

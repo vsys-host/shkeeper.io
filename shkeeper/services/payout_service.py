@@ -1,8 +1,6 @@
 # app/services/payout_service.py
 from decimal import Decimal
 from urllib.parse import urlparse
-from flask import current_app as app
-from shkeeper import db
 from shkeeper.models import Payout
 from shkeeper.modules.classes.crypto import Crypto
 

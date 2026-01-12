@@ -1,4 +1,3 @@
-import os
 
 from shkeeper.modules.classes.tron_token import TronToken
 

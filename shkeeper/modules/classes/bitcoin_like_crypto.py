@@ -1,8 +1,6 @@
-from abc import abstractmethod
 from decimal import Decimal
 from os import environ
 import datetime
-import functools
 
 from shkeeper import requests
 from shkeeper.modules.classes.crypto import Crypto

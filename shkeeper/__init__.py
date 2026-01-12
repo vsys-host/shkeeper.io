@@ -5,8 +5,16 @@ import secrets
 from decimal import Decimal
 import shutil
 import threading
-
 from flask import logging as flog, render_template, request
+from flask import Flask
+import requests
+from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
+from .utils import format_decimal
+from .events import shkeeper_initialized
+from flask_apscheduler import APScheduler
+from sqlalchemy import MetaData
+import flask_sqlalchemy
+import flask_migrate
 
 flog.default_handler.setFormatter(
     logging.Formatter(
@@ -14,20 +22,7 @@ flog.default_handler.setFormatter(
     )
 )
 
-from flask import Flask
-import requests
-
-from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
-
-from .utils import format_decimal
-from .events import shkeeper_initialized
-
-from flask_apscheduler import APScheduler
-
 scheduler = APScheduler()
-
-from sqlalchemy import MetaData
-import flask_sqlalchemy
 
 convention = {
     "ix": "ix_%(column_0_label)s",
@@ -38,8 +33,6 @@ convention = {
 }
 metadata = MetaData(naming_convention=convention)
 db = flask_sqlalchemy.SQLAlchemy(metadata=metadata)
-
-import flask_migrate
 
 migrate = flask_migrate.Migrate()
 

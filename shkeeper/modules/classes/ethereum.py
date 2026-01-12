@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from os import environ
 import json
 from shkeeper import requests

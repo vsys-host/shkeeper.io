@@ -7,7 +7,6 @@ from flask import current_app as app
 from monero import const
 from monero.backends.jsonrpc import JSONRPCWallet
 from monero.backends.jsonrpc.exceptions import RPCError
-from monero.exceptions import MoneroException
 from monero.daemon import Daemon
 from monero.numbers import from_atomic
 from monero.wallet import Wallet

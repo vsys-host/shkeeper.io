@@ -27,7 +27,6 @@ class wallet_encryption:
 
     @staticmethod
     def persistent_status() -> WalletEncryptionPersistentStatus:
-        from . import db
         from .models import Setting
 
         if setting := Setting.query.get("WalletEncryptionPersistentStatus"):

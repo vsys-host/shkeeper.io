@@ -13,7 +13,6 @@ from shkeeper.events import shkeeper_initialized
 from shkeeper.models import BitcoinLightningInvoice as BLI, Setting
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper import db
-from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import wallet_encryption
 
 

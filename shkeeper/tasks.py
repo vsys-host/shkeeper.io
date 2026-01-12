@@ -1,7 +1,6 @@
 from decimal import Decimal
 from datetime import timedelta, datetime
 
-from flask_apscheduler import APScheduler
 from shkeeper import scheduler, callback
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *

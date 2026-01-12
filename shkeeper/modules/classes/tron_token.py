@@ -1,10 +1,9 @@
-from abc import abstractmethod
 from decimal import Decimal
 from os import environ
 import datetime
 import json
 from collections import namedtuple
-from typing import Annotated, Union
+from typing import Union
 
 from shkeeper import requests
 from flask import current_app as app
