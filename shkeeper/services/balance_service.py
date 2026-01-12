@@ -6,6 +6,7 @@ from shkeeper.utils import format_decimal
 from shkeeper.models import ExchangeRate
 from flask import current_app
 
+
 def _build_balance(crypto_name: str, logger, app):
     with app.app_context():
         crypto = Crypto.instances.get(crypto_name)
@@ -30,6 +31,7 @@ def _build_balance(crypto_name: str, logger, app):
             "server_status": server_status,
         }
 
+
 def get_balances(includes: list[str] | None):
     app = current_app._get_current_object()
     logger = app.logger
@@ -43,8 +45,6 @@ def get_balances(includes: list[str] | None):
     else:
         target = sorted(available_coins)
     with ThreadPoolExecutor() as executor:
-        results = list(
-            executor.map(lambda c: _build_balance(c, logger, app), target)
-        )
+        results = list(executor.map(lambda c: _build_balance(c, logger, app), target))
     balances = [x for x in results if x]
     return balances, None

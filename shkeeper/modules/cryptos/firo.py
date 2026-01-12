@@ -15,7 +15,7 @@ class firo(BitcoinLikeCrypto):
 
     def gethost(self):
         return "firod:8332"
-    
+
     def balance(self):
         try:
             response = requests.post(
@@ -28,7 +28,7 @@ class firo(BitcoinLikeCrypto):
             balance = False
 
         return balance
-    
+
     def getaddrbytx(self, txid):
         response = requests.post(
             "http://" + self.gethost(),
@@ -45,14 +45,15 @@ class firo(BitcoinLikeCrypto):
         regular_transfers = []
         print(response["result"]["details"])
         for transfer in response["result"]["details"]:
-            if ("address" in transfer.keys() and # FIRO-SPARK results [{'account': '', 'category': 'receive', 'amo.....
-                len(transfer["address"]) < 140): # It is not a firo-spark payout with address
+            if (
+                "address"
+                in transfer.keys()  # FIRO-SPARK results [{'account': '', 'category': 'receive', 'amo.....
+                and len(transfer["address"]) < 140
+            ):  # It is not a firo-spark payout with address
                 regular_transfers.append(transfer)
-        
-        if len(regular_transfers) == 0: 
-            raise Exception(
-                f"Do not find FIRO transactions in {txid}, skip it "
-            )
+
+        if len(regular_transfers) == 0:
+            raise Exception(f"Do not find FIRO transactions in {txid}, skip it ")
 
         for i in regular_transfers:
             details.append(
@@ -69,4 +70,3 @@ class firo(BitcoinLikeCrypto):
             raise Exception(
                 f"failed to find details in txid {txid}: {response['result']}"
             )
-    

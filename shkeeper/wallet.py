@@ -78,7 +78,7 @@ def wallets():
 @bp.get("/<crypto_name>/get-rate/<fiat>")
 @login_required
 def get_source_rate(crypto_name, fiat):
-    #fiat = "USD"
+    # fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
     current_rate = rate.get_rate()
     return {crypto_name: current_rate}
@@ -113,7 +113,11 @@ def payout(crypto_name):
         tmpl = "wallet/payout_btc_lightning.j2"
 
     return render_template(
-        tmpl, crypto=crypto, pdest=pdest, enable_payout_callback=enable_payout_callback, fee_deposit_qrcode=fee_deposit_qrcode
+        tmpl,
+        crypto=crypto,
+        pdest=pdest,
+        enable_payout_callback=enable_payout_callback,
+        fee_deposit_qrcode=fee_deposit_qrcode,
     )
 
 
@@ -150,7 +154,7 @@ def manage(crypto_name):
         crypto=crypto,
         pdest=pdest,
         ppolicy=[i.value for i in PayoutPolicy],
-        prespolicy = [i.value for i in PayoutReservePolicy],
+        prespolicy=[i.value for i in PayoutReservePolicy],
         recalc=recalc,
         server_templates=server_templates,
     )
@@ -202,7 +206,7 @@ def save_rates(fiat):
 
         ExchangeRate.query.filter_by(crypto=symbol, fiat=fiat).update(fields)
     db.session.commit()
-    return redirect(url_for("wallet.list_rates", fiat = fiat))
+    return redirect(url_for("wallet.list_rates", fiat=fiat))
 
 
 @bp.get("/transactions")

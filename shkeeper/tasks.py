@@ -6,21 +6,25 @@ from shkeeper import scheduler, callback
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
 
+
 @scheduler.task("interval", id="callback", seconds=60)
 def task_callback():
     with scheduler.app.app_context():
         callback.update_confirmations()
         callback.send_callbacks()
 
+
 @scheduler.task("interval", id="pending_payouts", seconds=60)
 def task_poll_all_pending_payouts():
     with scheduler.app.app_context():
         callback.poll_all_pending_payouts()
 
+
 @scheduler.task("interval", id="unconfirmed_payouts", seconds=60)
 def task_poll_unconfirmed_payouts():
     with scheduler.app.app_context():
         callback.poll_unconfirmed_payouts()
+
 
 @scheduler.task("interval", id="payout_callback_notifier", seconds=60)
 def task_send_payout_callback_notifier():
@@ -28,6 +32,7 @@ def task_send_payout_callback_notifier():
         if not scheduler.app.config.get("ENABLE_PAYOUT_CALLBACK"):
             return
         callback.send_payout_callback_notifier()
+
 
 @scheduler.task("interval", id="payout", seconds=60)
 def task_payout():
