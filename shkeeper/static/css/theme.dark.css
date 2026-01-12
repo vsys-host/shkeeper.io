@@ -5,7 +5,7 @@
   --inactive-text-color: #ced4da;
   --input-placeholder-color: #d1d6da9c;
   --accent-color: #50add7;
-  --accent-secondary-color: #cfe2ff; /* change it revising buttons! */
+  --accent-secondary-color: #cfe2ff;
   --success-color: #2cbca5;
   --danger-color: #c742f7;
   --warning-color: #ffc107;
@@ -14,6 +14,7 @@
   --hover-btn-color: #cfe2ff;
   --focus-btn-color: #2cbca5;
   --active-btn-color: #052c65;
+  --emphasized-btn-color: #e9ecef;
   --box-shadow-color: #adb5bd0b;
 }
 
@@ -24,9 +25,19 @@
   }
 }
 
+/* Navigation Menu Highlighting */
 .nav-link--active span {
   color: var(--accent-color);
 }
+
+.nav-list .nav-link--active .nav-icon {
+  fill: var(--main-text-color);
+}
+
+.side-menu.is-open .nav-link--active .nav-icon {
+  fill: var(--accent-color);
+}
+/* --- */
 
 .transactions-data-table td:hover {
   background-color: var(--accent-color);

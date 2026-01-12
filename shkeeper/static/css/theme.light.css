@@ -14,9 +14,19 @@
   --hover-btn-color: #0a58ca;
   --focus-btn-color: #9ec5fe;
   --active-btn-color: #052c65;
+  --emphasized-btn-color: #212529;
   --box-shadow-color: #3635351a;
 }
 
+/* Navigation Menu Highlighting */
+.nav-list .nav-link--active .nav-icon {
+  fill: var(--focus-btn-color);
+}
+
+.side-menu.is-open .nav-link--active .nav-icon {
+  fill: var(--accent-color);
+}
+/* --- */
 
 .form-check-input:checked:hover {
   background-color: var(--hover-btn-color);

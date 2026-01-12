@@ -10,7 +10,7 @@ p {
 }
 
 a {
-  display: block;
+  /* display: block; */
   cursor: pointer;
 }
 
@@ -103,7 +103,6 @@ dialog::backdrop {
 
 .accent-text {
   color: var(--accent-color);
-  text-decoration: underline;
 }
 
 .success-text {
@@ -120,6 +119,13 @@ dialog::backdrop {
 
 .functional-text {
   color: var(--info-color);
+}
+
+.courier-font {
+  font-family: 'Courier Prime', monospace;
+  font-weight: 400;
+  font-size: 13px;
+  transform: translateY(2px);
 }
 
 .inactive-text {
@@ -182,6 +188,10 @@ dialog::backdrop {
   color: var(--accent-color);
   border: 1px solid #9ec5fe;
   box-shadow: none;
+}
+
+.btn-fixed-w {
+  width: 100px;
 }
 
 input::-webkit-outer-spin-button,
@@ -634,27 +644,21 @@ nav .nav-item:last-child {
 }
 
 .card-link {
+  width: 115px;
   display: flex;
   align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: var(--accent-color);
-  padding: 9px 24px;
-  border-radius: 50px;
+  padding-block: 9px;
+  border: 1px solid var(--accent-color);
+  border-radius: .25rem;
+  transition: all 200ms ease;
 }
 
 .card-link:hover {
-  color: var(--hover-btn-color)
-}
-
-.card-link:active {
-  color: var(--active-btn-color)
-}
-
-.card-link:focus {
-  color: var(--accent-color);
-  -webkit-box-shadow: none;
-  box-shadow: none;
-  outline: 1px solid var(--focus-btn-color)
+  background-color: var(--accent-color);
+  color: var(--background-color);
 }
 
 .card-link+.card-link {
@@ -670,24 +674,13 @@ nav .nav-item:last-child {
   cursor: initial
 }
 
-.card-link--inactive:active {
-  color: var(--inactive-text-color);
-}
-
-.card-link--inactive:focus {
-  color: var(--inactive-text-color);
-  -webkit-box-shadow: none;
-  box-shadow: none;
-  outline: none;
-}
-
 .info-content:not(:last-child) {
   margin-bottom: 16px;
 }
 
 .card-icon {
   fill: currentColor;
-  margin-right: 4px;
+  margin-right: 2px;
 }
 
 
@@ -796,7 +789,6 @@ button#set-all {
   grid-column: 4;
   margin-left: auto;
   margin-top: 0.5rem;
-  padding-inline: 1.5rem;
 }
 
 @media (min-width: 1025px) {
@@ -1010,12 +1002,67 @@ button#set-all {
 
 /* Manage Page */
 
-.server-input-width {
-  width: 63%;
+@media (max-width: 1264px) {
+  .manage-page .title-text {
+    text-align: center;
+  }
+
+  .manage-wrapper {
+    width: fit-content;
+    margin-inline: auto;
+  }
 }
 
-.server-width {
-  width: 20%;
+.manage-wrapper {
+  max-width: 980px;
+}
+
+.server-gateway-block {
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  gap: 4rem;
+  margin-bottom: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--muted-color);
+  border-bottom: 1px solid var(--muted-color);
+}
+
+@media (max-width: 768px) {
+  .server-gateway-block {
+    gap: 2rem;
+  }
+}
+
+.autopayout-policy-block {
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  gap: 4rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1264px) {
+  .autopayout-policy-block {
+    flex-direction: column;
+    gap: 2rem;
+  }
+}
+
+.manage-server-label {
+  width: 115px;
+}
+
+.manage-gateway-label {
+  width: 75px;
+}
+
+#API-token {
+  padding-right: 1rem;
+}
+
+.server-input-width {
+  width: 63%;
 }
 
 .red-highlight {
@@ -1026,8 +1073,12 @@ button#set-all {
   color: var(--success-color);
 }
 
-.payment-width {
-  width: 16%;
+.autopayout-label {
+  width: 85px;
+}
+
+.autopayout-2-width {
+  width: 200px;
 }
 
 .dropdown {
@@ -1037,7 +1088,12 @@ button#set-all {
   position: relative;
   font-size: 12px;
   line-height: 1.2;
-  margin-left: 15px;
+}
+
+@media (max-width: 450px) {
+  .dropdown {
+    min-width: 300px;
+  }
 }
 
 
@@ -1145,27 +1201,11 @@ button#set-all {
   box-shadow: none;
 }
 
-.policy-block,
-.autopayout-block,
-.fee-block,
-.dropdown,
 .llimit-block,
 .ulimit-block,
 .recalc-block,
 .transactions-block {
   margin-left: 15px;
-}
-
-.input-block {
-  width: 525px;
-}
-
-.autopayout-width {
-  width: 20%;
-}
-
-.autopayout-2-width {
-  width: 40%;
 }
 
 .policy-element-hide {
@@ -1178,16 +1218,44 @@ button#set-all {
 
 .API-status-active {
   color: var(--success-color);
-  padding-right: 20px;
+  padding-right: 1.5rem;
 }
 
 .API-status-inactive {
   color: var(--danger-color);
-  padding-right: 20px;
+  padding-right: 1.5rem;
 }
 
 .apistatus {
   color: var(--main-text-color);
+}
+
+/* --- */
+
+/* Payout Page */
+.payout-page .row {
+  max-width: 750px;
+}
+
+.payout-page .row p {
+  text-align: right;
+}
+
+@media (max-width: 1024px) {
+  .payout-page .row {
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 524px) {
+  .payout-page .autopayout-grid {
+    grid-template-columns: auto;
+    grid-gap: 0.5rem;
+  }
+
+  .payout-page .row p {
+    text-align: left;
+  }
 }
 
 /* --- */

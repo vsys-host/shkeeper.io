@@ -1,260 +1,257 @@
 {% extends 'wallet/page.j2' %}
 
 {% block content %}
-<div class="px-5 py-4 content-container">
-<div class="row">
-  <div class="col">
-    <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{ crypto.display_name }} wallet</h1>
-  </div>
-</div>
-<div class="text-nowrap wallet-grid--wrap">
-  {# Server block #}
-  {% include server_templates %}
-  {# Server block end #}
 
-  <div class="input-block">
-    <h2 class="subtitle-text mb-4">Payment Gateway</h2>
-    <div class="d-flex ps-4">
-      <div class="w-100">
-        <div class="mb-3 d-flex align-items-center justify-content-start" style=>
-          <p class="payment-width common-text">Status:</p>
-          <div id="API-status" class="common-text">Active</div>
-          <a id="API-switcher" href="#" class="common-text accent-text">Activate</a>
-        </div>
-        <div class="mb-3 d-flex align-items-center justify-content-start">
-          <p class="payment-width common-text">API URL:</p>
-          <p class="common-text">{{ url_for('api_v1.payment_request', crypto_name=crypto.crypto) }}</p>
-        </div>
-        <div class="mb-3 d-flex align-items-center justify-content-start">
-          <p class="payment-width common-text">API Key:</p>
-          <div class="d-flex align-items-center">
-            <p id="API-token" class="common-text">{{ crypto.wallet.apikey }}</p>
-            <a id="generateAPIBtn" href="#" class="ms-2 common-text accent-text" >Generate</a>
+
+<div class="content-container overflow-auto manage-page">
+  <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{ crypto.display_name }} wallet</h1>
+
+ <div class="manage-wrapper">
+   <div class="text-nowrap server-gateway-block">
+
+    {# Server block #}
+    {% include server_templates %}
+    {# Server block end #}
+
+    <div class="input-block">
+      <h2 class="subtitle-text mb-4">Payment Gateway</h2>
+
+          <div class="mb-3 d-flex align-items-center justify-content-start">
+            <p class="common-text manage-gateway-label">Status:</p>
+            <div id="API-status" class="common-text">Active</div>
+            <a id="API-switcher" href="#" class="common-text accent-text">Activate</a>
           </div>
-        </div>
-      </div>
+
+          <div class="mb-3 d-flex align-items-center justify-content-start">
+            <p class="common-text manage-gateway-label">API URL:</p>
+            <p class="common-text">{{ url_for('api_v1.payment_request', crypto_name=crypto.crypto) }}</p>
+          </div>
+          
+          <div class="mb-3 d-flex align-items-center justify-content-end">
+            <p class="common-text manage-gateway-label">API Key:</p>
+            <div class="d-flex align-items-center">
+              <p id="API-token" class="common-text courier-font">{{ crypto.wallet.apikey }}</p>
+              <a id="generateAPIBtn" href="#" class="common-text accent-text">Generate</a>
+            </div>
+          </div>
     </div>
-  </div>
-</div>
+   </div>
+   
+   <div class="">
+    <h2 class="subtitle-text mb-4">Autopayout Policy</h2>
+    <div class="text-nowrap autopayout-policy-block">
+      <div class="d-flex flex-column input-block">
+        {% if crypto.has_autopayout %}
 
-<div class="d-flex flex-column">
-  <h2 class="subtitle-text mb-4">Autopayout Policy</h2>
-  <div class="text-nowrap wallet-grid--wrap">
-    <div class="d-flex flex-column ps-4 input-block">
-      {% if crypto.has_autopayout %}
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-width">Destination:</div>
-        <div class="dropdown">
-          <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{{ crypto.wallet.pdest if crypto.wallet.pdest is not none }}" id="paddress">
-            <div class="dropdown__button">
-              <svg class="dropdown-arrow__icon" width="16" height="16">
-                <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
-              </svg>
-            </div>
-          </div>
-          <div class="dropdown__body">
-            {% for pd in pdest %}
-            <div class="dropdown__item">
-              <div class="dropdown__item-wraper">
-                <div class="dropdown__text">{{ pd.addr | e }}</div>
+        <div class="d-flex common-text align-items-center mb-3 flex-wrap gap-2">
+          <div class="autopayout-label">Destination:</div>
+          <div class="dropdown">
+            <div class="dropdown__header d-flex flex-row align-items-center">
+              <input class="dropdown__current" value="{{ crypto.wallet.pdest if crypto.wallet.pdest is not none }}" id="paddress">
+              <div class="dropdown__button">
+                <svg class="dropdown-arrow__icon" width="16" height="16">
+                  <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
+                </svg>
               </div>
-              <button class="dropdown-delete-button delete-button" type="button">
-                  <svg width="10" height="10">
-                    <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
-                  </svg>
-              </button>
             </div>
-            {% endfor %}
-            <div class="dropdown__item-sample">
-              <div class="dropdown__item-wraper">
-                <div class="dropdown__text"></div>
+            <div class="dropdown__body">
+              {% for pd in pdest %}
+              <div class="dropdown__item">
+                <div class="dropdown__item-wraper">
+                  <div class="dropdown__text">{{ pd.addr | e }}</div>
+                </div>
+                <button class="dropdown-delete-button delete-button" type="button">
+                    <svg width="10" height="10">
+                      <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
+                    </svg>
+                </button>
               </div>
-              <button class="dropdown-delete-button delete-button" type="button">
-                  <svg width="10" height="10">
-                    <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
-                  </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        <button
-          class="edit-btn btn btn-primary ms-3"
-          id="manageAdd"
-          data-bs-toggle="modal"
-          data-bs-target="#staticBackdrop"
-          >Edit</>
-      </div>
-
-
-      <div class="d-flex flex-row common-text align-items-center mb-3"
-           {% if not crypto.can_set_tx_fee %}style="display: none !important"{% endif %}>
-        <div class="autopayout-width">Fee:</div>
-        <div class="fee-block">
-          <div class="d-flex align-items-center">
-            {% if crypto.fixed_fee_steps %}
-              <select id="pfee">
-              {% for step in crypto.fixed_fee_steps%}
-                <option value="{{ step }}" {% if step == crypto.wallet.pfee|int
-                                                 or (not crypto.wallet.pfee|int and (step == crypto.default_fee)) %} selected {% endif %}>
-                  {{ crypto.fixed_fee_steps[step] }}
-                </option>
               {% endfor %}
-              </select>
-            {% else %}
-              <input value="{% if not crypto.can_set_tx_fee %}1{% else %}{{ crypto.wallet.pfee if crypto.wallet.pfee is not none }}{% endif %}"
-                     class="fee-input form-control common-text" type="text" id="pfee" />
-              <p class="ms-2">{{ crypto.fee_description }}</p>
-            {% endif %}
+              <div class="dropdown__item-sample">
+                <div class="dropdown__item-wraper">
+                  <div class="dropdown__text"></div>
+                </div>
+                <button class="dropdown-delete-button delete-button" type="button">
+                    <svg width="10" height="10">
+                      <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#close-icon"></use>
+                    </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            class="edit-btn btn btn-primary ms-3"
+            id="manageAdd"
+            data-bs-toggle="modal"
+            data-bs-target="#staticBackdrop"
+            >Edit</>
+        </div>
+
+        <div class="d-flex flex-row common-text align-items-center mb-3 gap-2"
+             {% if not crypto.can_set_tx_fee %}style="display: none !important"{% endif %}>
+          <div class="autopayout-label">Fee:</div>
+          <div class="fee-block">
+            <div class="d-flex align-items-center">
+              {% if crypto.fixed_fee_steps %}
+                <select id="pfee">
+                {% for step in crypto.fixed_fee_steps%}
+                  <option value="{{ step }}" {% if step == crypto.wallet.pfee|int
+                                                   or (not crypto.wallet.pfee|int and (step == crypto.default_fee)) %} selected {% endif %}>
+                    {{ crypto.fixed_fee_steps[step] }}
+                  </option>
+                {% endfor %}
+                </select>
+              {% else %}
+                <input value="{% if not crypto.can_set_tx_fee %}1{% else %}{{ crypto.wallet.pfee if crypto.wallet.pfee is not none }}{% endif %}"
+                       class="fee-input form-control common-text" type="text" id="pfee" />
+                <p class="ms-2">{{ crypto.fee_description }}</p>
+              {% endif %}
+            </div>
           </div>
         </div>
+
+        <div class="d-flex flex-row common-text align-items-center mb-3 gap-2">
+          <div class="autopayout-label">Autopayout:</div>
+          <div class="autopayout-block"><a id="pstatus" class="accent-text success-text">{{crypto.wallet.payout}}</a></div>
+        </div>
+
+        <div class="d-flex flex-row common-text align-items-center mb-3 flex-wrap gap-2">
+          <div class="autopayout-label">Policy:</div>
+          <div class="policy-block d-flex align-items-center">
+            <select class="form-select form-select--width common-text" id="ppolicy">
+              {% for policy in ppolicy %}
+              <option {% if policy == crypto.wallet.ppolicy.value %} selected {% endif %}>{{policy}}</option>
+              {% endfor %}
+            </select>
+            <p class="common-text text-nowrap mx-2">once per</p>
+            <div class="d-flex flex-row" >
+              <input placeholder="Int" id="poschedulud-val" class="form-control common-text autopayout-input me-2" type="number" id="poschedule" value="{{ crypto.wallet.pcond }}"/>
+              <select id="poschedulud-term" class="form-select form-select--width common-text">
+                <option value=1>Min(s)</option>
+                <option value=60>Hour(s)</option>
+                <option value=1440>Day(s)</option>
+              </select>
+            </div>
+            <div class="d-flex flex-row align-items-center">
+              <input placeholder="Float" id="polimit-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="polimit" value="{{ crypto.wallet.pcond }}"/>
+              <div class="common-text text-nowrap mx-2">coin</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex flex-row common-text align-items-center mb-3 flex-wrap gap-2">
+          <div class="autopayout-label"> Reserve:</div>
+          <div class="policy-block d-flex align-items-center">
+            <select class="form-select form-select--width common-text" id="prespolicy">
+              {% for policy in prespolicy %}
+              <option {% if policy == crypto.wallet.prespolicy.value %} selected {% endif %}>{{policy}}</option>
+              {% endfor %}
+            </select>
+            <p class="common-text text-nowrap mx-2"> leave untouched </p>
+            <div class="d-flex flex-row align-items-center">
+              <input placeholder="Float" id="presamount-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="presamount" value="{{ crypto.wallet.presamount }}"/>
+              <div class="common-text text-nowrap mx-2">coin</div>
+            </div>
+            <div class="d-flex flex-row align-items-center">
+              <input placeholder="Int" id="presamount-percent-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="presamount" value="{{ crypto.wallet.presamount }}"/>
+              <div class="common-text text-nowrap mx-2">% of amount </div>
+            </div>
+          </div>
+        </div>
+
+
+      {% elif crypto.crypto == 'ETH' %}
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">
+            Autopayout is not available for this token.
+            Use <a style="display: inline;" href="{{ url_for('wallet.payout', crypto_name=crypto.crypto) }}">manual payout</a>
+          </div>
+        </div>
+      {% else %}
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">
+            Autopayout is not available for this token.
+            Use <a style="display: inline;" href="{{ url_for('wallet.payout', crypto_name=crypto.crypto) }}">manual payout</a>
+          </div>
+        </div>
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">Payout fee-deposit account:</div>
+          <div class="autopayout-block">{{crypto.fee_deposit_account.addr}}</div>
+        </div>
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">Balance:</div>
+          <div class="autopayout-block">{{ crypto.fee_deposit_account.balance | format_decimal(6) }} {{ crypto.network_currency }}</div>
+        </div>
+      {% endif %}
       </div>
-
-
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-width">Autopayout:</div>
-        <div class="autopayout-block"><a id="pstatus" class="accent-text success-text">{{crypto.wallet.payout}}</a></div>
-      </div>
-
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-width">Policy:</div>
-        <div class="policy-block d-flex align-items-center">
-          <select class="form-select form-select--width common-text" id="ppolicy">
-            {% for policy in ppolicy %}
-            <option {% if policy == crypto.wallet.ppolicy.value %} selected {% endif %}>{{policy}}</option>
+      <div class="d-flex flex-column input-block">
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">
+              Mark invoice as paid if amount<br />
+              paid is greater or equal to:
+          </div>
+          <div class="llimit-block d-flex align-items-center">
+            <input
+              class="form-control common-text autopayout-input"
+              type="number"
+              value="{{ crypto.wallet.llimit | format_decimal }}"
+              id="llimit"
+            />
+            <p class="ps-2 common-text">%</p>
+          </div>
+        </div>
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">
+              Credit overpayment to client's<br />
+              balance if paid more than:
+          </div>
+          <div class="ulimit-block d-flex align-items-center">
+            <input
+              class="form-control common-text autopayout-input"
+              type="number"
+              value="{{ crypto.wallet.ulimit | format_decimal }}"
+              id="ulimit"
+            />
+            <p class="ps-2 common-text">%</p>
+          </div>
+        </div>
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">Recalculate invoice rate after</div>
+          <div class="recalc-block d-flex align-items-center">
+            <input class="form-control common-text autopayout-input me-2" type="number" id="recalculate-val" value="{{ recalc.num }}"/>
+            <select class="form-select form-select--width common-text" id="recalculate-term" id="">
+            {% for period in recalc['periods'] %}
+              <option value="{{ period.hours }}" {% if period.hours == recalc.multiplier %}selected{% endif %}>
+                {{ period.name }}
+              </option>
             {% endfor %}
-          </select>
-          <p class="common-text text-nowrap mx-2">once per</p>
-          <div class="d-flex flex-row" >
-            <input placeholder="Int" id="poschedulud-val" class="form-control common-text autopayout-input me-2" type="number" id="poschedule" value="{{ crypto.wallet.pcond }}"/>
-            <select id="poschedulud-term" class="form-select form-select--width common-text">
-              <option value=1>Min(s)</option>
-              <option value=60>Hour(s)</option>
-              <option value=1440>Day(s)</option>
             </select>
           </div>
-          <div class="d-flex flex-row align-items-center">
-            <input placeholder="Float" id="polimit-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="polimit" value="{{ crypto.wallet.pcond }}"/>
-            <div class="common-text text-nowrap mx-2">coin</div>
+        </div>
+        <div class="d-flex flex-row common-text align-items-center mb-3">
+          <div class="autopayout-2-width">
+            Number of confirmation <br />
+            needed for transaction
           </div>
-        </div>
-      </div>
-
-       <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-width"> Reserve:</div>
-        <div class="policy-block d-flex align-items-center">
-          <select class="form-select form-select--width common-text" id="prespolicy">
-            {% for policy in prespolicy %}
-            <option {% if policy == crypto.wallet.prespolicy.value %} selected {% endif %}>{{policy}}</option>
-            {% endfor %}
-          </select>
-          <p class="common-text text-nowrap mx-2"> leave untouched </p>
-          <div class="d-flex flex-row align-items-center">
-            <input placeholder="Float" id="presamount-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="presamount" value="{{ crypto.wallet.presamount }}"/>
-            <div class="common-text text-nowrap mx-2">coin</div>
+          <div class="transactions-block">
+            <input
+              class="form-control common-text autopayout-input"
+              type="number"
+              value="{{ crypto.wallet.confirmations }}"
+              id="confirmations"
+            />
           </div>
-          <div class="d-flex flex-row align-items-center">
-            <input placeholder="Int" id="presamount-percent-val" class="form-control common-text autopayout-input me-2 policy-limit_height" type="number" id="presamount" value="{{ crypto.wallet.presamount }}"/>
-            <div class="common-text text-nowrap mx-2">% of amount </div>
-          </div>
-        </div>
-      </div>
-    {% elif crypto.crypto == 'ETH' %}
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">
-          Autopayout is not available for this token.
-          Use <a style="display: inline;" href="{{ url_for('wallet.payout', crypto_name=crypto.crypto) }}">manual payout</a>
-        </div>
-      </div>
-    {% else %}
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">
-          Autopayout is not available for this token.
-          Use <a style="display: inline;" href="{{ url_for('wallet.payout', crypto_name=crypto.crypto) }}">manual payout</a>
-        </div>
-      </div>
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">Payout fee-deposit account:</div>
-        <div class="autopayout-block">{{crypto.fee_deposit_account.addr}}</div>
-      </div>
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">Balance:</div>
-        <div class="autopayout-block">{{ crypto.fee_deposit_account.balance | format_decimal(6) }} {{ crypto.network_currency }}</div>
-      </div>
-    {% endif %}
-    </div>
-    <div class="d-flex flex-column ps-4 input-block">
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">
-            Mark invoice as paid if amount<br />
-            paid is greater or equal to:
-        </div>
-        <div class="llimit-block d-flex align-items-center">
-          <input
-            class="form-control common-text autopayout-input"
-            type="number"
-            value="{{ crypto.wallet.llimit | format_decimal }}"
-            id="llimit"
-          />
-          <p class="ps-2 common-text">%</p>
-        </div>
-      </div>
-
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">
-            Credit overpayment to client's<br />
-            balance if paid more than:
-        </div>
-        <div class="ulimit-block d-flex align-items-center">
-          <input
-            class="form-control common-text autopayout-input"
-            type="number"
-            value="{{ crypto.wallet.ulimit | format_decimal }}"
-            id="ulimit"
-          />
-          <p class="ps-2 common-text">%</p>
-        </div>
-      </div>
-
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">Recalculate invoice rate after</div>
-        <div class="recalc-block d-flex align-items-center">
-          <input class="form-control common-text autopayout-input me-2" type="number" id="recalculate-val" value="{{ recalc.num }}"/>
-
-          <select class="form-select form-select--width common-text" id="recalculate-term" id="">
-          {% for period in recalc['periods'] %}
-            <option value="{{ period.hours }}" {% if period.hours == recalc.multiplier %}selected{% endif %}>
-              {{ period.name }}
-            </option>
-          {% endfor %}
-
-          </select>
-        </div>
-      </div>
-
-      <div class="d-flex flex-row common-text align-items-center mb-3">
-        <div class="autopayout-2-width">
-          Number of confirmation <br />
-          needed for transaction
-        </div>
-        <div class="transactions-block">
-          <input
-            class="form-control common-text autopayout-input"
-            type="number"
-            value="{{ crypto.wallet.confirmations }}"
-            id="confirmations"
-          />
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col d-flex justify-content-end">
-    <button type="button" class="btn btn-outline-primary btn-outline-primary__customization" id="sbutton">Save</button>
-  </div>
-</div>
+   </div>
+   
+   <div class="row">
+    <div class="col d-flex">
+      <button type="button" class="btn btn-outline-primary btn-outline-primary__customization btn-fixed-w" id="sbutton">Save</button>
+    </div>
+   </div>
+ </div>
 
 </div>
 <script src="/static/js/custom-manage.js"></script>
