@@ -21,7 +21,18 @@ from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
-from shkeeper.models import *
+from shkeeper.models import (
+    UnconfirmedTransaction,
+    Invoice,
+    InvoiceAddress,
+    Payout,
+    PayoutDestination,
+    Wallet,
+    PayoutPolicy,
+    PayoutReservePolicy,
+    ExchangeRate,
+    Transaction,
+)
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import (

@@ -2,9 +2,9 @@ import functools
 import os
 import logging
 import secrets
-from decimal import Decimal
+# from decimal import Decimal
 import shutil
-import threading
+# import threading
 from flask import logging as flog, render_template, request
 from flask import Flask
 import requests
@@ -146,8 +146,8 @@ def create_app(test_config=None):
         from .models import (
             Wallet,
             User,
-            PayoutDestination,
-            Invoice,
+            # PayoutDestination,
+            # Invoice,
             ExchangeRate,
             Setting,
         )
