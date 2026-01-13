@@ -1,4 +1,4 @@
-![CI](https://github.com/olegsta//shkeeper.io/actions/workflows/test.yml/badge.svg)
+![CI](https://github.com/vsys-host/shkeeper.io/actions/workflows/code_style.yml/badge.svg)
 # SHKeeper.io<!-- omit in toc -->
 
 ![SHKeeper logo](https://github.com/user-attachments/assets/dd573f14-1b8e-47d7-86e5-59f24b67b027)               

@@ -170,10 +170,10 @@ def create_app(test_config=None):
             flask_migrate.upgrade()
 
         # Register rate sources
-        import shkeeper.modules.rates
+        import shkeeper.modules.rates  # noqa: F401
 
         # Register crypto
-        from .modules import cryptos
+        from .modules import cryptos  # noqa: F401
         from .modules.classes.crypto import Crypto
 
         for crypto in Crypto.instances.values():
@@ -182,6 +182,7 @@ def create_app(test_config=None):
             ExchangeRate.register_currency(crypto)
 
         from .wallet_encryption import WalletEncryptionPersistentStatus
+        import shkeeper.wallet_encryption as wallet_encryption
 
         if setting := Setting.query.get("WalletEncryptionPersistentStatus"):
             app.logger.info(
@@ -214,7 +215,7 @@ def create_app(test_config=None):
                         WalletEncryptionRuntimeStatus.success
                     )
 
-        from . import tasks
+        from . import tasks  # noqa: F401
 
         scheduler.start()
 

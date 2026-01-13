@@ -1,7 +1,10 @@
 import datetime
 from functools import cached_property
 from os import environ, path, unlink
-import base64, codecs, json, requests
+import base64
+import codecs
+import json
+import requests
 import threading
 from time import sleep, time
 from decimal import Decimal
@@ -284,7 +287,7 @@ class BitcoinLightning(Crypto):
             with app.app_context():
                 try:
                     paid_invoices = BLI.query.filter(
-                        (BLI.state == "SETTLED") & (BLI.sent_to_shkeeper == False)
+                        (BLI.state == "SETTLED") & (BLI.sent_to_shkeeper == False)  # noqa: E712
                     ).all()
                     if len(paid_invoices):
                         app.logger.debug(f"{len(paid_invoices)} notifications pending")

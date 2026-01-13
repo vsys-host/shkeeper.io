@@ -255,7 +255,7 @@ def send_payout_callback_notifier():
     max_retries = app.config.get("REQUESTS_NOTIFICATION_RETRIES", 10)
     now = datetime.utcnow()
     notifs = Notification.query.filter(
-        Notification.retries < max_retries, Notification.callback_confirmed == False
+        Notification.retries < max_retries, Notification.callback_confirmed == False  # noqa: E712
     ).all()
     for notif in notifs:
         retries = notif.retries or 0

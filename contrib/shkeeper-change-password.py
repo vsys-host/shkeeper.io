@@ -3,7 +3,11 @@
 # Requires bcrypt module
 # For Ubuntu run: apt install python3-pip -y && pip install bcrypt
 
-import bcrypt, sqlite3, getpass, os, glob
+import bcrypt
+import sqlite3
+import getpass
+import os
+import glob
 
 
 PVC_PATH = "/var/lib/rancher/k3s/storage/pvc-d8776ce1-0073-41c6-844f-f5002dfcebc9_shkeeper_shkeeper-db-claim"

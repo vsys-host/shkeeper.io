@@ -22,7 +22,7 @@ class Avalanche(Ethereum):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)["fee"])
             if fee >= amount:
-                return f"Payout failed: not enought {network_currency} to pay for transaction. Need {fee}, balance {amount}"
+                return f"Payout failed: not enought {self.network_currency} to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
         response = requests.post(

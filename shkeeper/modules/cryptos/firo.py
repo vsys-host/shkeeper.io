@@ -46,10 +46,9 @@ class firo(BitcoinLikeCrypto):
         print(response["result"]["details"])
         for transfer in response["result"]["details"]:
             if (
-                "address"
-                in transfer.keys()  # FIRO-SPARK results [{'account': '', 'category': 'receive', 'amo.....
-                and len(transfer["address"]) < 140
-            ):  # It is not a firo-spark payout with address
+                "address" in transfer.keys()  # FIRO-SPARK results [{'account': '', 'category': 'receive', 'amo.....
+                and len(transfer["address"]) < 140  # It is not a firo-spark payout with address
+            ):
                 regular_transfers.append(transfer)
 
         if len(regular_transfers) == 0:
