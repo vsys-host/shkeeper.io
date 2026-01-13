@@ -141,6 +141,10 @@
 
 
 /* Source of Rates */
+.rates-currency-link:hover {
+  color: var(--accent-color);
+}
+
 .rates-card .form-select {
   background-color: transparent;
 }

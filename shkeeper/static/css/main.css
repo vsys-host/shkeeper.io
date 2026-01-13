@@ -692,6 +692,26 @@ nav .nav-item:last-child {
   margin-inline: auto;
 }
 
+.rates-currency {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: end;
+  margin-bottom: 1.5rem;
+}
+
+.rates-currency-link {
+  text-decoration: none;
+  border: 1px solid var(--main-text-color);
+  border-radius: .25rem;
+  transition: all 200ms ease;
+  padding: 0.1rem 0.2rem;
+}
+
+.rates-currency-link--active {
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
 .rates-card {
   margin-bottom: 1.25rem;
 }

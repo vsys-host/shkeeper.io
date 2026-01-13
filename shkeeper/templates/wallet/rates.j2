@@ -9,15 +9,15 @@
 
 <div class="content-container overflow-auto rates__page">
     <h1 class="title-text">Source of rates</h1>
-    <div style="display: flex; gap: 12px;">
+    <div class="rates-wrapper">
+    <div class="rates-currency">
     {% for fiat_key in currency_symbols.keys() %}
-      <a class="nav-label"
+      <a class="rates-currency-link common-text"
        href="{{ url_for("wallet.list_rates", fiat = fiat_key) }}"> 
        {{fiat_key}} 
        </a>
     {% endfor%}
     </div>
-    <div class="rates-wrapper">
       <div class="rates-card rates-header common-text fw-bold">
         <div>Currency</div>
         <div>Source of rate</div>
@@ -160,6 +160,27 @@
      data-fiat="{{ fiat }}"
 </div>
 <script src="{{ url_for('static', filename='js/custom-rates.js') }}"></script>
-<script>document.getElementById("rates-link").classList.add("nav-link--active");</script>
+<script>
+(() => {
+  const config = document.getElementById('app-config');
+  if (!config) return;
+
+  const activeFiat = config.dataset.fiat;
+  if (!activeFiat) return;
+
+  document.querySelectorAll('.rates-currency-link').forEach(link => {
+    const fiat = link.textContent.trim();
+
+    if (fiat === activeFiat) {
+      link.classList.add('rates-currency-link--active');
+      link.setAttribute('aria-current', 'true');
+    } else {
+      link.classList.remove('rates-currency-link--active');
+      link.removeAttribute('aria-current');
+    }
+  });
+})();
+</script>
+
 
 {% endblock %}
