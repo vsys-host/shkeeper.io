@@ -1,0 +1,181 @@
+:root {
+  --background-color: #060616;
+  --secondary-bcg-color: #151623;
+  --main-text-color: #e9ecef;
+  --inactive-text-color: #ced4da;
+  --input-placeholder-color: #d1d6da9c;
+  --accent-color: #50add7;
+  --accent-secondary-color: #cfe2ff;
+  --success-color: #2cbca5;
+  --danger-color: #c742f7;
+  --warning-color: #ffc107;
+  --info-color: #0dcaf0;
+  --muted-color: #adb5bd;
+  --hover-btn-color: #cfe2ff;
+  --focus-btn-color: #2cbca5;
+  --active-btn-color: #052c65;
+  --emphasized-btn-color: #e9ecef;
+  --box-shadow-color: #adb5bd0b;
+}
+
+@media (max-width: 1024px) {
+  .side-menu.is-open {
+    box-shadow: 0px 8px 32px var(--box-shadow-color);
+    border-right: 1px solid var(--box-shadow-color);
+  }
+}
+
+/* Navigation Menu Highlighting */
+.nav-link--active span {
+  color: var(--accent-color);
+}
+
+.nav-list .nav-link--active .nav-icon {
+  fill: var(--main-text-color);
+}
+
+.side-menu.is-open .nav-link--active .nav-icon {
+  fill: var(--accent-color);
+}
+/* --- */
+
+.transactions-data-table td:hover {
+  background-color: var(--accent-color);
+  color: var(--background-color);
+}
+
+.form-check-input:checked {
+  background-color: transparent;
+}
+
+.form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='white' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+.text-primary {
+  color: var(--focus-btn-color) !important;
+}
+
+.link-danger {
+  color: var(--danger-color);
+  transition: all 0.4s;
+}
+
+.link-danger:hover {
+  color: var(--focus-btn-color);
+}
+
+.disable-button__custom {
+  border: 1px solid var(--danger-color);
+  color: var(--inactive-text-color);
+}
+
+.disable-button__custom:hover {
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+
+/* Bootstrap Customizations */
+.btn-outline-primary__customization {
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+}
+
+.btn-outline-primary__customization:hover {
+  border: 1px solid var(--focus-btn-color);
+  color: var(--focus-btn-color);
+  background-color: transparent;
+}
+
+.btn-outline-secondary__customization {
+  border: 1px solid var(--muted-color);
+  color: var(--muted-color);
+}
+
+.btn-outline-secondary__customization:hover {
+  border: 1px solid var(--focus-btn-color);
+  color: var(--focus-btn-color);
+  background-color: transparent;
+}
+
+.alert-success__customization {
+  border: 0.5px solid var(--muted-color);
+}
+
+.alert-warning__customization {
+  border: 0.5px solid var(--muted-color);
+}
+
+.alert-danger__customization {
+  border: 0.5px solid var(--muted-color);
+}
+
+.alert-info__customization {
+  border: 0.5px solid var(--muted-color);
+  color: var(--muted-color);
+}
+
+.alert-secondary__customization {
+  background-color: transparent;
+  border: 0.5px solid var(--muted-color);
+  color: var(--muted-color);
+}
+
+.btn-outline-dark__customization {
+  border: 1px solid var(--main-text-color);
+  color: var(--main-text-color);
+}
+
+.btn-outline-dark__customization:hover {
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+  background-color: transparent;
+}
+
+.btn-outline-success__customization {
+  border: 1px solid var(--success-color);
+  color: var(--success-color);
+}
+/* --- */
+
+
+/* Source of Rates */
+.rates-currency-link:hover {
+  color: var(--accent-color);
+}
+
+.rates-card .form-select {
+  background-color: transparent;
+}
+
+.rates-card .form-control {
+  background-color: transparent;
+}
+
+
+@media (max-width: 1024px) {
+  .rates-card.rates-bulk {
+    background-color: var(--background-color);
+    border: 2px solid #adb5bd25;
+  }
+}
+/* --- */
+
+
+
+/* Manage Page */
+
+.dropdown {
+  background-color: var(--background-color);
+}
+
+.dropdown__current {
+  background-color: var(--background-color);
+  color: var(--main-text-color);
+}
+
+.dropdown .delete-button {
+  outline: 1px solid var(--muted-color);
+}
+/* --- */
