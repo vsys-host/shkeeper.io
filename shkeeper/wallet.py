@@ -87,7 +87,7 @@ def payout(crypto_name):
 
     try:
         fee_deposit_qrcode = segno.make(str(crypto.fee_deposit_account.addr))
-    except Exception as e:
+    except Exception:
         fee_deposit_qrcode = None
 
     tmpl = "wallet/payout.j2"
@@ -121,7 +121,7 @@ def payout(crypto_name):
 def manage(crypto_name):
     crypto = Crypto.instances[crypto_name]
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name).all()
-    wallet = Wallet.query.filter_by(crypto=crypto_name).first()
+    Wallet.query.filter_by(crypto=crypto_name).first()
 
     server_templates = [
         f"wallet/manage_server_{cls.__name__.lower()}.j2"
@@ -608,7 +608,7 @@ def process_unlock():
         is WalletEncryptionPersistentStatus.enabled
     ):
         key = request.form.get("key")
-        if key_matches := wallet_encryption.test_key(key):
+        if wallet_encryption.test_key(key):
             wallet_encryption.set_key(key)
             wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.success)
         else:

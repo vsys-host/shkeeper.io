@@ -76,7 +76,7 @@ class Btc(Crypto):
             else:
                 return f"Sync In Progress ({delta_blocks} blocks behind)"
 
-        except Exception as e:
+        except Exception:
             return "Offline"
 
     def mkaddr(self, **kwargs):
@@ -149,7 +149,7 @@ class Btc(Crypto):
                 ).text
                 + success_text
             )
-        except Exception as e:
+        except Exception:
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
 

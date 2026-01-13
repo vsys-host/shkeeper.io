@@ -399,7 +399,7 @@ def payoutnotify(crypto_name):
             app.logger.warning("No backend key provided")
             return {"status": "error", "message": "No backend key provided"}, 403
 
-        crypto = Crypto.instances[crypto_name]
+        Crypto.instances[crypto_name]
         bkey = environ.get("SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
         if request.headers["X-Shkeeper-Backend-Key"] != bkey:
             app.logger.warning("Wrong backend key")
@@ -478,7 +478,7 @@ def walletnotify(crypto_name, txid):
                 app.logger.info(f"[{crypto.crypto}/{txid}] TX has been added to db")
                 if not tx.need_more_confirmations:
                     send_notification(tx)
-            except sqlalchemy.exc.IntegrityError as e:
+            except sqlalchemy.exc.IntegrityError:
                 app.logger.warning(f"[{crypto.crypto}/{txid}] TX already exist in db")
                 db.session.rollback()
         return {"status": "success"}
@@ -488,7 +488,7 @@ def walletnotify(crypto_name, txid):
             "status": "success",
             "message": "Transaction is not related to any invoice",
         }
-    except Exception as e:
+    except Exception:
         app.logger.exception(
             f"Exception while processing transaction notification: {crypto_name}/{txid}"
         )
@@ -506,7 +506,7 @@ def decrypt_key(crypto_name):
             return {"status": "error", "message": "No backend key provided"}, 403
 
         try:
-            crypto = Crypto.instances[crypto_name]
+            Crypto.instances[crypto_name]
         except KeyError:
             return {
                 "status": "success",
@@ -517,7 +517,7 @@ def decrypt_key(crypto_name):
         if request.headers["X-Shkeeper-Backend-Key"] != bkey:
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
-    except Exception as e:
+    except Exception:
         return {
             "status": "error",
             "message": f"Exception while processing transaction notification: {traceback.format_exc()}.",

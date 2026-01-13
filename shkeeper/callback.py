@@ -162,7 +162,7 @@ def send_callbacks():
     for utx in UnconfirmedTransaction.query.filter_by(callback_confirmed=False):
         try:
             send_unconfirmed_notification(utx)
-        except Exception as e:
+        except Exception:
             app.logger.exception(
                 f"Exception while sending callback for UTX {utx.crypto}/{utx.txid}"
             )
@@ -188,7 +188,7 @@ def send_callbacks():
                 app.logger.info(
                     f"[{tx.crypto}/{tx.txid}] delaying notification created at {tx.created_at} until {delay_until_date}"
                 )
-        except Exception as e:
+        except Exception:
             app.logger.exception(
                 f"Exception while sending callback for TX {tx.crypto}/{tx.txid}"
             )
@@ -373,7 +373,7 @@ def update_confirmations():
                 app.logger.info(f"[{tx.crypto}/{tx.txid}] Got enough confirmations")
             else:
                 app.logger.info(f"[{tx.crypto}/{tx.txid}] Not enough confirmations yet")
-        except Exception as e:
+        except Exception:
             app.logger.exception(
                 f"Exception while updating tx confirmations for {tx.crypto}/{tx.txid}"
             )
@@ -412,7 +412,7 @@ def add(confirmations):
             "callback_url": "http://localhost:5000/api/v1/wp_callback",
         },
     )
-    tx = Transaction.add(
+    Transaction.add(
         crypto,
         {
             "txid": invoice.id * 100,

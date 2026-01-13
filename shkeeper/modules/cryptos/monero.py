@@ -78,7 +78,7 @@ class Monero(Crypto):
     def balance(self) -> Decimal:
         try:
             return self.monero_wallet.balance(unlocked=True)
-        except Exception as e:
+        except Exception:
             app.logger.exception("Can't get balance")
             return Decimal(0)
 
@@ -113,7 +113,7 @@ class Monero(Crypto):
             else:
                 status = info["status"]
             return status
-        except Exception as e:
+        except Exception:
             return "Offline"
 
     def mkaddr(self, **kwargs) -> str:
