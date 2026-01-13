@@ -111,7 +111,7 @@ class PayoutReservePolicy(enum.Enum):
 class Fiat:
     @classmethod
     def list(cls):
-        return ["USD", "EUR"]
+        return ["USD", "EUR", "TRY"]
 
 
 class Wallet(db.Model):
@@ -380,7 +380,9 @@ class Invoice(db.Model):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
         crypto_is_lightning = "BTC-LIGHTNING" == crypto.crypto
         invoice = cls.query.filter_by(
-            external_id=request["external_id"], callback_url=request["callback_url"]
+            external_id=request["external_id"], 
+            callback_url=request["callback_url"], 
+            fiat=request["fiat"]
         ).first()
         if invoice:
             # updating existing invoice

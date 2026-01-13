@@ -1,8 +1,22 @@
 {% extends 'wallet/page.j2' %}
 
 {% block content %}
+{% set currency_symbols = {
+    'USD': '$',
+    'EUR': '€',
+    'TRY': '₺',
+} %}
+
 <div class="content-container overflow-auto rates__page">
     <h1 class="title-text">Source of rates</h1>
+    <div style="display: flex; gap: 12px;">
+    {% for fiat_key in currency_symbols.keys() %}
+      <a class="nav-label"
+       href="{{ url_for("wallet.list_rates", fiat = fiat_key) }}"> 
+       {{fiat_key}} 
+       </a>
+    {% endfor%}
+    </div>
     <div class="rates-wrapper">
       <div class="rates-card rates-header common-text fw-bold">
         <div>Currency</div>
@@ -34,7 +48,7 @@
                 <div class="field">
                   <label class="common-text field-label" for="rates__{{crypto.crypto}}__rate">Price per coin:</label>
                   <div class="d-flex align-items-center gap-2">
-                    <span class="common-text">$</span>
+                    <span class="common-text">{{ currency_symbols[fiat] }}</span>
                     <input name="rates__{{crypto.crypto}}__rate" id="rates__{{crypto.crypto}}__rate"
                       class="rates-cost-value form-control form-control-sm common-text source-manual-price"
                       type="number" step="any" min="0" {% if crypto.rate.source=='manual' %}
@@ -134,7 +148,7 @@
                 </div>
                 
               </div>
-              <button id="set-all" class="btn btn-outline-secondary btn-outline-secondary__customization btn-fixed-w" type="button">Set all</button>
+              <button id="set-all" class="btn btn-outline-secondary btn-outline-secondary__customization" type="button">Set all</button>
             </div>
       </form>
       <div class="mt-5 d-flex justify-content-end">
@@ -142,6 +156,10 @@
       </div>
     </div>
 </div>
+<div id="app-config"
+     data-fiat="{{ fiat }}"
+</div>
 <script src="{{ url_for('static', filename='js/custom-rates.js') }}"></script>
 <script>document.getElementById("rates-link").classList.add("nav-link--active");</script>
+
 {% endblock %}

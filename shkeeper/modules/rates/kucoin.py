@@ -16,6 +16,9 @@ class KuCoin(RateSource):
         if crypto in self.USDC_CRYPTOS:
             crypto = "USDC"
 
+        if crypto in self.USDT_CRYPTOS:
+            crypto = "USDT"
+
         if crypto in self.BTC_CRYPTOS:
             crypto = "BTC"
 

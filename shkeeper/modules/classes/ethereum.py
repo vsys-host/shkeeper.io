@@ -97,6 +97,7 @@ class Ethereum(Crypto):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/transaction/{tx}",
             auth=self.get_auth_creds(),
+            timeout=60,
         ).json(parse_float=Decimal)
         result = []
         for address, amount, confirmations, category in response:
