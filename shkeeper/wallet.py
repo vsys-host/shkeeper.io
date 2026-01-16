@@ -7,7 +7,7 @@ from io import StringIO
 import itertools
 import segno
 
-from flask import Blueprint
+from flask_smorest import Blueprint as SmorestBlueprint
 from flask import flash
 from flask import g
 from flask import redirect
@@ -21,8 +21,6 @@ import prometheus_client
 
 from shkeeper import db
 from shkeeper.auth import login_required, metrics_basic_auth
-from shkeeper.models import User
-from shkeeper.schemas import TronError
 from shkeeper.wallet_encryption import (
     wallet_encryption,
     WalletEncryptionRuntimeStatus,
@@ -30,7 +28,7 @@ from shkeeper.wallet_encryption import (
 )
 from .modules.classes.tron_token import TronToken
 from .modules.classes.ethereum import Ethereum
-from shkeeper.modules.rates import RateSource
+from shkeeper.modules.classes.rate_source import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
     FeeCalculationPolicy,
@@ -54,20 +52,20 @@ prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
 prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
 prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
-bp = Blueprint("wallet", __name__)
+bp_wallet = SmorestBlueprint("wallet", __name__)
 
 
-@bp.context_processor
+@bp_wallet.context_processor
 def inject_theme():
     return {"theme": request.cookies.get("theme", "light")}
 
 
-@bp.route("/")
+@bp_wallet.route("/")
 def index():
     return redirect(url_for("wallet.wallets"))
 
 
-@bp.route("/wallets")
+@bp_wallet.route("/wallets")
 @login_required
 def wallets():
     cryptos = dict(sorted(Crypto.instances.items())).values()
@@ -84,7 +82,7 @@ def get_source_rate(crypto_name, fiat):
     return {crypto_name: current_rate}
 
 
-@bp.route("/payout/<crypto_name>")
+@bp_wallet.route("/payout/<crypto_name>")
 @login_required
 def payout(crypto_name):
     crypto = Crypto.instances[crypto_name]
@@ -117,7 +115,7 @@ def payout(crypto_name):
     )
 
 
-@bp.route("/wallet/<crypto_name>")
+@bp_wallet.route("/wallet/<crypto_name>")
 @login_required
 def manage(crypto_name):
     crypto = Crypto.instances[crypto_name]
@@ -156,8 +154,8 @@ def manage(crypto_name):
     )
 
 
-@bp.get("/rates", defaults={"fiat": "USD"})
-@bp.get("/rates/<fiat>")
+@bp_wallet.get("/rates", defaults={"fiat": "USD"})
+@bp_wallet.get("/rates/<fiat>")
 @login_required
 def list_rates(fiat):
     cryptos = copy.deepcopy(Crypto.instances).values()
@@ -178,8 +176,8 @@ def list_rates(fiat):
     )
 
 
-@bp.post("/rates", defaults={"fiat": "USD"})
-@bp.post("/rates/<fiat>")
+@bp_wallet.post("/rates", defaults={"fiat": "USD"})
+@bp_wallet.post("/rates/<fiat>")
 @login_required
 def save_rates(fiat):
     rates = defaultdict(dict)
@@ -205,7 +203,7 @@ def save_rates(fiat):
     return redirect(url_for("wallet.list_rates", fiat = fiat))
 
 
-@bp.get("/transactions")
+@bp_wallet.get("/transactions")
 @login_required
 def transactions():
     return render_template(
@@ -224,6 +222,7 @@ def settings():
 
 
 @bp.get("/parts/transactions")
+@bp_wallet.get("/parts/transactions")
 @login_required
 def parts_transactions():
     query = Transaction.query
@@ -347,7 +346,7 @@ def parts_transactions():
     )
 
 
-@bp.route("/payouts")
+@bp_wallet.route("/payouts")
 @login_required
 def payouts():
     return render_template(
@@ -358,7 +357,7 @@ def payouts():
     )
 
 
-@bp.get("/parts/payouts")
+@bp_wallet.get("/parts/payouts")
 @login_required
 def parts_payouts():
     query = Payout.query
@@ -416,7 +415,7 @@ def parts_payouts():
     )
 
 
-@bp.route("/parts/tron-multiserver", methods=("GET", "POST"))
+@bp_wallet.route("/parts/tron-multiserver", methods=("GET", "POST"))
 @login_required
 def parts_tron_multiserver():
     if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
@@ -504,7 +503,7 @@ def post_parts_tron_staking_stake():
     )
 
 
-@bp.get("/metrics")
+@bp_wallet.get("/metrics")
 @metrics_basic_auth
 def metrics():
     metrics = ""
@@ -525,7 +524,7 @@ def metrics():
     return metrics
 
 
-@bp.get("/unlock")
+@bp_wallet.get("/unlock")
 @login_required
 def show_unlock():
     if (

@@ -1,12 +1,7 @@
 import functools
 import os
-import base64
-import io
-from datetime import datetime
 
-import pyotp
-import segno
-from flask import Blueprint
+from flask_smorest import Blueprint as SmorestBlueprint
 from flask import flash
 from flask import g
 from flask import redirect
@@ -22,10 +17,9 @@ from shkeeper.models import User, Wallet
 from shkeeper import db
 
 
-bp = Blueprint("auth", __name__, url_prefix="/")
+bp_auth = SmorestBlueprint("auth", __name__, url_prefix="/")
 
-
-@bp.context_processor
+@bp_auth.context_processor
 def inject_theme():
     return {"theme": request.cookies.get("theme", "light")}
 
@@ -102,7 +96,7 @@ def api_key_required(view):
     return wrapped_view
 
 
-@bp.before_app_request
+@bp_auth.before_app_request
 def load_logged_in_user():
     """If a user id is stored in the session, load the user object into ``g.user``."""
     user_id = session.get("user_id")
@@ -135,7 +129,7 @@ def load_logged_in_user():
 #                 g.user = User.query.get(1)
 
 
-@bp.route("/login", methods=("GET", "POST"))
+@bp_auth.route("/login", methods=("GET", "POST"))
 def login():
     """Log in a registered user by adding the user id to the session."""
     if request.method == "POST":
@@ -174,7 +168,7 @@ def login():
     return render_template("auth/login.j2")
 
 
-@bp.route("/set-password", methods=("GET", "POST"))
+@bp_auth.route("/set-password", methods=("GET", "POST"))
 def set_password():
     admin = User.query.get(1)
     if admin.passhash:
@@ -189,7 +183,7 @@ def set_password():
     return render_template("auth/set-password.j2")
 
 
-@bp.route("/logout")
+@bp_auth.route("/logout")
 def logout():
     """Clear the current session, including the stored user id."""
     session.clear()
