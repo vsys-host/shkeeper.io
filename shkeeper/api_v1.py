@@ -1,4 +1,3 @@
-from decimal import Decimal
 import traceback
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
@@ -6,25 +5,19 @@ from operator import  itemgetter
 
 
 from werkzeug.datastructures import Headers
-from flask import Blueprint, jsonify
+from flask import jsonify
 from flask import request
 from flask import Response
 from flask import stream_with_context
-from shkeeper.modules.cryptos.btc import Btc
-from flask import current_app as app
-from flask.json import JSONDecoder
-from flask_sqlalchemy import sqlalchemy
-from shkeeper import requests
-from shkeeper.services.payout_service import PayoutService
+from flask_smorest import Blueprint as SmorestBlueprint
+from marshmallow import Schema, fields
 
-from shkeeper import db
+from shkeeper import requests
 from shkeeper.auth import basic_auth_optional, login_required, api_key_required
-from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
-from shkeeper.modules.rates import RateSource
 from shkeeper.models import *
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
@@ -34,51 +27,242 @@ from shkeeper.wallet_encryption import (
     WalletEncryptionRuntimeStatus,
 )
 from shkeeper.exceptions import NotRelatedToAnyInvoice
-from shkeeper.services.crypto_cache import get_available_cryptos
-from shkeeper.services.balance_service import get_balances
-from functools import wraps
 
-bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
-# class DecimalJSONDecoder(JSONDecoder):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, parse_float=Decimal, **kwargs)
+# =========================
+# Marshmallow Schemas
+# =========================
+# TODO: schemas into separate file
+class ErrorSchema(Schema):
+    status = fields.String(required=True, example="error")
+    message = fields.String(required=True)
+    traceback = fields.String(load_default=None)
 
-# bp.json_decoder = DecimalJSONDecoder
+class SuccessSchema(Schema):
+    status = fields.String(required=True, example="success")
 
-def handle_request_error(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except Exception as e:
-            app.logger.exception("Payout error")
-            return {"status": "error", "message": str(e)}, 500
-    return wrapper
+class CryptoSchema(Schema):
+    name = fields.String(required=True, description="Crypto currency name")
+    display_name = fields.String(required=True)
 
-@bp.route("/crypto")
+class GetCryptoResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    crypto = fields.List(fields.String(), required=True)
+    crypto_list = fields.List(fields.Nested(CryptoSchema), required=True)
+
+class GenerateAddressResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    addr = fields.String(required=True)
+
+class PaymentRequestSchema(Schema):
+    # Keep liberal request schema because Invoice.add(...) accepts dynamic fields
+    fiat = fields.String(load_default=None)
+    amount = fields.String(load_default=None)
+    # Unknown keys will pass through because we use as_kwargs=False and forward dict as-is
+
+class PaymentResponseSchema(Schema):
+    # We keep a generic schema because invoice.for_response() returns a flat dict
+    status = fields.String(required=True, example="success")
+
+class QuoteRequestSchema(Schema):
+    fiat = fields.String(required=True, example="USD")
+    amount = fields.String(required=True, example="10.00")
+
+class QuoteResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    fiat = fields.String(required=True)
+    amount_fiat = fields.String(required=True)
+    crypto = fields.String(required=True)
+    amount_crypto = fields.String(required=True)
+    exchange_rate = fields.String(required=True)
+
+class GatewayStatusResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    enabled = fields.Boolean(required=True)
+    token = fields.String(required=True)
+
+class GatewaySetRequestSchema(Schema):
+    enabled = fields.Boolean(required=True)
+
+class GatewayTokenRequestSchema(Schema):
+    token = fields.String(required=True)
+
+class TransactionRequestSchema(Schema):
+    # Keep flexible; Transaction.add(...) accepts dict with various keys
+    txid = fields.String(load_default=None)
+    amount = fields.String(load_default=None)
+
+class TransactionResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    id = fields.Integer(required=True)
+
+class PayoutDestinationRequestSchema(Schema):
+    action = fields.String(required=True, example="add")  # add | delete | list
+    daddress = fields.String(load_default=None)
+    comment = fields.String(load_default=None)
+
+class PayoutDestinationListItemSchema(Schema):
+    addr = fields.String(required=True)
+    comment = fields.String(allow_none=True)
+
+class PayoutDestinationListResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    payout_destinations = fields.List(fields.Nested(PayoutDestinationListItemSchema))
+
+class AutoPayoutRequestSchema(Schema):
+    policy = fields.String(required=True)
+    policyValue = fields.String(required=True)
+    policyStatus = fields.Boolean(load_default=True)
+    add = fields.String(load_default=None)   # autopayout destination
+    fee = fields.String(load_default=None)
+    partiallPaid = fields.Boolean(required=True)
+    addedFee = fields.Boolean(required=True)
+    confirationNum = fields.Integer(required=True)
+    recalc = fields.Boolean(required=True)
+
+class StatusResponseSchema(Schema):
+    name = fields.String(required=True)
+    amount = fields.String(required=True)
+    server = fields.String(required=True)
+
+class PayoutRequestSchema(Schema):
+    destination = fields.String(required=True)
+    amount = fields.String(required=True)
+    fee = fields.String(required=True)
+
+class BackendKeyErrorSchema(Schema):
+    status = fields.String(example="error")
+    message = fields.String(example="No backend key provided")
+
+class DecryptResponseSchema(Schema):
+    persistent_status = fields.String(required=True)
+    runtime_status = fields.String(required=True)
+    key = fields.String(allow_none=True)
+
+class ServerDetailsResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    key = fields.String(required=True, description="user:password")
+    host = fields.String(required=True)
+
+class ExchangeRateSetRequestSchema(Schema):
+    fiat = fields.String(required=True)
+    source = fields.String(required=True, example="manual")
+    rate = fields.String(load_default=None)
+    fee = fields.String(required=True)
+
+class ListAddressesResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    addresses = fields.List(fields.String(), required=True)
+
+class TransactionsListResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    transactions = fields.List(fields.Raw(), required=True)
+
+class InvoicesListResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    invoices = fields.List(fields.Raw(), required=True)
+
+class PayoutsCheckResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+
+class TxInfoResponseSchema(Schema):
+    status = fields.String(required=True, example="success")
+    info = fields.Dict(keys=fields.String(), values=fields.Raw())
+
+class DecryptionKeyFormSchema(Schema):
+    key = fields.String(required=True)
+
+class TestCallbackSchema(Schema):
+    _ = fields.Raw(load_default=None)  # arbitrary payload
+
+# =========================
+# smorest Blueprint
+# =========================
+
+# NOTE: This replaces the old Flask Blueprint. Name and URLs remain the same.
+blp_v1 = SmorestBlueprint(
+    "api_v1",
+    "api_v1",
+    url_prefix="/api/v1",
+    description="SHKeeper v1 endpoints"
+)
+
+# tiny helper to avoid repeating tags/security on every route
+def with_tags(*names):
+    def _wrap(fn):
+        return blp_v1.doc(tags=list(names))(fn)
+    return _wrap
+
+def with_security(*reqs):
+    """Usage: @with_security({"API_Key": []}) or @with_security({"Basic": []})"""
+    def _wrap(fn):
+        return blp_v1.doc(security=list(reqs))(fn)
+    return _wrap
+
+@blp_v1.route("/crypto")
+@with_tags("Cryptos")
+@blp_v1.route("/crypto")
+@blp_v1.doc(
+    **{
+        "x-codeSamples": [
+            {"lang": "cURL", "label": "CLI",
+             "source": "curl --location --request GET 'https://demo.shkeeper.io/api/v1/crypto'\n"}
+        ]
+    }
+)
+@blp_v1.response(200, GetCryptoResponseSchema, example={
+    "summary": "Get Available Crypto Currencies",
+    "status": "success",
+    "crypto": ["BNB", "BTC", "ETH", "LTC", "XRP"],
+    "crypto_list": [
+        {"name":"BNB","display_name":"BNB"},
+        {"name":"BTC","display_name":"Bitcoin"},
+        {"name":"ETH","display_name":"Ethereum"},
+        {"name":"LTC","display_name":"Litecoin"},
+        {"name":"XRP","display_name":"XRP"}],
+})
 def list_crypto():
-    data = get_available_cryptos()
+    """Get cryptocurrencies.
+
+    Get a list of cryptocurrencies available for operation from SHKeeper (these are the ones that are online and not disabled in the admin panel).
+    """
+    filtered_list = []
+    crypto_list = []
+    disable_on_lags = app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+    cryptos =  Crypto.instances.values()
+    filtered_cryptos = []
+
+    for crypto in cryptos:
+        if crypto.wallet.enabled:
+            filtered_cryptos.append(crypto)
+
+    def get_crypto_status(crypto):
+        return crypto, crypto.getstatus()
+
+    with ThreadPoolExecutor() as executor:
+        results = list(executor.map(get_crypto_status, filtered_cryptos))
+
+    for crypto, status in results:
+        if status == "Offline":
+            continue
+        if disable_on_lags and status != "Synced":
+            continue
+        filtered_list.append(crypto.crypto)
+        crypto_list.append({
+            "name": crypto.crypto,
+            "display_name": crypto.display_name
+        })
+
     return {
         "status": "success",
-        "crypto": data["filtered"],
-        "crypto_list": data["crypto_list"],
+        "crypto": sorted(filtered_list),
+        "crypto_list": sorted(crypto_list, key=itemgetter("name")),
     }
 
-@bp.get("/crypto/balances")
-@api_key_required
-def get_all_balances():
-    includes = request.args.get("includes")
-    if includes:
-        includes = includes.split(",")
-    else:
-        includes = None
-    balances, error = get_balances(includes)
-    if error:
-        return {"status": "error", "message": error}, 400
-    return balances
 
-@bp.get("/<crypto_name>/generate-address")
+@blp_v1.get("/<string:crypto_name>/generate-address")
+@blp_v1.response(200, GenerateAddressResponseSchema)
+@with_security({"basic": []})
 @login_required
 def generate_address(crypto_name):
     crypto = Crypto.instances[crypto_name]
@@ -86,7 +270,11 @@ def generate_address(crypto_name):
     return {"status": "success", "addr": addr}
 
 
-@bp.post("/<crypto_name>/payment_request")
+@blp_v1.post("/<string:crypto_name>/payment_request")
+@blp_v1.arguments(PaymentRequestSchema, as_kwargs=False)
+@blp_v1.response(200, PaymentResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def payment_request(crypto_name):
     try:
@@ -126,9 +314,14 @@ def payment_request(crypto_name):
 
     return response
 
-@bp.post("/<crypto_name>/quote")
+@blp_v1.post("/<string:crypto_name>/quote")
+@blp_v1.arguments(QuoteRequestSchema, as_kwargs=False)
+@blp_v1.response(200, QuoteResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def get_crypto_quote(crypto_name):
+    """Return a fiat->crypto quote for the given crypto."""
     try:
         try:
             crypto = Crypto.instances[crypto_name]
@@ -179,9 +372,13 @@ def get_crypto_quote(crypto_name):
             "traceback": traceback.format_exc(),
         }
 
-@bp.get("/<crypto_name>/payment-gateway")
+
+@blp_v1.get("/<string:crypto_name>/payment-gateway")
+@blp_v1.response(200, GatewayStatusResponseSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def payment_gateway_get_status(crypto_name):
+    """Get current payment gateway status and token."""
     crypto = Crypto.instances[crypto_name]
     return {
         "status": "success",
@@ -190,9 +387,13 @@ def payment_gateway_get_status(crypto_name):
     }
 
 
-@bp.post("/<crypto_name>/payment-gateway")
+@blp_v1.post("/<string:crypto_name>/payment-gateway")
+@blp_v1.arguments(GatewaySetRequestSchema, as_kwargs=False)
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def payment_gateway_set_status(crypto_name):
+    """Enable/disable payment gateway."""
     req = request.get_json(force=True)
     crypto = Crypto.instances[crypto_name]
     crypto.wallet.enabled = req["enabled"]
@@ -200,9 +401,13 @@ def payment_gateway_set_status(crypto_name):
     return {"status": "success"}
 
 
-@bp.post("/<crypto_name>/payment-gateway/token")
+@blp_v1.post("/<string:crypto_name>/payment-gateway/token")
+@blp_v1.arguments(GatewayTokenRequestSchema, as_kwargs=False)
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def payment_gateway_set_token(crypto_name):
+    """Set shared API token for all cryptos."""
     req = request.get_json(force=True)
     for crypto in Crypto.instances.values():
         crypto.wallet.apikey = req["token"]
@@ -210,14 +415,15 @@ def payment_gateway_set_token(crypto_name):
     return {"status": "success"}
 
 
-@bp.post("/<crypto_name>/transaction")
+@blp_v1.post("/<string:crypto_name>/transaction")
+@blp_v1.arguments(TransactionRequestSchema, as_kwargs=False)
+@blp_v1.response(200, TransactionResponseSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def add_transaction(crypto_name):
+    """Add a transaction manually."""
     try:
         tx = request.get_json(force=True)
-        # app.logger.warning(type(r['amount']))
-        # app.logger.warning(Decimal(r['amount']))
-
         crypto = Crypto.instances[crypto_name]
         t = Transaction.add(crypto, tx)
 
@@ -227,7 +433,7 @@ def add_transaction(crypto_name):
         }
 
     except Exception as e:
-        raise e
+        app.logger.exception(f"Failed to add transaction for crypto: {crypto_name}")
         response = {
             "status": "error",
             "message": str(e),
@@ -237,9 +443,14 @@ def add_transaction(crypto_name):
     return response
 
 
-@bp.post("/<crypto_name>/payout_destinations")
+@blp_v1.post("/<string:crypto_name>/payout_destinations")
+@blp_v1.arguments(PayoutDestinationRequestSchema, as_kwargs=False)
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.alt_response(200, schema=PayoutDestinationListResponseSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def payout_destinations(crypto_name):
+    """Manage payout destinations (add/delete/list)."""
     req = request.get_json(force=True)
 
     if req["action"] == "add":
@@ -266,16 +477,17 @@ def payout_destinations(crypto_name):
         return {"status": "error", "message": "Unknown action"}
 
 
-@bp.post("/<crypto_name>/autopayout")
+@blp_v1.post("/<string:crypto_name>/autopayout")
+@blp_v1.arguments(AutoPayoutRequestSchema, as_kwargs=False)
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def autopayout(crypto_name):
+    """Configure auto payout policy for a crypto wallet."""
     req = request.get_json(force=True)
 
     if req["policy"] not in [i.value for i in PayoutPolicy]:
         return {"status": "error", "message": f"Unknown payout policy: {req['policy']}"}
-    
-    if req["prespolicyOption"] not in [i.value for i in PayoutReservePolicy]:
-        return {"status": "error", "message": f"Unknown payout reserve policy: {req['prespolicyOption']}"}
 
     w = Wallet.query.filter_by(crypto=crypto_name).first()
     if autopayout_destination := req.get("add"):
@@ -283,13 +495,6 @@ def autopayout(crypto_name):
     if autopayout_fee := req.get("fee"):
         w.pfee = autopayout_fee
     w.ppolicy = PayoutPolicy(req["policy"])
-    w.prespolicy = PayoutReservePolicy(req["prespolicyOption"])
-    if w.prespolicy == PayoutReservePolicy.AMOUNT:
-        w.presamount = req["prespolicyValue"]
-    elif w.prespolicy == PayoutReservePolicy.PERCENT:
-        w.presamount = int(req["prespolicyValue"]) # store percent as integer
-    else:
-        w.presamount = None
     w.pcond = req["policyValue"]
     w.payout = req.get("policyStatus", True)
     w.llimit = req["partiallPaid"]
@@ -301,18 +506,21 @@ def autopayout(crypto_name):
     return {"status": "success"}
 
 
-@bp.get("/<crypto_name>/status")
+@blp_v1.get("/<string:crypto_name>/status")
+@blp_v1.response(200, StatusResponseSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def status(crypto_name):
+    """Return wallet status and on-chain sync state."""
     crypto = Crypto.instances[crypto_name]
     return {
-        "name": crypto.crypto,
+        "name": crypto.getname(),
         "amount": format_decimal(crypto.balance()) if crypto.balance() else 0,
         "server": crypto.getstatus(),
     }
 
 
-@bp.get("/<crypto_name>/balance")
+@blp_v1.get("/<string:crypto_name>/balance")
 @api_key_required
 def balance(crypto_name):
     if crypto_name not in Crypto.instances.keys():
@@ -334,42 +542,44 @@ def balance(crypto_name):
         "server_status": crypto.getstatus(),
     }
 
-
-@bp.get("/<crypto_name>/payout/status")
-@api_key_required
-def payout_status(crypto_name):
-    external_id = request.args.get("external_id")
-    if not external_id:
-        return {"error": "external_id is required"}, 400
-    payout = Payout.query.filter_by(
-        external_id=external_id,
-        crypto=crypto_name
-    ).first()
-
-    if not payout:
-        return {"error": "Payout not found"}, 404
-    result = {
-        "id": payout.id,
-        "external_id": payout.external_id,
-        "crypto": payout.crypto,
-        "status": payout.status.name,
-        "amount": str(payout.amount),
-        "destination": payout.dest_addr,
-        "txid": payout.transactions[0].txid if payout.transactions and len(payout.transactions) > 0 else None,
-    }
-    return result, 200
-
-
-@bp.post("/<crypto_name>/payout")
+@blp_v1.post("/<string:crypto_name>/payout")
+@blp_v1.arguments(PayoutRequestSchema, as_kwargs=False)
+#@blp_v1.response(200, fields.Raw())  # passthrough response from crypto.mkpayout(...)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @basic_auth_optional
 @login_required
-@handle_request_error
 def payout(crypto_name):
-    req = request.get_json(force=True)
-    return PayoutService.single_payout(crypto_name, req)
+    """Make a single payout."""
+    try:
+        req = request.get_json(force=True)
+        crypto = Crypto.instances[crypto_name]
+        amount = Decimal(req["amount"])
+        res = crypto.mkpayout(
+            req["destination"],
+            amount,
+            req["fee"],
+        )
+    except Exception as e:
+        app.logger.exception("Payout error")
+        return {"status": "error", "message": f"Error: {e}", "traceback": traceback.format_exc()}
 
-@bp.post("/payoutnotify/<crypto_name>")
+    if "result" in res and res["result"]:
+        idtxs = res["result"] if isinstance(res["result"], list) else [res["result"]]
+        Payout.add(
+            {"dest": req["destination"], "amount": amount, "txids": idtxs}, crypto_name
+        )
+
+    return res
+
+
+@blp_v1.post("/payoutnotify/<string:crypto_name>")
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.alt_response(403, schema=BackendKeyErrorSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@blp_v1.doc(security=[{"BackendKey": []}])
 def payoutnotify(crypto_name):
+    """Receive payout completion notifications from backend wallet services."""
     try:
         if "X-Shkeeper-Backend-Key" not in request.headers:
             app.logger.warning("No backend key provided")
@@ -383,17 +593,23 @@ def payoutnotify(crypto_name):
 
         data = request.get_json(force=True)
         app.logger.info(f"Payout notification: {data}")
-        # for p in data:
-        #     Payout.add(p, crypto_name)
+
+        for p in data:
+            Payout.add(p, crypto_name)
 
         return {"status": "success"}
     except Exception as e:
         app.logger.exception("Payout notify error")
-        return {"status": "error", "message": f"Error: {e}"}
+        return {"status": "error", "message": f"Error: {e}", "traceback": traceback.format_exc()}
 
 
-@bp.post("/walletnotify/<crypto_name>/<txid>")
+@blp_v1.route("/walletnotify/<string:crypto_name>/<string:txid>")
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.alt_response(403, schema=BackendKeyErrorSchema)
+@blp_v1.alt_response(409, schema=ErrorSchema)
+@blp_v1.doc(security=[{"BackendKey": []}])
 def walletnotify(crypto_name, txid):
+    """Receive on-chain tx notifications from backend wallet services."""
     try:
         if "X-Shkeeper-Backend-Key" not in request.headers:
             app.logger.warning("No backend key provided")
@@ -412,14 +628,11 @@ def walletnotify(crypto_name, txid):
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
 
-        tx_data_from_crypto = crypto.getaddrbytx(txid)
-        app.logger.warning(tx_data_from_crypto)
-
-        for addr, amount, confirmations, category in tx_data_from_crypto:
+        for addr, amount, confirmations, category in crypto.getaddrbytx(txid):
             try:
                 if category not in ("send", "receive"):
                     app.logger.warning(
-                        f"[{crypto.crypto}/{txid}] ignoring unknown category: {category}"
+                        f"[{crypto.getname()}/{txid}] ignoring unknown category: {category}"
                     )
                     continue
 
@@ -429,7 +642,7 @@ def walletnotify(crypto_name, txid):
 
                 if confirmations == 0:
                     app.logger.info(
-                        f"[{crypto.crypto}/{txid}] TX has no confirmations yet (entered mempool)"
+                        f"[{crypto.getname()}/{txid}] TX has no confirmations yet (entered mempool)"
                     )
 
                     if app.config.get("UNCONFIRMED_TX_NOTIFICATION"):
@@ -451,11 +664,11 @@ def walletnotify(crypto_name, txid):
                 )
                 tx.invoice.update_with_tx(tx)
                 UnconfirmedTransaction.delete(crypto_name, txid)
-                app.logger.info(f"[{crypto.crypto}/{txid}] TX has been added to db")
+                app.logger.info(f"[{crypto.getname()}/{txid}] TX has been added to db")
                 if not tx.need_more_confirmations:
                     send_notification(tx)
             except sqlalchemy.exc.IntegrityError as e:
-                app.logger.warning(f"[{crypto.crypto}/{txid}] TX already exist in db")
+                app.logger.warning(f"[{crypto.getname()}/{txid}] TX already exist in db")
                 db.session.rollback()
         return {"status": "success"}
     except NotRelatedToAnyInvoice:
@@ -470,16 +683,27 @@ def walletnotify(crypto_name, txid):
         )
         return {
             "status": "error",
-            "message": f"Exception while processing transaction notification: {traceback.format_exc()}.",
+            "message": "Exception while processing transaction notification",
+            "traceback": traceback.format_exc(),
         }, 409
 
 
-@bp.get("/<crypto_name>/decrypt")
+@blp_v1.get("/<string:crypto_name>/decrypt")
+@blp_v1.response(200, DecryptResponseSchema)
+@blp_v1.alt_response(403, schema=BackendKeyErrorSchema)
+@blp_v1.alt_response(409, schema=ErrorSchema)
+@blp_v1.doc(security=[{"BackendKey": []}])
 def decrypt_key(crypto_name):
+    """Return wallet encryption state (used by backend services)."""
     try:
         if "X-Shkeeper-Backend-Key" not in request.headers:
             app.logger.warning("No backend key provided")
             return {"status": "error", "message": "No backend key provided"}, 403
+
+        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
+        if request.headers["X-Shkeeper-Backend-Key"] != bkey:
+            app.logger.warning("Wrong backend key")
+            return {"status": "error", "message": "Wrong backend key"}, 403
 
         try:
             crypto = Crypto.instances[crypto_name]
@@ -489,14 +713,11 @@ def decrypt_key(crypto_name):
                 "message": f"Ignoring notification for {crypto_name}: crypto is not available for processing",
             }
 
-        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
-        if request.headers["X-Shkeeper-Backend-Key"] != bkey:
-            app.logger.warning("Wrong backend key")
-            return {"status": "error", "message": "Wrong backend key"}, 403
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Exception while processing transaction notification: {traceback.format_exc()}.",
+            "message": "Exception while processing transaction notification",
+            "traceback": traceback.format_exc(),
         }, 409
 
     return {
@@ -506,34 +727,46 @@ def decrypt_key(crypto_name):
     }
 
 
-@bp.get("/<crypto_name>/server")
+@blp_v1.get("/<string:crypto_name>/server")
+@blp_v1.response(200, schema=ServerDetailsResponseSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def get_server_details(crypto_name):
+    """Return RPC server credentials and host."""
     crypto = Crypto.instances[crypto_name]
     usr, pwd = crypto.get_rpc_credentials()
     host = crypto.gethost()
     return {"status": "success", "key": f"{usr}:{pwd}", "host": host}
 
 
-@bp.post("/<crypto_name>/server/key")
+@blp_v1.post("/<string:crypto_name>/server/key")
+@blp_v1.response(200, schema=ErrorSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def set_server_key(crypto_name):
+    """Not implemented yet (placeholder)."""
     # TODO: implement
     return {"status": "error", "message": "not implemented yet"}
 
 
-@bp.post("/<crypto_name>/server/host")
+@blp_v1.post("/<string:crypto_name>/server/host")
+@blp_v1.response(200, schema=ErrorSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def set_server_host(crypto_name):
+    """Not implemented yet (placeholder)."""
     # TODO: implement
     return {"status": "error", "message": "not implemented yet"}
 
 
-@bp.get("/<crypto_name>/backup")
+@blp_v1.get("/<string:crypto_name>/backup")
+#@blp_v1.alt_response(200, fields.Raw())  # binary/streaming response
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def backup(crypto_name):
+    """Return a wallet backup (either file content or streamed binary from a remote URL)."""
     crypto = Crypto.instances[crypto_name]
-    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, BitcoinLightning)):
+    if isinstance(crypto, (TronToken, Ethereum, Monero, BitcoinLightning)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add("Content-Type", "application/json")
@@ -553,9 +786,13 @@ def backup(crypto_name):
     )
 
 
-@bp.post("/<crypto_name>/exchange-rate")
+@blp_v1.post("/<string:crypto_name>/exchange-rate")
+@blp_v1.arguments(ExchangeRateSetRequestSchema, as_kwargs=False)
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def set_exchange_rate(crypto_name):
+    """Update exchange rate source/values for a crypto/fiat pair."""
     req = request.get_json(force=True)
     rate_source = ExchangeRate.query.filter_by(
         crypto=crypto_name, fiat=req["fiat"]
@@ -573,31 +810,52 @@ def set_exchange_rate(crypto_name):
     return {"status": "success"}
 
 
-@bp.get("/<crypto_name>/estimate-tx-fee/<amount>")
+@blp_v1.get("/<string:crypto_name>/estimate-tx-fee/<string:amount>")
+#@blp_v1.response(200, fields.Raw())  # structure depends on crypto implementation
+@blp_v1.doc(security=[{"basic": []}])
 @login_required
 def estimate_tx_fee(crypto_name, amount):
+    """Estimate transaction fee for a given amount (optionally address via query)."""
     crypto = Crypto.instances[crypto_name]
     return crypto.estimate_tx_fee(amount, address=request.args.get("address"))
 
 
-@bp.get("/<crypto_name>/task/<id>")
+@blp_v1.get("/<string:crypto_name>/task/<string:id>")
+#@blp_v1.response(200, fields.Raw())
+@blp_v1.doc(security=[{"basic": []}])
 @basic_auth_optional
 @login_required
 def get_task(crypto_name, id):
+    """Get task/job details by id from crypto backend."""
     crypto = Crypto.instances[crypto_name]
     return crypto.get_task(id)
 
-@bp.post("/<crypto_name>/multipayout")
+
+@blp_v1.post("/<string:crypto_name>/multipayout")
+@blp_v1.arguments(TestCallbackSchema, as_kwargs=False)  # accept arbitrary JSON array/object
+#@blp_v1.response(200, fields.Raw())
+@blp_v1.response(400, schema=ErrorSchema)
+@blp_v1.doc(security=[{"basic": []}])
 @basic_auth_optional
 @login_required
-@handle_request_error
 def multipayout(crypto_name):
-    payout_list = request.get_json(force=True)
-    return PayoutService.multiple_payout(crypto_name, payout_list)
+    """Execute multi-payout with provided list of destinations and amounts."""
+    try:
+        payout_list = request.get_json(force=True)
+        crypto = Crypto.instances[crypto_name]
+    except Exception as e:
+        app.logger.exception("Multipayout error")
+        return {"status": "error", "message": f"Error: {e}", "traceback": traceback.format_exc()}
+    return crypto.multipayout(payout_list)
 
-@bp.get("/<crypto_name>/addresses")
+
+@blp_v1.get("/<string:crypto_name>/addresses")
+@blp_v1.response(200, ListAddressesResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def list_addresses(crypto_name):
+    """List all known wallet addresses for a crypto."""
     try:
         addresses = Crypto.instances[crypto_name].get_all_addresses()
         return {"status": "success", "addresses": addresses}
@@ -610,10 +868,14 @@ def list_addresses(crypto_name):
         }
 
 
-@bp.get("/transactions", defaults={"crypto": None, "addr": None})
-@bp.get("/transactions/<crypto>/<addr>")
+@blp_v1.get("/transactions", defaults={"crypto": None, "addr": None})
+@blp_v1.get("/transactions/<string:crypto>/<string:addr>")
+@blp_v1.response(200, TransactionsListResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def list_transactions(crypto, addr):
+    """List transactions (confirmed + unconfirmed), optionally filtered by crypto/address."""
     try:
         if crypto is None or addr is None:
             transactions = (
@@ -643,10 +905,14 @@ def list_transactions(crypto, addr):
         }
 
 
-@bp.get("/invoices", defaults={"external_id": None})
-@bp.get("/invoices/<external_id>")
+@blp_v1.get("/invoices", defaults={"external_id": None})
+@blp_v1.get("/invoices/<string:external_id>")
+@blp_v1.response(200, InvoicesListResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def list_invoices(external_id):
+    """List invoices, optionally filtered by external_id (excluding OUTGOING)."""
     try:
         if external_id is None:
             invoices = Invoice.query.filter(Invoice.status != "OUTGOING").all()
@@ -662,9 +928,13 @@ def list_invoices(external_id):
         }
 
 
-@bp.get("/<crypto_name>/payouts")
+@blp_v1.get("/<string:crypto_name>/payouts")
+@blp_v1.response(200, PayoutsCheckResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def list_payouts(crypto_name):
+    """Check if payouts exist for the provided amount (query param)."""
     try:
         amount = request.args.get("amount")
 
@@ -687,9 +957,13 @@ def list_payouts(crypto_name):
         }
 
 
-@bp.get("/tx-info/<txid>/<external_id>")
+@blp_v1.get("/tx-info/<string:txid>/<string:external_id>")
+@blp_v1.response(200, TxInfoResponseSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def get_txid_info(txid, external_id):
+    """Return lightweight info for a txid bound to an external invoice id."""
     try:
         info = {}
         if (
@@ -704,7 +978,7 @@ def get_txid_info(txid, external_id):
             }
         return {"status": "success", "info": info}
     except Exception as e:
-        app.logger.exception(f"Oops!")
+        app.logger.exception(f"Failed to get transaction info for {txid}, external id: {external_id}!")
         return {
             "status": "error",
             "message": str(e),
@@ -712,11 +986,16 @@ def get_txid_info(txid, external_id):
         }
 
 
-@bp.post("/decryption-key")
+@blp_v1.post("/decryption-key")
+@blp_v1.arguments(DecryptionKeyFormSchema, location="form", as_kwargs=False)
+@blp_v1.response(200, SuccessSchema)
+@blp_v1.alt_response(400, schema=ErrorSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def decryption_key():
+    """Submit the decryption key when wallet encryption is enabled."""
     if not (key := request.form.get("key")):
-        return {"status": "error", "message": "Decryption key is requred"}
+        return {"status": "error", "message": "Decryption key is required"}
     if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.success:
         return {"status": "success", "message": "Decryption key was already entered"}
     if (
@@ -733,7 +1012,10 @@ def decryption_key():
         return {"status": "error", "message": "Wallet is not encrypted"}
 
 
-@bp.post("/test-callback-receiver")
+@blp_v1.post("/test-callback-receiver")
+@blp_v1.arguments(TestCallbackSchema, as_kwargs=False)
+@blp_v1.response(202, SuccessSchema)
+@with_security({"API_Key": []})
 @api_key_required
 def test_callback_receiver():
     callback = request.get_json(force=True)

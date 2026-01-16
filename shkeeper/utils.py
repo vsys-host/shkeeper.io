@@ -15,3 +15,4 @@ def format_decimal(d: Decimal, precision: int = 8, st: bool = False) -> str:
         return f"{remove_exponent(d):,}"
     else:
         return str(remove_exponent(d))
+
