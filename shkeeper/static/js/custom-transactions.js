@@ -312,6 +312,8 @@ function formatTransAndAddresses() {
 
     const tooltip = new bootstrap.Tooltip(element, {
       trigger: "hover focus",
+      html: true,
+      placement: "top",
     });
 
     element._tooltipInstance = tooltip;
@@ -331,20 +333,18 @@ function formatTransAndAddresses() {
   }
 
   function showCopiedTooltip(element) {
-    const tooltip = element._tooltipInstance;
+    const tooltip = bootstrap.Tooltip.getInstance(element);
     if (!tooltip) return;
 
-    const originalTitle = element.getAttribute("data-bs-title");
+    const originalTitle = element.getAttribute("data-bs-original-title");
 
-    element.setAttribute("data-bs-title", "Copied!");
-    tooltip.setContent({ ".tooltip-inner": "Copied!" });
+    element.setAttribute("data-bs-original-title", "Copied!");
 
     tooltip.show();
 
     setTimeout(() => {
+      element.setAttribute("data-bs-original-title", originalTitle);
       tooltip.hide();
-      element.setAttribute("data-bs-title", originalTitle);
-      tooltip.setContent({ ".tooltip-inner": originalTitle });
     }, 1200);
   }
 }
