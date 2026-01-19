@@ -39,11 +39,6 @@
 }
 /* --- */
 
-.transactions-data-table td:hover {
-  background-color: var(--accent-color);
-  color: var(--background-color);
-}
-
 .form-check-input:checked {
   background-color: transparent;
 }
