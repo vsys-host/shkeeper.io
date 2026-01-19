@@ -72,8 +72,8 @@ def wallets():
     return render_template("wallet/wallets.j2", cryptos=cryptos)
 
 
-@bp.get("/<crypto_name>/get-rate", defaults={"fiat": "USD"})
-@bp.get("/<crypto_name>/get-rate/<fiat>")
+@bp_wallet.get("/<crypto_name>/get-rate", defaults={"fiat": "USD"})
+@bp_wallet.get("/<crypto_name>/get-rate/<fiat>")
 @login_required
 def get_source_rate(crypto_name, fiat):
     #fiat = "USD"
@@ -213,7 +213,7 @@ def transactions():
     )
 
 
-@bp.get("/settings")
+@bp_wallet.get("/settings")
 @login_required
 def settings():
     """User settings page including 2FA management"""
@@ -221,7 +221,6 @@ def settings():
     return render_template("wallet/settings.j2", user=user)
 
 
-@bp.get("/parts/transactions")
 @bp_wallet.get("/parts/transactions")
 @login_required
 def parts_transactions():
@@ -433,7 +432,7 @@ def parts_tron_multiserver():
     )
 
 
-@bp.route("/configure/tron", methods=("GET", "POST"))
+@bp_wallet.route("/configure/tron", methods=("GET", "POST"))
 @login_required
 def configure_tron():
     if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
@@ -474,7 +473,7 @@ def configure_tron():
     )
 
 
-@bp.get("/parts/tron-staking-stake")
+@bp_wallet.get("/parts/tron-staking-stake")
 @login_required
 def get_parts_tron_staking_stake():
     # if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
@@ -488,7 +487,7 @@ def get_parts_tron_staking_stake():
     )
 
 
-@bp.post("/parts/tron-staking-stake")
+@bp_wallet.post("/parts/tron-staking-stake")
 @login_required
 def post_parts_tron_staking_stake():
     tron: TronToken = next(
@@ -565,7 +564,7 @@ def show_unlock():
     )
 
 
-@bp.post("/unlock")
+@bp_wallet.post("/unlock")
 @login_required
 def process_unlock():
     if (

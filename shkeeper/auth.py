@@ -190,7 +190,7 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
-@bp.route("/2fa/verify", methods=("GET", "POST"))
+@bp_auth.route("/2fa/verify", methods=("GET", "POST"))
 def verify_2fa():
     """Verify 2FA token after password authentication."""
     pending_user_id = session.get("pending_user_id")
@@ -241,7 +241,7 @@ def verify_2fa():
     return render_template("auth/verify-2fa.j2")
 
 
-@bp.route("/2fa/setup", methods=("GET", "POST"))
+@bp_auth.route("/2fa/setup", methods=("GET", "POST"))
 @login_required
 def setup_2fa():
     """Set up 2FA for the current user."""
@@ -300,7 +300,7 @@ def setup_2fa():
     return render_template("auth/setup-2fa.j2", secret=secret, qr_code=qr_base64)
 
 
-@bp.route("/2fa/disable", methods=("GET", "POST"))
+@bp_auth.route("/2fa/disable", methods=("GET", "POST"))
 @login_required
 def disable_2fa():
     """Disable 2FA for the current user."""
@@ -330,7 +330,7 @@ def disable_2fa():
     return render_template("auth/disable-2fa.j2")
 
 
-@bp.route("/2fa/regenerate-backup", methods=("GET", "POST"))
+@bp_auth.route("/2fa/regenerate-backup", methods=("GET", "POST"))
 @login_required
 def regenerate_backup_codes():
     """Regenerate backup codes for the current user."""
