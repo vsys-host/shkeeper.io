@@ -942,14 +942,16 @@ button#set-all {
   padding: 14px 16px
 }
 
+.transactions-data-table tr:hover {
+  background-color: var(--secondary-bcg-color);
+}
+
 .address-val:hover {
   cursor: pointer;
-  background-color: var(--secondary-bcg-color);
 }
 
 .transactions-val:hover {
   cursor: pointer;
-  background-color: var(--secondary-bcg-color);
 }
 
 .custom-tooltips {
