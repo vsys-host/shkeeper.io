@@ -1,6 +1,6 @@
 import datetime
 import math
-from typing import Annotated, Any, List, Literal, TypeAlias
+from typing import Any, List, Literal, TypeAlias
 from pydantic import BaseModel, Field, NonNegativeInt, PositiveInt
 
 

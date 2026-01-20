@@ -1,10 +1,9 @@
 # app/services/payout_service.py
 from decimal import Decimal
 from urllib.parse import urlparse
-from flask import current_app as app
-from shkeeper import db
 from shkeeper.models import Payout
 from shkeeper.modules.classes.crypto import Crypto
+
 
 class PayoutService:
     @staticmethod
@@ -18,9 +17,13 @@ class PayoutService:
     def check_external_id_unique(req, crypto_name):
         external_id = req.get("external_id")
         if external_id:
-            existing = Payout.query.filter_by(crypto=crypto_name, external_id=external_id).first()
+            existing = Payout.query.filter_by(
+                crypto=crypto_name, external_id=external_id
+            ).first()
             if existing:
-                raise ValueError(f"Payout with this external_id already exists: {external_id}")
+                raise ValueError(
+                    f"Payout with this external_id already exists: {external_id}"
+                )
 
     @staticmethod
     def validate_callback_url(callback_url):
@@ -46,7 +49,7 @@ class PayoutService:
             },
             crypto_name,
             task_id=task_id,
-            external_id=req.get("external_id")
+            external_id=req.get("external_id"),
         )
 
     @classmethod
@@ -61,7 +64,9 @@ class PayoutService:
             req["fee"],
         )
         task_id = res.get("task_id")
-        cls.create_payout_record(req, crypto_name, task_id=task_id, txids=res.get("result", []))
+        cls.create_payout_record(
+            req, crypto_name, task_id=task_id, txids=res.get("result", [])
+        )
         if req.get("external_id"):
             res["external_id"] = req["external_id"]
         return res
@@ -82,8 +87,6 @@ class PayoutService:
             payout = cls.create_payout_record(req, crypto_name, task_id=task_id)
             created_ids.append(payout.id)
         res["external_ids"] = [
-            req.get("external_id")
-            for req in payout_list
-            if req.get("external_id")
+            req.get("external_id") for req in payout_list if req.get("external_id")
         ]
         return res

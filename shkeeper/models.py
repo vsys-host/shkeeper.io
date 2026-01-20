@@ -1,5 +1,3 @@
-import base64
-import codecs
 from collections import namedtuple
 import enum
 import json
@@ -102,6 +100,7 @@ class PayoutPolicy(enum.Enum):
     SCHEDULED = "scheduled"
     LIMIT = "limit"
 
+
 class PayoutReservePolicy(enum.Enum):
     DISABLE = "disable"
     AMOUNT = "amount"
@@ -131,9 +130,10 @@ class Wallet(db.Model):
     recalc = db.Column(db.Integer, default=0)
     confirmations = db.Column(db.Integer, default=1)
     bkey = db.Column(db.String)
-    prespolicy = db.Column(db.Enum(PayoutReservePolicy), default=PayoutReservePolicy.DISABLE)
+    prespolicy = db.Column(
+        db.Enum(PayoutReservePolicy), default=PayoutReservePolicy.DISABLE
+    )
     presamount = db.Column(db.String)
-
 
     @classmethod
     def register_currency(cls, crypto):
@@ -142,7 +142,7 @@ class Wallet(db.Model):
             wallet = cls(crypto=crypto.crypto)
             db.session.add(wallet)
         if not wallet.apikey:
-            if wallet_with_apikey := cls.query.filter(cls.apikey != None).first():
+            if wallet_with_apikey := cls.query.filter(cls.apikey != None).first():  # noqa: E711
                 wallet.apikey = wallet_with_apikey.apikey
             else:
                 wallet.apikey = app.config["SUGGESTED_WALLET_APIKEY"]
@@ -165,18 +165,24 @@ class Wallet(db.Model):
         elif crypto.wallet.prespolicy == PayoutReservePolicy.AMOUNT:
             should_payout = balance - Decimal(crypto.wallet.presamount)
             if should_payout <= 0:
-                raise Exception(f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}")
+                raise Exception(
+                    f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}"
+                )
             else:
                 res = crypto.mkpayout(
                     self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
                 )
         elif crypto.wallet.prespolicy == PayoutReservePolicy.PERCENT:
-            should_payout = balance * (1 - (Decimal(crypto.wallet.presamount) / 100)) # presamount is stored as integer percent
+            should_payout = balance * (
+                1 - (Decimal(crypto.wallet.presamount) / 100)
+            )  # presamount is stored as integer percent
             res = crypto.mkpayout(
                 self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
             )
         else:
-            app.logger.info(f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation")
+            app.logger.info(
+                f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation"
+            )
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
@@ -380,9 +386,9 @@ class Invoice(db.Model):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
         crypto_is_lightning = "BTC-LIGHTNING" == crypto.crypto
         invoice = cls.query.filter_by(
-            external_id=request["external_id"], 
-            callback_url=request["callback_url"], 
-            fiat=request["fiat"]
+            external_id=request["external_id"],
+            callback_url=request["callback_url"],
+            fiat=request["fiat"],
         ).first()
         if invoice:
             # updating existing invoice
@@ -611,7 +617,7 @@ class Transaction(db.Model):
                 )
                 db.session.add(payout_invoice)
                 db.session.commit()
-    
+
                 tx = cls()
                 tx.invoice_id = payout_invoice.id
                 tx.txid = txid
@@ -621,10 +627,10 @@ class Transaction(db.Model):
                 tx.amount_fiat = tx.amount_crypto * rate
                 tx.need_more_confirmations = False
                 tx.callback_confirmed = True
-    
+
                 db.session.add(tx)
                 db.session.commit()
-            
+
             else:
                 pass
                 # Already in DB, skip
@@ -693,7 +699,9 @@ class Payout(db.Model):
     callback_url = db.Column(db.String, nullable=True)
     task_id = db.Column(db.String, nullable=True, index=True)
     external_id = db.Column(db.String, nullable=True)
-    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS, index=True)
+    status = db.Column(
+        db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS, index=True
+    )
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
     @classmethod
@@ -749,6 +757,7 @@ class Payout(db.Model):
             db.session.commit()
         return p
 
+
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     txid = db.Column(db.String)
@@ -761,9 +770,7 @@ class Notification(db.Model):
     callback_url = db.Column(db.String, nullable=False)
     message = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    __table_args__ = (
-        db.UniqueConstraint("type", "object_id"),
-    )
+    __table_args__ = (db.UniqueConstraint("type", "object_id"),)
 
     def to_json(self):
         return {
@@ -779,7 +786,16 @@ class Notification(db.Model):
         }
 
     @classmethod
-    def add(cls, type_, object_id, message=None, txid=None, crypto=None, amount_crypto=None, callback_url=None):
+    def add(
+        cls,
+        type_,
+        object_id,
+        message=None,
+        txid=None,
+        crypto=None,
+        amount_crypto=None,
+        callback_url=None,
+    ):
         app.logger.info(f"Add notification {type_} for object {object_id}")
         notif = Notification(
             type=type_,
@@ -801,6 +817,7 @@ class Notification(db.Model):
             db.delete(Notification).filter_by(type=type_, object_id=object_id)
         )
         db.session.commit()
+
 
 class PayoutTxStatus(enum.Enum):
     IN_PROGRESS = enum.auto()

@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from os import environ
 import json
 from shkeeper import requests
@@ -19,8 +18,8 @@ class Ethereum(Crypto):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"ETH_USERNAME", "shkeeper")
-        password = environ.get(f"ETH_PASSWORD", "shkeeper")
+        username = environ.get("ETH_USERNAME", "shkeeper")
+        password = environ.get("ETH_PASSWORD", "shkeeper")
         return (username, password)
 
     def estimate_tx_fee(self, amount, **kwargs):
@@ -82,7 +81,7 @@ class Ethereum(Crypto):
             else:
                 return "Sync In Progress (%d blocks behind)" % (delta // block_interval)
 
-        except Exception as e:
+        except Exception:
             return "Offline"
 
     def mkaddr(self, **kwargs):
@@ -150,7 +149,7 @@ class Ethereum(Crypto):
                 ).text
                 + success_text
             )
-        except Exception as e:
+        except Exception:
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
 

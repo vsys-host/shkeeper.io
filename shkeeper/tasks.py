@@ -1,10 +1,9 @@
 from decimal import Decimal
 from datetime import timedelta, datetime
-
-from flask_apscheduler import APScheduler
 from shkeeper import scheduler, callback
 from shkeeper.modules.classes.crypto import Crypto
-from shkeeper.models import *
+from shkeeper.models import PayoutPolicy
+
 
 @scheduler.task("interval", id="callback", seconds=60)
 def task_callback():
@@ -12,15 +11,18 @@ def task_callback():
         callback.update_confirmations()
         callback.send_callbacks()
 
+
 @scheduler.task("interval", id="pending_payouts", seconds=60)
 def task_poll_all_pending_payouts():
     with scheduler.app.app_context():
         callback.poll_all_pending_payouts()
 
+
 @scheduler.task("interval", id="unconfirmed_payouts", seconds=60)
 def task_poll_unconfirmed_payouts():
     with scheduler.app.app_context():
         callback.poll_unconfirmed_payouts()
+
 
 @scheduler.task("interval", id="payout_callback_notifier", seconds=60)
 def task_send_payout_callback_notifier():
@@ -29,9 +31,10 @@ def task_send_payout_callback_notifier():
             return
         callback.send_payout_callback_notifier()
 
+
 @scheduler.task("interval", id="payout", seconds=60)
 def task_payout():
-    scheduler.app.logger.info(f"[Autopayout] Task started")
+    scheduler.app.logger.info("[Autopayout] Task started")
     with scheduler.app.app_context():
         for crypto in Crypto.instances.values():
             if crypto.wallet.ppolicy == PayoutPolicy.LIMIT:
@@ -88,7 +91,7 @@ def task_create_wallet():
     with scheduler.app.app_context():
         if all([c.wallet_created for c in Crypto.instances.values()]):
             scheduler.app.logger.info(
-                f"[Create Wallet] All cryptos has its wallets loaded. Deleting the task."
+                "[Create Wallet] All cryptos has its wallets loaded. Deleting the task."
             )
             scheduler.delete_job("create_wallet")
             return

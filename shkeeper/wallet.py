@@ -2,9 +2,7 @@ from collections import defaultdict
 import copy
 import csv
 from decimal import Decimal, InvalidOperation
-import inspect
 from io import StringIO
-import itertools
 import segno
 
 from flask import Blueprint
@@ -14,15 +12,12 @@ from flask import redirect
 from flask import render_template
 from flask import request
 from flask import url_for
-from werkzeug.exceptions import abort
 from werkzeug.wrappers import Response
 from flask import current_app as app
 import prometheus_client
 
 from shkeeper import db
 from shkeeper.auth import login_required, metrics_basic_auth
-from shkeeper.models import User
-from shkeeper.schemas import TronError
 from shkeeper.wallet_encryption import (
     wallet_encryption,
     WalletEncryptionRuntimeStatus,
@@ -78,7 +73,7 @@ def wallets():
 @bp.get("/<crypto_name>/get-rate/<fiat>")
 @login_required
 def get_source_rate(crypto_name, fiat):
-    #fiat = "USD"
+    # fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
     current_rate = rate.get_rate()
     return {crypto_name: current_rate}
@@ -92,7 +87,7 @@ def payout(crypto_name):
 
     try:
         fee_deposit_qrcode = segno.make(str(crypto.fee_deposit_account.addr))
-    except Exception as e:
+    except Exception:
         fee_deposit_qrcode = None
 
     tmpl = "wallet/payout.j2"
@@ -113,7 +108,11 @@ def payout(crypto_name):
         tmpl = "wallet/payout_btc_lightning.j2"
 
     return render_template(
-        tmpl, crypto=crypto, pdest=pdest, enable_payout_callback=enable_payout_callback, fee_deposit_qrcode=fee_deposit_qrcode
+        tmpl,
+        crypto=crypto,
+        pdest=pdest,
+        enable_payout_callback=enable_payout_callback,
+        fee_deposit_qrcode=fee_deposit_qrcode,
     )
 
 
@@ -122,7 +121,7 @@ def payout(crypto_name):
 def manage(crypto_name):
     crypto = Crypto.instances[crypto_name]
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name).all()
-    wallet = Wallet.query.filter_by(crypto=crypto_name).first()
+    Wallet.query.filter_by(crypto=crypto_name).first()
 
     server_templates = [
         f"wallet/manage_server_{cls.__name__.lower()}.j2"
@@ -150,7 +149,7 @@ def manage(crypto_name):
         crypto=crypto,
         pdest=pdest,
         ppolicy=[i.value for i in PayoutPolicy],
-        prespolicy = [i.value for i in PayoutReservePolicy],
+        prespolicy=[i.value for i in PayoutReservePolicy],
         recalc=recalc,
         server_templates=server_templates,
     )
@@ -202,7 +201,7 @@ def save_rates(fiat):
 
         ExchangeRate.query.filter_by(crypto=symbol, fiat=fiat).update(fields)
     db.session.commit()
-    return redirect(url_for("wallet.list_rates", fiat = fiat))
+    return redirect(url_for("wallet.list_rates", fiat=fiat))
 
 
 @bp.get("/transactions")
@@ -609,7 +608,7 @@ def process_unlock():
         is WalletEncryptionPersistentStatus.enabled
     ):
         key = request.form.get("key")
-        if key_matches := wallet_encryption.test_key(key):
+        if wallet_encryption.test_key(key):
             wallet_encryption.set_key(key)
             wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.success)
         else:

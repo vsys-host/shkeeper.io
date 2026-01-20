@@ -1,12 +1,7 @@
-from abc import abstractmethod
 from os import environ
-import json
 from shkeeper import requests
 import datetime
-from collections import namedtuple
 from decimal import Decimal
-from flask import current_app as app
-from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.ethereum import Ethereum
 
 
@@ -19,8 +14,8 @@ class Xrp(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"XRP_USERNAME", "shkeeper")
-        password = environ.get(f"XRP_PASSWORD", "shkeeper")
+        username = environ.get("XRP_USERNAME", "shkeeper")
+        password = environ.get("XRP_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
@@ -57,5 +52,5 @@ class Xrp(Ethereum):
             else:
                 return "Sync In Progress (%d blocks behind)" % (delta // block_interval)
 
-        except Exception as e:
+        except Exception:
             return "Offline"

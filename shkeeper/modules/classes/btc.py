@@ -18,8 +18,8 @@ class Btc(Crypto):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"BTC_USERNAME", "shkeeper")
-        password = environ.get(f"BTC_PASSWORD", "shkeeper")
+        username = environ.get("BTC_USERNAME", "shkeeper")
+        password = environ.get("BTC_PASSWORD", "shkeeper")
         return (username, password)
 
     def estimate_tx_fee(self, amount, **kwargs):
@@ -76,7 +76,7 @@ class Btc(Crypto):
             else:
                 return f"Sync In Progress ({delta_blocks} blocks behind)"
 
-        except Exception as e:
+        except Exception:
             return "Offline"
 
     def mkaddr(self, **kwargs):
@@ -149,7 +149,7 @@ class Btc(Crypto):
                 ).text
                 + success_text
             )
-        except Exception as e:
+        except Exception:
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
 

@@ -1,8 +1,6 @@
 from decimal import Decimal
 import traceback
 from os import environ
-from concurrent.futures import ThreadPoolExecutor
-from operator import  itemgetter
 
 
 from werkzeug.datastructures import Headers
@@ -12,7 +10,6 @@ from flask import Response
 from flask import stream_with_context
 from shkeeper.modules.cryptos.btc import Btc
 from flask import current_app as app
-from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
 from shkeeper import requests
 from shkeeper.services.payout_service import PayoutService
@@ -24,8 +21,18 @@ from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
-from shkeeper.modules.rates import RateSource
-from shkeeper.models import *
+from shkeeper.models import (
+    UnconfirmedTransaction,
+    Invoice,
+    InvoiceAddress,
+    Payout,
+    PayoutDestination,
+    Wallet,
+    PayoutPolicy,
+    PayoutReservePolicy,
+    ExchangeRate,
+    Transaction,
+)
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import (
@@ -46,6 +53,7 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
 # bp.json_decoder = DecimalJSONDecoder
 
+
 def handle_request_error(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -54,7 +62,9 @@ def handle_request_error(func):
         except Exception as e:
             app.logger.exception("Payout error")
             return {"status": "error", "message": str(e)}, 500
+
     return wrapper
+
 
 @bp.route("/crypto")
 def list_crypto():
@@ -64,6 +74,7 @@ def list_crypto():
         "crypto": data["filtered"],
         "crypto_list": data["crypto_list"],
     }
+
 
 @bp.get("/crypto/balances")
 @api_key_required
@@ -77,6 +88,7 @@ def get_all_balances():
     if error:
         return {"status": "error", "message": error}, 400
     return balances
+
 
 @bp.get("/<crypto_name>/generate-address")
 @login_required
@@ -102,7 +114,10 @@ def payment_request(crypto_name):
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
             }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+        if (
+            app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+            and crypto.getstatus() != "Synced"
+        ):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable because of lagging",
@@ -126,6 +141,7 @@ def payment_request(crypto_name):
 
     return response
 
+
 @bp.post("/<crypto_name>/quote")
 @api_key_required
 def get_crypto_quote(crypto_name):
@@ -142,7 +158,10 @@ def get_crypto_quote(crypto_name):
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
             }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+        if (
+            app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+            and crypto.getstatus() != "Synced"
+        ):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable because of lagging",
@@ -178,6 +197,7 @@ def get_crypto_quote(crypto_name):
             "message": str(e),
             "traceback": traceback.format_exc(),
         }
+
 
 @bp.get("/<crypto_name>/payment-gateway")
 @login_required
@@ -273,9 +293,12 @@ def autopayout(crypto_name):
 
     if req["policy"] not in [i.value for i in PayoutPolicy]:
         return {"status": "error", "message": f"Unknown payout policy: {req['policy']}"}
-    
+
     if req["prespolicyOption"] not in [i.value for i in PayoutReservePolicy]:
-        return {"status": "error", "message": f"Unknown payout reserve policy: {req['prespolicyOption']}"}
+        return {
+            "status": "error",
+            "message": f"Unknown payout reserve policy: {req['prespolicyOption']}",
+        }
 
     w = Wallet.query.filter_by(crypto=crypto_name).first()
     if autopayout_destination := req.get("add"):
@@ -287,7 +310,7 @@ def autopayout(crypto_name):
     if w.prespolicy == PayoutReservePolicy.AMOUNT:
         w.presamount = req["prespolicyValue"]
     elif w.prespolicy == PayoutReservePolicy.PERCENT:
-        w.presamount = int(req["prespolicyValue"]) # store percent as integer
+        w.presamount = int(req["prespolicyValue"])  # store percent as integer
     else:
         w.presamount = None
     w.pcond = req["policyValue"]
@@ -316,8 +339,7 @@ def status(crypto_name):
 @api_key_required
 def balance(crypto_name):
     if crypto_name not in Crypto.instances.keys():
-        return {"status": "error", 
-                "message": f"Crypto {crypto_name} is not enabled"}
+        return {"status": "error", "message": f"Crypto {crypto_name} is not enabled"}
     crypto = Crypto.instances[crypto_name]
     fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
@@ -341,10 +363,7 @@ def payout_status(crypto_name):
     external_id = request.args.get("external_id")
     if not external_id:
         return {"error": "external_id is required"}, 400
-    payout = Payout.query.filter_by(
-        external_id=external_id,
-        crypto=crypto_name
-    ).first()
+    payout = Payout.query.filter_by(external_id=external_id, crypto=crypto_name).first()
 
     if not payout:
         return {"error": "Payout not found"}, 404
@@ -355,7 +374,11 @@ def payout_status(crypto_name):
         "status": payout.status.name,
         "amount": str(payout.amount),
         "destination": payout.dest_addr,
-        "txid": payout.transactions[0].txid if payout.transactions and len(payout.transactions) > 0 else None,
+        "txid": (
+            payout.transactions[0].txid
+            if payout.transactions and len(payout.transactions) > 0
+            else None
+        ),
     }
     return result, 200
 
@@ -368,6 +391,7 @@ def payout(crypto_name):
     req = request.get_json(force=True)
     return PayoutService.single_payout(crypto_name, req)
 
+
 @bp.post("/payoutnotify/<crypto_name>")
 def payoutnotify(crypto_name):
     try:
@@ -375,8 +399,8 @@ def payoutnotify(crypto_name):
             app.logger.warning("No backend key provided")
             return {"status": "error", "message": "No backend key provided"}, 403
 
-        crypto = Crypto.instances[crypto_name]
-        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
+        Crypto.instances[crypto_name]
+        bkey = environ.get("SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
         if request.headers["X-Shkeeper-Backend-Key"] != bkey:
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
@@ -407,7 +431,7 @@ def walletnotify(crypto_name, txid):
                 "message": f"Ignoring notification for {crypto_name}: crypto is not available for processing",
             }
 
-        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
+        bkey = environ.get("SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
         if request.headers["X-Shkeeper-Backend-Key"] != bkey:
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
@@ -454,7 +478,7 @@ def walletnotify(crypto_name, txid):
                 app.logger.info(f"[{crypto.crypto}/{txid}] TX has been added to db")
                 if not tx.need_more_confirmations:
                     send_notification(tx)
-            except sqlalchemy.exc.IntegrityError as e:
+            except sqlalchemy.exc.IntegrityError:
                 app.logger.warning(f"[{crypto.crypto}/{txid}] TX already exist in db")
                 db.session.rollback()
         return {"status": "success"}
@@ -464,7 +488,7 @@ def walletnotify(crypto_name, txid):
             "status": "success",
             "message": "Transaction is not related to any invoice",
         }
-    except Exception as e:
+    except Exception:
         app.logger.exception(
             f"Exception while processing transaction notification: {crypto_name}/{txid}"
         )
@@ -482,18 +506,18 @@ def decrypt_key(crypto_name):
             return {"status": "error", "message": "No backend key provided"}, 403
 
         try:
-            crypto = Crypto.instances[crypto_name]
+            Crypto.instances[crypto_name]
         except KeyError:
             return {
                 "status": "success",
                 "message": f"Ignoring notification for {crypto_name}: crypto is not available for processing",
             }
 
-        bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
+        bkey = environ.get("SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
         if request.headers["X-Shkeeper-Backend-Key"] != bkey:
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
-    except Exception as e:
+    except Exception:
         return {
             "status": "error",
             "message": f"Exception while processing transaction notification: {traceback.format_exc()}.",
@@ -541,7 +565,7 @@ def backup(crypto_name):
         return Response(content, headers=headers)
 
     url = crypto.dump_wallet()
-    bkey = environ.get(f"SHKEEPER_BTC_BACKEND_KEY")
+    bkey = environ.get("SHKEEPER_BTC_BACKEND_KEY")
     req = requests.get(url, stream=True, headers={"X-SHKEEPER-BACKEND-KEY": bkey})
     headers = Headers()
     headers.add("Content-Type", req.headers["content-type"])
@@ -587,6 +611,7 @@ def get_task(crypto_name, id):
     crypto = Crypto.instances[crypto_name]
     return crypto.get_task(id)
 
+
 @bp.post("/<crypto_name>/multipayout")
 @basic_auth_optional
 @login_required
@@ -594,6 +619,7 @@ def get_task(crypto_name, id):
 def multipayout(crypto_name):
     payout_list = request.get_json(force=True)
     return PayoutService.multiple_payout(crypto_name, payout_list)
+
 
 @bp.get("/<crypto_name>/addresses")
 @api_key_required
@@ -635,7 +661,7 @@ def list_transactions(crypto, addr):
             status="success", transactions=[tx.to_json() for tx in transactions]
         )
     except Exception as e:
-        app.logger.exception(f"Failed to list transactions")
+        app.logger.exception("Failed to list transactions")
         return {
             "status": "error",
             "message": str(e),
@@ -654,7 +680,7 @@ def list_invoices(external_id):
             invoices = Invoice.query.filter_by(external_id=external_id)
         return jsonify(status="success", invoices=[i.to_json() for i in invoices])
     except Exception as e:
-        app.logger.exception(f"Failed to list invoices")
+        app.logger.exception("Failed to list invoices")
         return {
             "status": "error",
             "message": str(e),
@@ -704,7 +730,7 @@ def get_txid_info(txid, external_id):
             }
         return {"status": "success", "info": info}
     except Exception as e:
-        app.logger.exception(f"Oops!")
+        app.logger.exception("Oops!")
         return {
             "status": "error",
             "message": str(e),

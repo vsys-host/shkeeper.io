@@ -1,7 +1,10 @@
 import datetime
 from functools import cached_property
 from os import environ, path, unlink
-import base64, codecs, json, requests
+import base64
+import codecs
+import json
+import requests
 import threading
 from time import sleep, time
 from decimal import Decimal
@@ -13,7 +16,6 @@ from shkeeper.events import shkeeper_initialized
 from shkeeper.models import BitcoinLightningInvoice as BLI, Setting
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper import db
-from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import wallet_encryption
 
 
@@ -213,9 +215,9 @@ class BitcoinLightning(Crypto):
         return r["payment_request"]
 
     def invoice_listener(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
+        app.logger.debug("waiting for shkeeper initialization...")
         shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("received shkeeper initialization signal!")
 
         while True:
             with app.app_context():
@@ -243,9 +245,9 @@ class BitcoinLightning(Crypto):
                     sleep(self.LIGHTNING_INVOICE_ERROR_WAIT_PERIOD)
 
     def invoice_refresher(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
+        app.logger.debug("waiting for shkeeper initialization...")
         shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("received shkeeper initialization signal!")
 
         inactive_statuses = ("SETTLED", "CANCELED")
         while True:
@@ -270,9 +272,9 @@ class BitcoinLightning(Crypto):
                     app.logger.exception(f"error: {e}")
 
     def invoice_notificator(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
+        app.logger.debug("waiting for shkeeper initialization...")
         shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("received shkeeper initialization signal!")
 
         s = requests.Session()
         s.headers = {
@@ -285,7 +287,7 @@ class BitcoinLightning(Crypto):
             with app.app_context():
                 try:
                     paid_invoices = BLI.query.filter(
-                        (BLI.state == "SETTLED") & (BLI.sent_to_shkeeper == False)
+                        (BLI.state == "SETTLED") & (BLI.sent_to_shkeeper == False)  # noqa: E712
                     ).all()
                     if len(paid_invoices):
                         app.logger.debug(f"{len(paid_invoices)} notifications pending")
@@ -304,9 +306,9 @@ class BitcoinLightning(Crypto):
                     app.logger.exception(f"error: {e}")
 
     def wallet_unlocker(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
+        app.logger.debug("waiting for shkeeper initialization...")
         shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("received shkeeper initialization signal!")
 
         while True:
             with app.app_context():
@@ -337,9 +339,9 @@ class BitcoinLightning(Crypto):
             sleep(self.LIGHTNING_WALLET_UNLOCK_PERIOD)
 
     def seed_saver(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
+        app.logger.debug("waiting for shkeeper initialization...")
         shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("received shkeeper initialization signal!")
 
         while True:
             sleep(self.LIGHTNING_WALLET_SEED_SAVER_PERIOD)
@@ -358,15 +360,15 @@ class BitcoinLightning(Crypto):
                     app.logger.debug(f"Reading seed from {seed_path}...")
                     cipher_seed_mnemonic = open(seed_path, "rb").read().decode()
 
-                    app.logger.debug(f"Encrypting seed...")
+                    app.logger.debug("Encrypting seed...")
                     encrypted_seed = wallet_encryption.encrypt_text(
                         cipher_seed_mnemonic
                     )
 
-                    app.logger.debug(f"Saving enctypted seed to db...")
+                    app.logger.debug("Saving enctypted seed to db...")
                     db.session.add(Setting(name=setting_name, value=encrypted_seed))
                     db.session.commit()
-                    app.logger.debug(f"seed saved.")
+                    app.logger.debug("seed saved.")
 
                     app.logger.debug(f"removing seed file {seed_path}...")
                     unlink(seed_path)
@@ -375,7 +377,7 @@ class BitcoinLightning(Crypto):
                 except Exception as e:
                     app.logger.exception(f"error: {e}")
 
-        app.logger.debug(f"thread exiting.")
+        app.logger.debug("thread exiting.")
 
     def getaddrbytx(
         self, txid
@@ -500,12 +502,12 @@ class BitcoinLightning(Crypto):
         return {"error": None}
 
         try:
-            app.logger.debug(f"waiting for shkeeper encryption key...")
+            app.logger.debug("waiting for shkeeper encryption key...")
 
             key = wallet_encryption.wait_for_key()
             wallet_password = base64.b64encode(key.zfill(8).encode()).decode()
 
-            app.logger.debug(f"unlocking wallet with key...")
+            app.logger.debug("unlocking wallet with key...")
 
             # 1. Try unlock existing wallet
 
@@ -523,7 +525,7 @@ class BitcoinLightning(Crypto):
                 unlockwallet_response.status_code == 200
                 or "wallet already unlocked" in r["message"]
             ):
-                app.logger.debug(f"Wallet unlocked!")
+                app.logger.debug("Wallet unlocked!")
                 return {"error": None}
 
             else:
@@ -531,10 +533,10 @@ class BitcoinLightning(Crypto):
 
                 # 2. Create wallet if does not exist
 
-                app.logger.debug(f"Preparing to create a new wallet...")
+                app.logger.debug("Preparing to create a new wallet...")
 
                 # 2.1 generate seed
-                app.logger.debug(f"Generating seed...")
+                app.logger.debug("Generating seed...")
 
                 genseed_response = self.session.get(
                     f"{self.LND_REST_URL}/v1/genseed",
@@ -547,7 +549,7 @@ class BitcoinLightning(Crypto):
                 cipher_seed_mnemonic = r["cipher_seed_mnemonic"]
 
                 # 2.2 save encrypted seed
-                app.logger.debug(f"Saving seed...")
+                app.logger.debug("Saving seed...")
 
                 encrypted_seed = wallet_encryption.encrypt_text(
                     " ".join(cipher_seed_mnemonic)
@@ -562,11 +564,11 @@ class BitcoinLightning(Crypto):
                 else:
                     db.session.add(Setting(name=setting_name, value=encrypted_seed))
                     db.session.commit()
-                    app.logger.debug(f"Encrypted seed saved to db.")
+                    app.logger.debug("Encrypted seed saved to db.")
 
                 # 2.3 creare new wallet using seed
 
-                app.logger.debug(f"Initializing a new wallet using generated seed...")
+                app.logger.debug("Initializing a new wallet using generated seed...")
                 initwallet_response = self.session.post(
                     f"{self.LND_REST_URL}/v1/initwallet",
                     data=json.dumps(
@@ -579,7 +581,7 @@ class BitcoinLightning(Crypto):
                 )
                 r = initwallet_response.json()
                 if initwallet_response.status_code == 200:
-                    app.logger.debug(f"Wallet has been created.")
+                    app.logger.debug("Wallet has been created.")
                     return {"error": None}
                 else:
                     return {"error": r}

@@ -2,11 +2,19 @@ import functools
 import os
 import logging
 import secrets
-from decimal import Decimal
+# from decimal import Decimal
 import shutil
-import threading
-
+# import threading
 from flask import logging as flog, render_template, request
+from flask import Flask
+import requests
+from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
+from .utils import format_decimal
+from .events import shkeeper_initialized
+from flask_apscheduler import APScheduler
+from sqlalchemy import MetaData
+import flask_sqlalchemy
+import flask_migrate
 
 flog.default_handler.setFormatter(
     logging.Formatter(
@@ -14,20 +22,7 @@ flog.default_handler.setFormatter(
     )
 )
 
-from flask import Flask
-import requests
-
-from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
-
-from .utils import format_decimal
-from .events import shkeeper_initialized
-
-from flask_apscheduler import APScheduler
-
 scheduler = APScheduler()
-
-from sqlalchemy import MetaData
-import flask_sqlalchemy
 
 convention = {
     "ix": "ix_%(column_0_label)s",
@@ -38,8 +33,6 @@ convention = {
 }
 metadata = MetaData(naming_convention=convention)
 db = flask_sqlalchemy.SQLAlchemy(metadata=metadata)
-
-import flask_migrate
 
 migrate = flask_migrate.Migrate()
 
@@ -77,7 +70,9 @@ def create_app(test_config=None):
         DEV_MODE=bool(os.environ.get("DEV_MODE", False)),
         DEV_MODE_ENC_PW=os.environ.get("DEV_MODE_ENC_PW"),
         ENABLE_PAYOUT_CALLBACK=bool(os.environ.get("ENABLE_PAYOUT_CALLBACK")),
-        MIN_CONFIRMATION_BLOCK_FOR_PAYOUT=os.environ.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT", 1),
+        MIN_CONFIRMATION_BLOCK_FOR_PAYOUT=os.environ.get(
+            "MIN_CONFIRMATION_BLOCK_FOR_PAYOUT", 1
+        ),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
         DISABLE_CRYPTO_WHEN_LAGS=bool(
@@ -151,8 +146,8 @@ def create_app(test_config=None):
         from .models import (
             Wallet,
             User,
-            PayoutDestination,
-            Invoice,
+            # PayoutDestination,
+            # Invoice,
             ExchangeRate,
             Setting,
         )
@@ -175,10 +170,10 @@ def create_app(test_config=None):
             flask_migrate.upgrade()
 
         # Register rate sources
-        import shkeeper.modules.rates
+        import shkeeper.modules.rates  # noqa: F401
 
         # Register crypto
-        from .modules import cryptos
+        from .modules import cryptos  # noqa: F401
         from .modules.classes.crypto import Crypto
 
         for crypto in Crypto.instances.values():
@@ -187,6 +182,7 @@ def create_app(test_config=None):
             ExchangeRate.register_currency(crypto)
 
         from .wallet_encryption import WalletEncryptionPersistentStatus
+        import shkeeper.wallet_encryption as wallet_encryption
 
         if setting := Setting.query.get("WalletEncryptionPersistentStatus"):
             app.logger.info(
@@ -219,7 +215,7 @@ def create_app(test_config=None):
                         WalletEncryptionRuntimeStatus.success
                     )
 
-        from . import tasks
+        from . import tasks  # noqa: F401
 
         scheduler.start()
 

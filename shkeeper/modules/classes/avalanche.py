@@ -1,12 +1,7 @@
-from abc import abstractmethod
 from os import environ
-import json
 from shkeeper import requests
 import datetime
-from collections import namedtuple
 from decimal import Decimal
-from flask import current_app as app
-from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.ethereum import Ethereum
 
 
@@ -19,15 +14,15 @@ class Avalanche(Ethereum):
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"AVALANCHE_USERNAME", "shkeeper")
-        password = environ.get(f"AVALANCHE_PASSWORD", "shkeeper")
+        username = environ.get("AVALANCHE_USERNAME", "shkeeper")
+        password = environ.get("AVALANCHE_PASSWORD", "shkeeper")
         return (username, password)
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)["fee"])
             if fee >= amount:
-                return f"Payout failed: not enought {network_currency} to pay for transaction. Need {fee}, balance {amount}"
+                return f"Payout failed: not enought {self.network_currency} to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
         response = requests.post(
@@ -52,5 +47,5 @@ class Avalanche(Ethereum):
             else:
                 return "Sync In Progress (%d blocks behind)" % (delta // block_interval)
 
-        except Exception as e:
+        except Exception:
             return "Offline"
