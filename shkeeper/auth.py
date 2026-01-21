@@ -1,7 +1,13 @@
 import functools
 import os
+import base64
+import io
+from datetime import datetime
 
-from flask_smorest import Blueprint as SmorestBlueprint
+import pyotp
+import segno
+from flask import Blueprint
+# from flask_smorest import Blueprint as SmorestBlueprint
 from flask import flash
 from flask import g
 from flask import redirect
@@ -17,9 +23,10 @@ from shkeeper.models import User, Wallet
 from shkeeper import db
 
 
-bp_auth = SmorestBlueprint("auth", __name__, url_prefix="/")
+bp = Blueprint("auth", __name__, url_prefix="/")
+# bp_auth = SmorestBlueprint("auth", __name__, url_prefix="/")
 
-@bp_auth.context_processor
+@bp.context_processor
 def inject_theme():
     return {"theme": request.cookies.get("theme", "light")}
 
@@ -96,7 +103,7 @@ def api_key_required(view):
     return wrapped_view
 
 
-@bp_auth.before_app_request
+@bp.before_app_request
 def load_logged_in_user():
     """If a user id is stored in the session, load the user object into ``g.user``."""
     user_id = session.get("user_id")
@@ -129,7 +136,7 @@ def load_logged_in_user():
 #                 g.user = User.query.get(1)
 
 
-@bp_auth.route("/login", methods=("GET", "POST"))
+@bp.route("/login", methods=("GET", "POST"))
 def login():
     """Log in a registered user by adding the user id to the session."""
     if request.method == "POST":
@@ -168,7 +175,7 @@ def login():
     return render_template("auth/login.j2")
 
 
-@bp_auth.route("/set-password", methods=("GET", "POST"))
+@bp.route("/set-password", methods=("GET", "POST"))
 def set_password():
     admin = User.query.get(1)
     if admin.passhash:
@@ -183,14 +190,14 @@ def set_password():
     return render_template("auth/set-password.j2")
 
 
-@bp_auth.route("/logout")
+@bp.route("/logout")
 def logout():
     """Clear the current session, including the stored user id."""
     session.clear()
     return redirect(url_for("auth.login"))
 
 
-@bp_auth.route("/2fa/verify", methods=("GET", "POST"))
+@bp.route("/2fa/verify", methods=("GET", "POST"))
 def verify_2fa():
     """Verify 2FA token after password authentication."""
     pending_user_id = session.get("pending_user_id")
@@ -241,7 +248,7 @@ def verify_2fa():
     return render_template("auth/verify-2fa.j2")
 
 
-@bp_auth.route("/2fa/setup", methods=("GET", "POST"))
+@bp.route("/2fa/setup", methods=("GET", "POST"))
 @login_required
 def setup_2fa():
     """Set up 2FA for the current user."""
@@ -300,7 +307,7 @@ def setup_2fa():
     return render_template("auth/setup-2fa.j2", secret=secret, qr_code=qr_base64)
 
 
-@bp_auth.route("/2fa/disable", methods=("GET", "POST"))
+@bp.route("/2fa/disable", methods=("GET", "POST"))
 @login_required
 def disable_2fa():
     """Disable 2FA for the current user."""
@@ -330,7 +337,7 @@ def disable_2fa():
     return render_template("auth/disable-2fa.j2")
 
 
-@bp_auth.route("/2fa/regenerate-backup", methods=("GET", "POST"))
+@bp.route("/2fa/regenerate-backup", methods=("GET", "POST"))
 @login_required
 def regenerate_backup_codes():
     """Regenerate backup codes for the current user."""

@@ -93,6 +93,8 @@ def create_app(test_config=None):
 
     # register new smorest-blueprint instead of the old one
     from shkeeper.api_v1 import blp_v1
+    from shkeeper.wallet import bp_wallet
+    api.register_blueprint(bp_wallet)
     api.register_blueprint(blp_v1)
 
     @app.get("/_debug/spec")
@@ -245,9 +247,11 @@ def create_app(test_config=None):
     # apply the blueprints to the app
     from . import auth, wallet, callback
 
-    app.register_blueprint(auth.bp_auth)
-    app.register_blueprint(wallet.bp_wallet)
-    app.register_blueprint(callback.bp_callback)
+    app.register_blueprint(auth.bp)
+    # app.register_blueprint(auth.bp_auth)
+    # app.register_blueprint(wallet.bp_wallet)
+    app.register_blueprint(callback.bp)
+    # app.register_blueprint(callback.bp_callback)
 
     shkeeper_initialized.set()
 

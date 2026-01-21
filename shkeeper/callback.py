@@ -3,15 +3,16 @@ from apscheduler.schedulers import SchedulerNotRunningError
 
 from shkeeper import requests
 
-from flask import json
-from flask_smorest import Blueprint as SmorestBlueprint
+from flask import Blueprint, json
+# from flask_smorest import Blueprint as SmorestBlueprint
 from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
 from datetime import datetime, timedelta
 
-bp_callback = SmorestBlueprint("callback", __name__)
+bp = Blueprint("callback", __name__)
+# bp_callback = SmorestBlueprint("callback", __name__)
 
 DEFAULT_CURRENCY = 'USD'
 
@@ -362,25 +363,25 @@ def update_confirmations():
             )
 
 
-@bp_callback.cli.command()
+@bp.cli.command()
 def list():
     """Shows list of transaction notifications to be sent"""
     list_unconfirmed()
 
 
-@bp_callback.cli.command()
+@bp.cli.command()
 def send():
     """Send transaction notification"""
     send_callbacks()
 
 
-@bp_callback.cli.command()
+@bp.cli.command()
 def update():
     """Update number of confirmation"""
     update_confirmations()
 
 
-@bp_callback.cli.command()
+@bp.cli.command()
 @click.option("-c", "--confirmations", default=1)
 def add(confirmations):
     import time

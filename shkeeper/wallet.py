@@ -46,14 +46,13 @@ from shkeeper.models import (
     InvoiceStatus,
     Transaction,
 )
-
+from shkeeper.api.schemas.api_docs import metrics_doc
 
 prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
 prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
 prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp_wallet = SmorestBlueprint("wallet", __name__)
-
 
 @bp_wallet.context_processor
 def inject_theme():
@@ -503,6 +502,7 @@ def post_parts_tron_staking_stake():
 
 
 @bp_wallet.get("/metrics")
+@bp_wallet.doc(**metrics_doc)
 @metrics_basic_auth
 def metrics():
     metrics = ""

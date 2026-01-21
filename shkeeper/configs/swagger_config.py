@@ -21,19 +21,62 @@ API_SPEC_OPTIONS = {
             "<!-- Redoc-Inject: <security-definitions> -->\n"
         ),
         "contact": {"email": "support@shkeeper.io", "url": "https://shkeeper.io"},
-        "x-logo": {"url": "https://shkeeper.io/images/shkeeper-logo.svg", "altText": "SHKeeper logo"},
-        "license": {"name": "GPL-3.0", "url": "https://github.com/vsys-host/shkeeper.io"},
+        "x-logo": {
+            "url": "https://shkeeper.io/images/shkeeper-logo.svg",
+            "altText": "SHKeeper logo",
+        },
+        "license": {
+            "name": "GPL-3.0",
+            "url": "https://github.com/vsys-host/shkeeper.io",
+        },
     },
     "servers": [{"url": "https://demo.shkeeper.io"}],
     "tags": [
-        {"name": "Cryptos", "x-displayName": "Available crypto", "description": "Crypto currency operations"},
-        {"name": "Invoices", "x-displayName": "Invoices", "description": "Invoices operations"},
-        {"name": "Payouts", "x-displayName": "Payouts", "description": "Payouts operations"},
-        {"name": "Payments", "x-displayName": "Payments", "description": "Payments operations"},
-        {"name": "Metrics", "x-displayName": "Metrics", "description": "Metrics operations"},
-        {"name": "Transactions", "x-displayName": "Transactions", "description": "Transaction operations"},
-        {"name": "Encryption", "x-displayName": "Wallet encryption", "description": "Wallet encryption operations"},
-        {"name": "Other", "x-displayName": "Useful endpoints", "description": "Other operations"},
+        {
+            "name": "Cryptos",
+            "x-displayName": "Available crypto",
+            "description": "Crypto currency operations",
+        },
+        {
+            "name": "Invoices",
+            "x-displayName": "Invoices",
+            "description": "Invoices operations",
+        },
+        {
+            "name": "Payouts",
+            "x-displayName": "Payouts",
+            "description": "Payouts operations",
+        },
+        {
+            "name": "Payments",
+            "x-displayName": "Payments",
+            "description": "Payments operations",
+        },
+        {
+            "name": "Metrics",
+            "x-displayName": "Metrics",
+            "description": "Metrics operations",
+        },
+        {
+            "name": "Transactions",
+            "x-displayName": "Transactions",
+            "description": "Transaction operations",
+        },
+        {
+            "name": "Encryption",
+            "x-displayName": "Wallet encryption",
+            "description": "Wallet encryption operations",
+        },
+        {
+            "name": "Notifications",
+            "x-displayName": "Wallet notifications",
+            "description": "Wallet notifications operations",
+        },
+        {
+            "name": "Other",
+            "x-displayName": "Useful endpoints",
+            "description": "Other operations",
+        },
     ],
     "x-tagGroups": [
         {"name": "Obtain crypto address", "tags": ["Cryptos", "Invoices"]},
@@ -41,7 +84,7 @@ API_SPEC_OPTIONS = {
         {"name": "Payments", "tags": ["Payments"]},
         {"name": "Transactions", "tags": ["Transactions"]},
         {"name": "Security", "tags": ["Encryption"]},
-        {"name": "Other", "tags": ["Other", "Metrics"]},
+        {"name": "Other", "tags": ["Other", "Metrics", "Notifications"]},
     ],
 }
 
@@ -49,7 +92,7 @@ SECURITY_SCHEMES = {
     "API_Key": {
         "type": "apiKey",
         "description": (
-            "Send the API Key in header: `X-Shkeeper-Api-Key {API Key}`."
+            "Send the API Key in the request header: `X-Shkeeper-Api-Key: {API Key}`. "
         ),
         "name": "X-Shkeeper-Api-Key",
         "in": "header",
@@ -57,16 +100,25 @@ SECURITY_SCHEMES = {
     "Basic": {
         "type": "http",
         "description": (
-            "Basic HTTP authentication: `Basic {base64(username:password)}`. "
-            "Used for payout endpoints and metrics."
+            "Basic HTTP authentication: `Authorization: Basic {base64(username:password)}`."
         ),
         "scheme": "basic",
     },
     "Basic_Optional": {
         "type": "http",
         "description": (
-            "Optional Basic Auth. If header is provided, user is attached to context. "
-            "Otherwise request is anonymous."
+            "Optional Basic Auth: if `Authorization` header is provided, "
+            "the user is attached to the request context (`g.user`). "
+            "Otherwise, the request is treated as anonymous."
+        ),
+        "scheme": "basic",
+    },
+    "Basic_Metrics": {
+        "type": "http",
+        "description": (
+            "Basic HTTP authentication specifically for metrics endpoints. "
+            "Checks credentials against environment variables `METRICS_USERNAME` and `METRICS_PASSWORD`. "
+            "Defaults: username=`shkeeper`, password=`shkeeper`."
         ),
         "scheme": "basic",
     },
