@@ -210,7 +210,15 @@ def save_rates(fiat):
 def transactions():
     return render_template(
         "wallet/transactions.j2",
-        cryptos=Crypto.instances.keys(),
+        # cryptos=Crypto.instances.keys(),
+        cryptos = [
+          {
+              "value": crypto.getname(),
+              "label": crypto.display_name,
+          }
+          for crypto in Crypto.instances.values()
+        ],
+
         invoice_statuses=[status.name for status in InvoiceStatus],
     )
 
