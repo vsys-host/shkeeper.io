@@ -21,7 +21,7 @@
     <tr>
       <td value="{{tx.txid}}" class="row-{{loop.index}} transactions transactions-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.txid}}" data-bs-custom-class="custom-tooltips">{{tx.txid}}</td>
       <td value="{{tx.addr}}" class="row-{{loop.index}} address address-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.addr}}" data-bs-custom-class="custom-tooltips">{{tx.addr}}</td>
-      <td class="row-{{loop.index}} crypto">{{tx.crypto}}</td>
+      <td class="row-{{loop.index}} crypto">{{tx.crypto_label}}</td>
       <td class="row-{{loop.index}} amount">{{tx.amount_crypto|abs|format_decimal}}</td>
       <td class="row-{{loop.index}} amount-bucks">{{tx.invoice.fiat}} {{tx.amount_fiat|abs|format_decimal(2)}}</td>
       <td class="row-{{loop.index}} status success-text">{{tx.invoice.status.name}}</td>

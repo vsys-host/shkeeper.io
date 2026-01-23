@@ -10,15 +10,12 @@ p {
 }
 
 a {
-  /* display: block; */
   cursor: pointer;
 }
 
 a,
 button,
-input,
-select,
-option {
+input {
   transition: all 0.4s;
 }
 
@@ -984,6 +981,11 @@ button#set-all {
 
 .payouts-settings-table .form-check-input {
   margin-top: 0;
+}
+
+.payouts-page .transactions-table-wrapper .address {
+  max-width: 400px;
+  overflow: auto;
 }
 
 @media (max-width: 450px) {
