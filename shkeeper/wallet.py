@@ -56,6 +56,16 @@ prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp = Blueprint("wallet", __name__)
 
+def get_crypto_label(crypto_code: str) -> str:
+    if not crypto_code:
+        return ""
+
+    for c in Crypto.instances.values():
+        if crypto_code in (c.crypto, c.getname()):
+            return getattr(c, "_display_name", None) or c.getname()
+
+    return crypto_code
+
 
 @bp.context_processor
 def inject_theme():
@@ -213,7 +223,7 @@ def transactions():
         # cryptos=Crypto.instances.keys(),
         cryptos = [
           {
-              "value": crypto.getname(),
+              "value": crypto.crypto,
               "label": crypto.display_name,
           }
           for crypto in Crypto.instances.values()
@@ -346,11 +356,16 @@ def parts_transactions():
         return response
 
     pagination = query.order_by(Transaction.id.desc()).paginate(per_page=50)
+
+    txs = pagination.items
+    for tx in txs:
+        tx.crypto_label = get_crypto_label(tx.crypto)
+
     return render_template(
         "wallet/transactions_table.j2",
         cryptos=Crypto.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
-        txs=pagination.items,
+        txs=txs,
         pagination=pagination,
     )
 
@@ -360,7 +375,14 @@ def parts_transactions():
 def payouts():
     return render_template(
         "wallet/payouts.j2",
-        cryptos=Crypto.instances.keys(),
+        # cryptos=Crypto.instances.keys(),
+        cryptos = [
+          {
+              "value": crypto.crypto,
+              "label": crypto.display_name,
+          }
+          for crypto in Crypto.instances.values()
+        ],
         payout_statuses=[status.name for status in PayoutStatus],
         payout_tx_statuses=[status.name for status in PayoutTxStatus],
     )
@@ -417,9 +439,14 @@ def parts_payouts():
         return response
 
     pagination = query.order_by(Payout.id.desc()).paginate(per_page=50)
+
+    payouts = pagination.items
+    for p in payouts:
+        p.crypto_label = get_crypto_label(p.crypto)
+
     return render_template(
         "wallet/payouts_table.j2",
-        payouts=pagination.items,
+        payouts=payouts,
         pagination=pagination,
     )
 

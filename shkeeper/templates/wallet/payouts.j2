@@ -3,7 +3,7 @@
 {% block content %}
 
 
-<div class="content-container overflow-auto px-5">
+<div class="content-container overflow-auto px-5 payouts-page">
   <h1 class="title-text">Payouts</h1>
 
   <div class="row">
@@ -42,7 +42,7 @@
             <option value="" disabled>Select crypto</option>
             <option value="" selected>Any crypto</option>
             {% for crypto in cryptos %}
-            <option value="{{crypto}}">{{crypto}}</option>
+            <option value="{{crypto.value}}">{{crypto.label}}</option>
             {% endfor %}
           </select>
         </div>
