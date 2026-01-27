@@ -56,6 +56,12 @@ class Crypto(abc.ABC):
             # Firo
             "firo",
             "firo_spark",
+            # Arbitrum
+            "arbeth",
+            "arb_usdc",
+            "arb_pyusd",
+            "arb_token"
+
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
