@@ -146,6 +146,7 @@
       feeLabel.style.cursor = "pointer";
       feeLabel.addEventListener("click", show_btc_est_fee);
     }
+    window.crypto_name = document.querySelector("#cryptoname").getAttribute("cryptoname");
   });
 
   function show_btc_est_fee() {
@@ -154,7 +155,8 @@
       return;
     }
     const amount = feeInput.value || "1";
-    fetch("/api/v1/BTC/estimate-tx-fee/" + amount)
+
+    fetch(`/api/v1/${window.crypto_name}/estimate-tx-fee/${amount}`)
       .then(response => response.json())
       .then(data => {
         if (!data.fee_satoshi) {
