@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 from flask_apscheduler import APScheduler
 from shkeeper import scheduler, callback
 from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.modules.classes.nano import Nano, nano_to_raw, raw_to_nano
 from shkeeper.models import *
 
 @scheduler.task("interval", id="callback", seconds=60)
@@ -127,3 +128,71 @@ def task_create_wallet():
                     f"[Create Wallet] {crypto.crypto} shkeeper wallet "
                     f"creation error: {e}"
                 )
+
+
+@scheduler.task("interval", id="nano_receive_pending", seconds=30)
+def task_nano_receive_pending():
+    """Poll for pending Nano transactions and receive them."""
+    with scheduler.app.app_context():
+        for crypto in Crypto.instances.values():
+            if not isinstance(crypto, Nano):
+                continue
+            if not crypto.wallet or not crypto.wallet.enabled:
+                continue
+
+            try:
+                # Get all addresses we're monitoring
+                addresses = crypto.get_all_addresses()
+                scheduler.app.logger.info(f"[Nano] get_all_addresses() returned: {addresses}")
+                if not addresses:
+                    scheduler.app.logger.warning(f"[Nano] No addresses found for {crypto.crypto}")
+                    continue
+
+                scheduler.app.logger.info(f"[Nano] Checking {len(addresses)} addresses for pending blocks")
+
+                for address in addresses:
+                    # Check for pending blocks
+                    pending = crypto._rpc_request(
+                        "receivable",
+                        account=address,
+                        count="100"
+                    )
+
+                    scheduler.app.logger.info(f"[Nano] receivable response for {address}: {pending}")
+
+                    blocks = pending.get("blocks", [])
+                    if isinstance(blocks, dict):
+                        blocks = list(blocks.keys())
+                    if not blocks:
+                        continue
+
+                    scheduler.app.logger.info(f"[Nano] Found {len(blocks)} pending blocks for {address}")
+
+                    # Receive pending blocks
+                    received = crypto.receive_pending(address)
+
+                    # For each received block, create a transaction record
+                    for block_hash in received:
+                        try:
+                            # Get block info
+                            block_info = crypto._rpc_request("block_info", json_block="true", hash=block_hash)
+                            amount_raw = block_info.get("amount", "0")
+                            amount = raw_to_nano(int(amount_raw))
+
+                            # Add transaction to database
+                            from shkeeper.models import Transaction
+                            tx = Transaction.add(
+                                crypto,
+                                {
+                                    "txid": block_hash,
+                                    "addr": address,
+                                    "amount": amount,
+                                    "confirmations": 1,  # Nano is instant
+                                }
+                            )
+                            scheduler.app.logger.info(f"[Nano] Received {amount} XNO to {address}, tx: {block_hash}")
+                        except Exception as e:
+                            scheduler.app.logger.error(f"[Nano] Failed to record transaction {block_hash}: {e}")
+
+            except Exception as e:
+                scheduler.app.logger.exception(f"[Nano] Error checking pending for {crypto.crypto}: {e}")
