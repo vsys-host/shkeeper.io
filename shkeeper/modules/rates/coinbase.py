@@ -24,8 +24,15 @@ class Coinbase(RateSource):
         if crypto in self.FIRO_CRYPTOS:
             crypto = "FIRO"
 
+        if crypto in self.ETH_CRYPTOS:
+            crypto = "ETH"
+        
+        if crypto == "ARB-TOKEN":
+            crypto = "ARB"
+
         if fiat == "USD":
             fiat = "USDT"
+            
         url = f"https://api.coinbase.com/v2/exchange-rates?currency={crypto}"
         answer = requests.get(url)
         if answer.status_code == requests.codes.ok:
