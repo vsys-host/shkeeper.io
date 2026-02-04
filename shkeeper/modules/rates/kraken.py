@@ -30,6 +30,9 @@ class Kraken(RateSource):
         if crypto == "ARB-TOKEN":
             crypto = "ARB"
 
+        if crypto == "OP-TOKEN":
+            crypto = "OP"
+
         if fiat == "USD":
             fiat = "USDT"
             
