@@ -31,6 +31,9 @@ class KuCoin(RateSource):
         if crypto == "ARB-TOKEN":
             crypto = "ARB"
 
+        if crypto == "OP-TOKEN":
+            crypto = "OP"
+
         # https://www.kucoin.com/docs/beginners/introduction
         url = f"https://api.kucoin.com/api/v1/prices?base={fiat}&currencies={crypto}"
         answer = requests.get(url)

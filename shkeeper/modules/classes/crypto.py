@@ -60,7 +60,12 @@ class Crypto(abc.ABC):
             "arbeth",
             "arb_usdc",
             "arb_pyusd",
-            "arb_token"
+            "arb_token",
+            # Optimism
+            "opeth",
+            "op_usdc",
+            "op_usdt",
+            "op_token"
 
         ]
         default_on = ["btc", "ltc", "doge"]
