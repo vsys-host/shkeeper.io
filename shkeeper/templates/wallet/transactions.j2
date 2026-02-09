@@ -185,7 +185,7 @@
             <option value="" disabled>Select crypto</option>
             <option value="" selected>Any crypto</option>
             {% for crypto in cryptos %}
-            <option value="{{crypto}}">{{crypto}}</option>
+              <option value="{{ crypto.value }}">{{ crypto.label }}</option>
             {% endfor %}
           </select>
         </div>

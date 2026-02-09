@@ -25,6 +25,12 @@ class Binance(RateSource):
         if crypto in self.FIRO_CRYPTOS:
             crypto = "FIRO"
 
+        if crypto in self.ETH_CRYPTOS:
+            crypto = "ETH"
+        
+        if crypto == "ARB-TOKEN":
+            crypto = "ARB"
+
         if fiat == "USD":
             fiat = "USDT"
 

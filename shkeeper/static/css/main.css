@@ -10,15 +10,12 @@ p {
 }
 
 a {
-  /* display: block; */
   cursor: pointer;
 }
 
 a,
 button,
-input,
-select,
-option {
+input {
   transition: all 0.4s;
 }
 
@@ -942,14 +939,16 @@ button#set-all {
   padding: 14px 16px
 }
 
+.transactions-data-table tr:hover {
+  background-color: var(--secondary-bcg-color);
+}
+
 .address-val:hover {
   cursor: pointer;
-  background-color: var(--secondary-bcg-color);
 }
 
 .transactions-val:hover {
   cursor: pointer;
-  background-color: var(--secondary-bcg-color);
 }
 
 .custom-tooltips {
@@ -982,6 +981,12 @@ button#set-all {
 
 .payouts-settings-table .form-check-input {
   margin-top: 0;
+}
+
+.payouts-page .transactions-table-wrapper .address, .payouts-page .transactions-table-wrapper .transactions {
+  max-width: 350px;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 @media (max-width: 450px) {
