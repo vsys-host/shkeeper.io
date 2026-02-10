@@ -1,3 +1,4 @@
+from collections import namedtuple
 import datetime
 from functools import cached_property
 from os import environ, path, unlink
@@ -13,7 +14,7 @@ from shkeeper.events import shkeeper_initialized
 from shkeeper.models import BitcoinLightningInvoice as BLI, Setting
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper import db
-from shkeeper.utils import format_decimal
+from shkeeper.utils import format_decimal, remove_exponent
 from shkeeper.wallet_encryption import wallet_encryption
 
 
@@ -24,6 +25,10 @@ class BitcoinLightning(Crypto):
         self.crypto = "BTC-LIGHTNING"
 
         self.RTL_WEB_URL = environ.get("RTL_WEB_URL", "http://127.0.0.1:3000")
+
+        self.LNBITS_URL = environ.get("LNBITS_URL")
+        self.LNBITS_ADMIN_PASSWORD = environ.get("LNBITS_ADMIN_PASSWORD")
+        self.LNBITS_SHARED_DIR = environ.get("LNBITS_SHARED_DIR", "/lnbits_shared")
 
         self.LND_SHARED_DIR = environ.get("LND_SHARED_DIR", "/lightning_shared")
         self.LND_REST_URL = environ.get("LND_REST_URL", "https://lnd:8080")
@@ -60,6 +65,8 @@ class BitcoinLightning(Crypto):
             environ.get("LIGHTNING_GENERATE_ONCHAIN_ADDRESS", False)
         )
 
+        self._lnurl = None
+
         self.start_threads()
 
     def start_threads(self):
@@ -94,6 +101,13 @@ class BitcoinLightning(Crypto):
         threading.Thread(
             target=self.seed_saver,
             name="seed saver",
+            daemon=True,
+            args=(app._get_current_object(),),
+        ).start()
+
+        threading.Thread(
+            target=self.lnurl_setup,
+            name="lnurl setup",
             daemon=True,
             args=(app._get_current_object(),),
         ).start()
@@ -168,6 +182,10 @@ class BitcoinLightning(Crypto):
     @staticmethod
     def btc_to_sat(btc: Decimal):
         return btc * 100_000_000
+
+    @staticmethod
+    def btc_to_msat(btc: Decimal):
+        return btc * 100_000_000_000
 
     def balance(self) -> Decimal:
         try:
@@ -377,6 +395,71 @@ class BitcoinLightning(Crypto):
 
         app.logger.debug(f"thread exiting.")
 
+    def lnurl_setup(self, app):
+        app.logger.debug(f"waiting for shkeeper initialization...")
+        shkeeper_initialized.wait()
+        app.logger.debug(f"received shkeeper initialization signal!")
+
+        sleep(5)  # Wait for LNbits to be ready
+
+        with app.app_context():
+            while True:
+                try:
+                    app.logger.debug("Fetching existing LNURL-pay links from LNbits...")
+
+                    # Fetch existing LNURL-pay links
+                    response = self.lnbits_session.get(
+                        f"{self.LNBITS_URL}/lnurlp/api/v1/links",
+                    )
+
+                    if response.status_code == 200:
+                        links = response.json()
+                        app.logger.debug(f"Found {len(links)} existing LNURL links")
+
+                        # Look for ShKeeper wallet LNURL
+                        for link in links:
+                            app.logger.debug(f"Examining LNURL: {link}")
+                            if (
+                                link.get("description")
+                                == "ShKeeper BTC Lightning Wallet"
+                            ):
+                                self._lnurl = link["lnurl"]
+                                app.logger.debug(f"Using existing LNURL: {self._lnurl}")
+                                break
+
+                    # Create new LNURL if not found
+                    if not self._lnurl:
+                        app.logger.debug("Creating new LNURL-pay link via LNbits...")
+
+                        lnurl_data = {
+                            "description": "ShKeeper BTC Lightning Wallet",
+                            "min": 1,  # 1 satoshi
+                            "max": 100_000_000,  # 1 BTC in satoshis
+                            "comment_chars": 255,
+                        }
+
+                        response = self.lnbits_session.post(
+                            f"{self.LNBITS_URL}/lnurlp/api/v1/links",
+                            json=lnurl_data,
+                        )
+
+                        if response.status_code != 201:
+                            app.logger.error(f"Failed to create LNURL: {response.text}")
+                            sleep(30)
+                            continue
+
+                        result = response.json()
+                        self._lnurl = result["lnurl"]
+                        app.logger.debug(f"LNURL created: {self._lnurl}")
+
+                    break
+
+                except Exception as e:
+                    app.logger.exception(f"error: {e}")
+                    sleep(30)
+
+        app.logger.debug(f"thread exiting.")
+
     def getaddrbytx(
         self, txid
     ) -> List[Tuple[str, Decimal, int, Literal["send", "receive"]]]:
@@ -392,7 +475,7 @@ class BitcoinLightning(Crypto):
         return 999
 
     def estimate_tx_fee(self, amount, **kwargs):
-        pay_req = kwargs.get("address")
+        pay_req, lnurl_info = self.lnurl_to_pr(kwargs["address"])
         app.logger.debug(f"Estimated TX fee for {pay_req}:")
         decoded_pay_req = self.session.get(
             f"{self.LND_REST_URL}/v1/payreq/{pay_req}",
@@ -426,42 +509,8 @@ class BitcoinLightning(Crypto):
             "fee": 0,
             # "fee_estimate_details": fee_estimate,
             "payment_request_details": decoded_pay_req,
+            "lnurl_info": lnurl_info,
         }
-
-        fee_estimate = self.session.post(
-            f"{self.LND_REST_URL}/v2/router/route/estimatefee",
-            data=json.dumps(
-                {
-                    "dest": self.to_base64_string(decoded_pay_req["destination"]),
-                    "amt_sat": decoded_pay_req["num_satoshis"],
-                }
-            ),
-            timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
-        ).json()
-
-        app.logger.debug(f"{fee_estimate!r}")
-        if (
-            "routing_fee_msat" in fee_estimate
-            and "failure_reason" in fee_estimate
-            and fee_estimate["failure_reason"] == "FAILURE_REASON_NONE"
-        ):
-            fee = self.msat_to_btc(int(fee_estimate["routing_fee_msat"]))
-            return {
-                "status": "success",
-                "fee": fee,
-                "fee_estimate_details": fee_estimate,
-                "payment_request_details": decoded_pay_req,
-            }
-        else:
-            return {
-                "status": "error",
-                "error": (
-                    fee_estimate["message"]
-                    if "message" in fee_estimate
-                    else f"{fee_estimate!r}"
-                ),
-                "payment_request_details": decoded_pay_req,
-            }
 
     def mkpayout(
         self,
@@ -470,6 +519,10 @@ class BitcoinLightning(Crypto):
         fee: int,
         subtract_fee_from_amount: bool = False,
     ):
+        destination, lnurl_info = self.lnurl_to_pr(
+            destination, remove_exponent(self.btc_to_msat(amount))
+        )
+
         try:
             result = self.session.post(
                 f"{self.LND_REST_URL}/v1/channels/transactions",
@@ -601,3 +654,68 @@ class BitcoinLightning(Crypto):
 
     def get_all_addresses(self) -> List[str]:
         return [invoice.payment_request for invoice in BLI.query.all()]
+
+    #
+    # LNURL
+    #
+
+    @property
+    def lnbits_admin_apikey(self):
+        return open(
+            path.join(
+                self.LNBITS_SHARED_DIR,
+                "data/.lnbits_admin_key",
+            ),
+        ).read()
+
+    @cached_property
+    def lnbits_session(self):
+        s = requests.Session()
+        s.verify = False
+        s.headers = {"X-API-KEY": self.lnbits_admin_apikey}
+        return s
+
+    def lnbits_decode_lnurl(self, lnurl):
+        app.logger.debug(f"lnbits_decode_lnurl called with lnurl={lnurl}")
+        app.logger.debug(f"Posting to {self.LNBITS_URL}/api/v1/lnurlscan")
+        result = self.lnbits_session.post(
+            f"{self.LNBITS_URL}/api/v1/lnurlscan", json={"lnurl": lnurl}
+        ).json()
+        app.logger.debug(f"lnbits_decode_lnurl result: {result}")
+        return result
+
+    def lnurl_to_pr(self, destination, amount=None):
+        app.logger.debug(
+            f"lnurl_to_pr called with destination={destination}, amount={amount}"
+        )
+        try:
+            app.logger.debug(f"Decoding LNURL: {destination}")
+            lnurl_info = self.lnbits_decode_lnurl(destination)
+            app.logger.debug(f"LNURL decoded: {lnurl_info}")
+
+            if amount is None:
+                amount = lnurl_info["minSendable"]
+
+            callback_url = f"{lnurl_info['callback']}?amount={amount}"
+            app.logger.debug(f"Requesting payment request from: {callback_url}")
+            lnurl_pr_info = requests.get(callback_url).json()
+            app.logger.debug(f"Payment request response: {lnurl_pr_info}")
+
+            new_destination = lnurl_pr_info["pr"]
+            app.logger.debug(
+                f"Successfully converted LNURL to payment request: {new_destination}"
+            )
+            return new_destination, lnurl_info
+        except Exception as e:
+            app.logger.debug(
+                f"Failed to convert LNURL, using original destination. Error: {e}"
+            )
+            return destination, None
+
+    def get_lnurl(self):
+        return self._lnurl
+
+    @property
+    def fee_deposit_account(self):
+        FeeDepositAccount = namedtuple("FeeDepositAccount", "addr balance")
+        return FeeDepositAccount(self.get_lnurl(), self.balance())
