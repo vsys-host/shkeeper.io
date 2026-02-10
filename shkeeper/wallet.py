@@ -54,6 +54,16 @@ prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp_wallet = SmorestBlueprint("wallet", __name__)
 
+def get_crypto_label(crypto_code: str) -> str:
+    if not crypto_code:
+        return ""
+
+    for c in Crypto.instances.values():
+        if crypto_code in (c.crypto, c.getname()):
+            return getattr(c, "_display_name", None) or c.getname()
+
+    return crypto_code
+
 @bp_wallet.context_processor
 def inject_theme():
     return {"theme": request.cookies.get("theme", "light")}

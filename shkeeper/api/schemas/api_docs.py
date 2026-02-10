@@ -185,7 +185,7 @@ metrics_doc = {
             "label": "CLI",
             "source": (
                 "curl --location --request GET 'https://demo.shkeeper.io/metrics' \\\n"
-                "--header 'Authorization: Basic c2hrZWVwZXI6c2hrZacvb3Q='\n"
+                "--header 'Authorization: Basic c2hrZWVwZXI6c2hrZWVwZXI='\n"
             ),
         }
     ],
