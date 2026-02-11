@@ -26,7 +26,18 @@ class BitcoinLightning(Crypto):
 
         self.RTL_WEB_URL = environ.get("RTL_WEB_URL", "http://127.0.0.1:3000")
 
-        self.LNBITS_URL = environ.get("LNBITS_URL")
+        # Handle LNBITS_URL with proper validation and normalization
+        lnbits_url = environ.get("LNBITS_URL")
+        if lnbits_url:
+            # Strip trailing slashes
+            lnbits_url = lnbits_url.rstrip("/")
+            # Add https:// prefix if no scheme is present
+            if not lnbits_url.startswith(("http://", "https://")):
+                lnbits_url = f"https://{lnbits_url}"
+            self.LNBITS_URL = lnbits_url
+        else:
+            raise ValueError("LNBITS_URL is not set")
+
         self.LNBITS_ADMIN_PASSWORD = environ.get("LNBITS_ADMIN_PASSWORD")
         self.LNBITS_SHARED_DIR = environ.get("LNBITS_SHARED_DIR", "/lnbits_shared")
 
