@@ -128,6 +128,11 @@ class Crypto(abc.ABC):
         pass
 
     @property
+    @abc.abstractmethod
+    def fee_deposit_account(self):
+        pass
+
+    @property
     def wallet(self):
         return self._wallet.query.filter_by(crypto=self.crypto).first()
 

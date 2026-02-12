@@ -9,13 +9,33 @@
     <div class="col" style="max-width: 600px;">
       <div class="autopayout-grid common-text">
 
+        <div><p>Wallet LNURL:</p></div>
+        <div class="d-flex align-items-center gap-2">
+            <input
+              id="wallet-lnurl"
+              class="form-control common-text"
+              type="text"
+              value="{{ crypto.get_lnurl() }}"
+              readonly
+              style="font-family: monospace; font-size: 0.85em;"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              onclick="copyLnurl()"
+              title="Copy LNURL"
+            >
+              📋
+            </button>
+        </div>
+
         <div><p>Balance over all channels:</p></div>
         <div>
           <p>
             <strong>{{crypto.balance()|format_decimal(6)}}</strong> {{crypto.display_name}}
           </p>
         </div>
-        <div><p>Payment request:</p></div>
+        <div><p>Payment request or LNURL:</p></div>
         <div class="d-flex align-items-center">
             <textarea id="paddress" class="form-control common-text"  style="width: 100%;" rows="7" placeholder="lnbc... / lntb... / lnbs... / lnbcrt..."></textarea>
         </div>
@@ -23,10 +43,11 @@
         <div><p>Amount:</p></div>
         <div>
           <div class="d-flex align-items-center">
-            <span id="amount_btc" style="font-weight: bolder;">0</span>
+            <input id="amount_btc" type="number" class="form-control common-text" style="font-weight: bolder;" value="0" min="0" max="0" step="0.00000001">
             <p class="ms-2">{{crypto.display_name}}</p>
           </div>
         </div>
+
         <div><p>External ID:</p></div>
         <div>
           <div class="d-flex align-items-center">
@@ -37,10 +58,11 @@
             />
           </div>
         </div>
-        <div><p>Estimated fee:</p></div>
+
+        {# <div><p>Estimated fee:</p></div>
         <div>
             <p><span id="est_fee" style="font-weight: bolder;">0</span>  {{ crypto.network_currency }}</p>
-        </div>
+        </div> #}
 
         <div><p></p></div>
         <div>
@@ -68,6 +90,50 @@
 
 <script>
 
+function copyLnurl() {
+  const lnurlInput = document.getElementById('wallet-lnurl');
+  lnurlInput.select();
+  lnurlInput.setSelectionRange(0, 99999); // For mobile devices
+
+  // Try modern clipboard API first, fallback to execCommand
+  let copySuccess = false;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(lnurlInput.value).then(() => {
+      showCopyFeedback();
+    }).catch(err => {
+      // Fallback to execCommand
+      copySuccess = document.execCommand('copy');
+      if (copySuccess) {
+        showCopyFeedback();
+      } else {
+        alert('Failed to copy LNURL');
+      }
+    });
+  } else {
+    // Fallback to execCommand for older browsers or non-HTTPS
+    copySuccess = document.execCommand('copy');
+    if (copySuccess) {
+      showCopyFeedback();
+    } else {
+      alert('Failed to copy LNURL');
+    }
+  }
+}
+
+function showCopyFeedback() {
+  const btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '✓';
+  btn.classList.add('btn-success');
+  btn.classList.remove('btn-outline-secondary');
+  setTimeout(() => {
+    btn.innerHTML = originalText;
+    btn.classList.remove('btn-success');
+    btn.classList.add('btn-outline-secondary');
+  }, 2000);
+}
+
 function tx_progress_on() {
   document.querySelector(".send-payment").dataset.progress = 'on';
   document.querySelector(".tx_standby").style.display = "none";
@@ -94,15 +160,26 @@ function decode_pay_req() {
     .then(data => {
       console.log(data);
 
-      if (data.payment_request_details) {
-        amount_btc.innerText = (data.payment_request_details.num_satoshis / 100_000_000).toFixed(8);
+      if (data.lnurl_info) {
+          minSendable = (data.lnurl_info.minSendable / 100_000_000_000).toFixed(8);
+          maxSendable = (data.lnurl_info.maxSendable / 100_000_000_000).toFixed(8);
+          amount_btc.min = minSendable;
+          amount_btc.max = maxSendable;
+          amount_btc.value = minSendable;
+      } else {
+        if (data.payment_request_details) {
+          let amount = (data.payment_request_details.num_satoshis / 100_000_000).toFixed(8);
+          amount_btc.value = amount;
+          amount_btc.min = amount;
+          amount_btc.max = amount;
+        }
       }
 
       if ("success" != data.status) {
         fee_err.innerHTML = `Invoice can't be paid: ${data.error}`;
         fee_err.style.display = "block";
       } else {
-        est_fee.innerText = data.fee;
+        // est_fee.innerText = data.fee;
 
         fee_err.style.display = "none";
       }
@@ -123,8 +200,20 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   let elExternalId = document.querySelector("#external-id");
   let externalIdVal = elExternalId ? elExternalId.value : null;
 
+
+
   if ("block" == fee_err.style.display) {
     alert(fee_err.innerHTML);
+    return;
+  }
+
+  let amount = parseFloat(amount_btc.value);
+  let minAmount = parseFloat(amount_btc.min);
+  let maxAmount = parseFloat(amount_btc.max);
+
+  if (amount < minAmount || amount > maxAmount) {
+    alert(`Amount must be between ${minAmount} and ${maxAmount} BTC`);
+    amount_btc.focus();
     return;
   }
 
@@ -139,9 +228,9 @@ document.querySelector(".send-payment").addEventListener("click", e => {
     },
     body: JSON.stringify({
       destination: paddress.value.trim(),
-      amount: amount_btc.innerText,
+      amount: amount_btc.value,
       external_id: externalIdVal,
-      fee: est_fee.innerText,
+      fee: 0,
     })
   })
   .then(response => response.json())

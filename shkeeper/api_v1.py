@@ -2,7 +2,7 @@ from decimal import Decimal
 import traceback
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
-from operator import  itemgetter
+from operator import itemgetter
 
 
 from werkzeug.datastructures import Headers
@@ -46,6 +46,7 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
 # bp.json_decoder = DecimalJSONDecoder
 
+
 def handle_request_error(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -54,7 +55,9 @@ def handle_request_error(func):
         except Exception as e:
             app.logger.exception("Payout error")
             return {"status": "error", "message": str(e)}, 500
+
     return wrapper
+
 
 @bp.route("/crypto")
 def list_crypto():
@@ -64,6 +67,7 @@ def list_crypto():
         "crypto": data["filtered"],
         "crypto_list": data["crypto_list"],
     }
+
 
 @bp.get("/crypto/balances")
 @api_key_required
@@ -77,6 +81,7 @@ def get_all_balances():
     if error:
         return {"status": "error", "message": error}, 400
     return balances
+
 
 @bp.get("/<crypto_name>/generate-address")
 @login_required
@@ -102,7 +107,10 @@ def payment_request(crypto_name):
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
             }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+        if (
+            app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+            and crypto.getstatus() != "Synced"
+        ):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable because of lagging",
@@ -126,6 +134,7 @@ def payment_request(crypto_name):
 
     return response
 
+
 @bp.post("/<crypto_name>/quote")
 @api_key_required
 def get_crypto_quote(crypto_name):
@@ -142,7 +151,10 @@ def get_crypto_quote(crypto_name):
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
             }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+        if (
+            app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+            and crypto.getstatus() != "Synced"
+        ):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable because of lagging",
@@ -178,6 +190,7 @@ def get_crypto_quote(crypto_name):
             "message": str(e),
             "traceback": traceback.format_exc(),
         }
+
 
 @bp.get("/<crypto_name>/payment-gateway")
 @login_required
@@ -273,9 +286,12 @@ def autopayout(crypto_name):
 
     if req["policy"] not in [i.value for i in PayoutPolicy]:
         return {"status": "error", "message": f"Unknown payout policy: {req['policy']}"}
-    
+
     if req["prespolicyOption"] not in [i.value for i in PayoutReservePolicy]:
-        return {"status": "error", "message": f"Unknown payout reserve policy: {req['prespolicyOption']}"}
+        return {
+            "status": "error",
+            "message": f"Unknown payout reserve policy: {req['prespolicyOption']}",
+        }
 
     w = Wallet.query.filter_by(crypto=crypto_name).first()
     if autopayout_destination := req.get("add"):
@@ -287,7 +303,7 @@ def autopayout(crypto_name):
     if w.prespolicy == PayoutReservePolicy.AMOUNT:
         w.presamount = req["prespolicyValue"]
     elif w.prespolicy == PayoutReservePolicy.PERCENT:
-        w.presamount = int(req["prespolicyValue"]) # store percent as integer
+        w.presamount = int(req["prespolicyValue"])  # store percent as integer
     else:
         w.presamount = None
     w.pcond = req["policyValue"]
@@ -316,8 +332,7 @@ def status(crypto_name):
 @api_key_required
 def balance(crypto_name):
     if crypto_name not in Crypto.instances.keys():
-        return {"status": "error", 
-                "message": f"Crypto {crypto_name} is not enabled"}
+        return {"status": "error", "message": f"Crypto {crypto_name} is not enabled"}
     crypto = Crypto.instances[crypto_name]
     fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
@@ -335,16 +350,32 @@ def balance(crypto_name):
     }
 
 
+@bp.get("/<crypto_name>/fee-deposit-address")
+@api_key_required
+def get_fee_deposit_address(crypto_name):
+    if crypto_name not in Crypto.instances.keys():
+        return {
+            "status": "error",
+            "message": f"Crypto {crypto_name} is not enabled",
+        }, 400
+
+    crypto = Crypto.instances[crypto_name]
+    fee_deposit_address = crypto.fee_deposit_account.addr
+
+    return {
+        "status": "success",
+        "crypto": crypto_name,
+        "fee_deposit_address": fee_deposit_address,
+    }
+
+
 @bp.get("/<crypto_name>/payout/status")
 @api_key_required
 def payout_status(crypto_name):
     external_id = request.args.get("external_id")
     if not external_id:
         return {"error": "external_id is required"}, 400
-    payout = Payout.query.filter_by(
-        external_id=external_id,
-        crypto=crypto_name
-    ).first()
+    payout = Payout.query.filter_by(external_id=external_id, crypto=crypto_name).first()
 
     if not payout:
         return {"error": "Payout not found"}, 404
@@ -355,7 +386,9 @@ def payout_status(crypto_name):
         "status": payout.status.name,
         "amount": str(payout.amount),
         "destination": payout.dest_addr,
-        "txid": payout.transactions[0].txid if payout.transactions and len(payout.transactions) > 0 else None,
+        "txid": payout.transactions[0].txid
+        if payout.transactions and len(payout.transactions) > 0
+        else None,
     }
     return result, 200
 
@@ -367,6 +400,7 @@ def payout_status(crypto_name):
 def payout(crypto_name):
     req = request.get_json(force=True)
     return PayoutService.single_payout(crypto_name, req)
+
 
 @bp.post("/payoutnotify/<crypto_name>")
 def payoutnotify(crypto_name):
@@ -587,6 +621,7 @@ def get_task(crypto_name, id):
     crypto = Crypto.instances[crypto_name]
     return crypto.get_task(id)
 
+
 @bp.post("/<crypto_name>/multipayout")
 @basic_auth_optional
 @login_required
@@ -594,6 +629,7 @@ def get_task(crypto_name, id):
 def multipayout(crypto_name):
     payout_list = request.get_json(force=True)
     return PayoutService.multiple_payout(crypto_name, payout_list)
+
 
 @bp.get("/<crypto_name>/addresses")
 @api_key_required

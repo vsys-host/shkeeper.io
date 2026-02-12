@@ -1,6 +1,6 @@
 # SHKeeper.io<!-- omit in toc -->
 
-![SHKeeper logo](https://github.com/user-attachments/assets/dd573f14-1b8e-47d7-86e5-59f24b67b027)               
+![SHKeeper logo](https://github.com/user-attachments/assets/dd573f14-1b8e-47d7-86e5-59f24b67b027)
 
 - [About SHKeeper](#about-shkeeper)
  - [Demo](#demo)
@@ -28,6 +28,7 @@
         - [Creating a multipayout task](#creating-a-multipayout-task)
         - [Checking task status](#checking-task-status)
         - [Get crypto balance information](#get-crypto-balance-info)
+        - [Get fee deposit address](#get-fee-deposit-address)
   - [Receiving callback](#receiving-callback)
   - [Ready-made modules](#ready-made-modules)
      - [WHMCS](#whmcs)
@@ -36,7 +37,7 @@
      - [Prestashop 8](#prestashop-8)
 - [Be involved](#be-involved)
 - [Contact us](#contact-us)
-  
+
 <a name="about-shkeeper"></a>
 ## 1. About SHKeeper
 
@@ -49,9 +50,9 @@ SHKeeper demo version is available from us (works in testnet network), so you ca
 
 https://demo.shkeeper.io/
 
-**Login:** admin 
+**Login:** admin
 
-**Password:** admin  
+**Password:** admin
 
 <a name="helpful-links"></a>
 ### 1.2. Helpful links
@@ -223,6 +224,49 @@ Apply CRDS:
 ```
 
 After a few minutes, your Shkeeper should be reachable on https://\<your domain\> and have a valid SSL.
+
+### Additional configuration for Bitcoin Lightning (advanced users only)
+
+Enable autossl-enabled Ingress on port 9000 for LNURL:
+
+```
+cat << EOF > /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    additionalArguments:
+      - "--certificatesresolvers.default.acme.email=acme@shkeeper.io"
+      - "--certificatesresolvers.default.acme.storage=/data/acme.json"
+      - "--certificatesresolvers.default.acme.httpchallenge.entrypoint=web"
+    ports:
+      lnurl:
+        port: 9000
+        exposedPort: 9000
+        expose:
+          default: true
+EOF
+```
+
+Port `9000` should be publicly available for LNURL to work.
+
+Edit `values.yaml` to include `domain:` and `external_ip:` at the top level. The `domain` will be used for generating LNURL and `external_ip` is used for Lightning p2p communication.
+
+```
+#
+# General
+#
+
+storageClassName: local-path
+external_ip: 1.2.3.4
+domain: my-shkeeper.example.com
+
+...
+```
+
 <a name="developing"></a>
 ## 5. Developing
 <a name="payment-flow"></a>
@@ -247,13 +291,13 @@ When creating an invoice in SHKeeper, provide a `callback_url` to indicate where
 - **UNPAID**: The initial status for a newly created invoice, where no transactions have been made.
 - **PARTIAL**: The status for an invoice that has received a transaction, but the amount is insufficient for full payment.
 - **PAID**: A fully paid invoice in SHKeeper. You can influence the thresholds for when an invoice is considered fully paid by using the appropriate setting in the wallet.
-  
+
 <p align="center">
   <img src="https://github.com/user-attachments/assets/7c04fd4f-d04f-4112-b5c0-468ba98b4686" alt="image5">
 </p>
 
 - **OVERPAID**: The status when the client has sent a total amount in transactions that exceed the sum of the generated invoice. You can influence the thresholds for when an invoice is considered overpaid by using the appropriate setting in the wallet.
-  
+
 <p align="center">
   <img src="https://github.com/user-attachments/assets/ea1f48be-00bf-4fc2-beaa-bcd90789025e" alt="image2">
 </p>
@@ -270,23 +314,23 @@ If you have set “Recalculate invoice rate” to a value other than 0, then in 
 
 For businesses that need a permanent deposit address per customer (e.g., exchanges, custodial flows, recurring deposits), SHKeeper supports a “static address” usage pattern **without** changing the core invoice mechanics:
 
-1. **Create a “large” reusable invoice per customer and per coin.**  
+1. **Create a “large” reusable invoice per customer and per coin.**
    Set an intentionally high target amount so the invoice never reaches the “fully paid” state during normal operation. This lets you reuse the **same address** for many deposits from the same customer.
 
-2. **Keep the address static by reusing the same invoice.**  
+2. **Keep the address static by reusing the same invoice.**
    Each invoice in SHKeeper maps to a unique blockchain address. By reusing that invoice, you keep the deposit address unchanged for the customer.
 
-3. **Control pricing exposure with “Recalculate invoice rate after”.**  
+3. **Control pricing exposure with “Recalculate invoice rate after”.**
    Set a minimal recalculation period (e.g., 1 hour) so fiat/crypto conversion snapshots are refreshed at your cadence. Within the configured period, the rate remains fixed; after it expires, the next transactions will use the updated rate snapshot automatically.
 
 **Notes & caveats**
 
-- This approach preserves a **static deposit address** while keeping rate handling predictable via the recalculation window.  
-- Standard invoice thresholds (under/overpayment windows) and confirmations still apply.  
+- This approach preserves a **static deposit address** while keeping rate handling predictable via the recalculation window.
+- Standard invoice thresholds (under/overpayment windows) and confirmations still apply.
 - Accounting & reconciliation remain invoice-centric: you attribute multiple deposits to the same customer by keeping a dedicated invoice per customer/coin.
 
 <a name="api"></a>
-### 5.2. API 
+### 5.2. API
 <a name="auth"></a>
 #### 5.2.1. Auth
 <a name="apikey"></a>
@@ -308,13 +352,13 @@ SHKeeper supports authenticating and authorizing user through the Basic HTTP aut
 <a name="retrieve-the-list-of-available-cryptocurrencies"></a>
 #### 5.2.2. Retrieve the list of available cryptocurrencies
 
-**Endpoint:** `/api/v1/crypto`     
-**Authorization:** No authorization is required.   
-**HTTP request method:** GET  
-**Example Curl request:**  
+**Endpoint:** `/api/v1/crypto`
+**Authorization:** No authorization is required.
+**HTTP request method:** GET
+**Example Curl request:**
 
 ```
-curl --location --request GET 
+curl --location --request GET
 'https://demo.shkeeper.io/api/v1/crypto'
 ```
 **Successful response:**
@@ -350,9 +394,9 @@ SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto endpoint
 <a name="invoice-creation"></a>
 #### 5.2.3. Invoice Creation
 
-**Endpoint:** `/api/v1/<crypto_name>/payment_request`  
-**Authorization:** ApiKey.   
-**HTTP request method:**  POST request with a JSON object in the following format:  
+**Endpoint:** `/api/v1/<crypto_name>/payment_request`
+**Authorization:** ApiKey.
+**HTTP request method:**  POST request with a JSON object in the following format:
 ```
 {
     "external_id":<order_id>,
@@ -397,9 +441,9 @@ curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH/payment_requ
 <a name="quote-generation"></a>
 #### 5.2.3.1 Quote Generation
 
-**Endpoint:** `/api/v1/<crypto_name>/quote`  
-**Authorization:** ApiKey.  
-**HTTP request method:** POST request with a JSON object in the following format:  
+**Endpoint:** `/api/v1/<crypto_name>/quote`
+**Authorization:** ApiKey.
+**HTTP request method:** POST request with a JSON object in the following format:
 ```json
 {
     "fiat": "USD",
@@ -439,10 +483,10 @@ curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH/quote' \
 <a name="retrieve-created-addresses"></a>
 #### 5.2.4. Retrieve created addresses
 
-**Endpoint:** `/api/v1/<crypto_name>/addresses`  
-**Authorization:** ApiKey.   
-**HTTP request method:** GET  
-**Example Curl request:**  
+**Endpoint:** `/api/v1/<crypto_name>/addresses`
+**Authorization:** ApiKey.
+**HTTP request method:** GET
+**Example Curl request:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH-USDC/addresses' \
 --header 'X-Shkeeper-Api-Key: nApijGv8djih7ozY'
@@ -460,10 +504,10 @@ curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH-USDC/addresse
 ```
 <a name="retrieve-transactions-by-address"></a>
 #### 5.2.5. Retrieve transactions by address
-**Endpoint:** `/api/v1/transactions/<crypto_name>/<addr>`  
-**Authorization:** ApiKey.   
-**HTTP request method:** GET  
-**Curl Example:**  
+**Endpoint:** `/api/v1/transactions/<crypto_name>/<addr>`
+**Authorization:** ApiKey.
+**HTTP request method:** GET
+**Curl Example:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/api/v1/transactions/ETH/0xDCA83F12D963c7233E939a32e31aD758C7cCF307' \
 --header 'X-Shkeeper-API-Key: nApijGv8djih7ozY'
@@ -492,10 +536,10 @@ curl --location --request GET 'https://demo.shkeeper.io/api/v1/transactions/ETH/
 ```
 <a name="retrieve-information-by-external_id"></a>
 #### 5.2.6. Retrieve information by external_id
-**Endpoint:** `/api/v1/invoices/<external_id>`  
-**Authorization:** ApiKey.  
-**HTTP request method:** GET  
-**Curl Example:**  
+**Endpoint:** `/api/v1/invoices/<external_id>`
+**Authorization:** ApiKey.
+**HTTP request method:** GET
+**Curl Example:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/api/v1/invoices/107' \
 --header 'X-Shkeeper-API-Key: nApijGv8djih7ozY'
@@ -525,10 +569,10 @@ curl --location --request GET 'https://demo.shkeeper.io/api/v1/invoices/107' \
 ```
 <a name="retrieve-information-by-the-pair-of-transaction_id-and-external_id"></a>
 #### 5.2.7. Retrieve information by the transaction_id and external_id
-**Endpoint:** `/api/v1/tx-info/<tx_id>/<external_id>`  
-**Authorization:** ApiKey.   
-**HTTP request method:** GET  
-**Curl Example:**  
+**Endpoint:** `/api/v1/tx-info/<tx_id>/<external_id>`
+**Authorization:** ApiKey.
+**HTTP request method:** GET
+**Curl Example:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/api/v1/tx-info/0xbcf68720db79454f40b2acf6bfb18897d497ab4d8bc9faf243c859d14d5d6b66/240' \
 --header 'X-Shkeeper-API-Key: nApijGv8djih7ozY'
@@ -553,9 +597,9 @@ curl --location --request GET 'https://demo.shkeeper.io/api/v1/tx-info/0xbcf6872
 ```
 <a name="wallet-encryption-enter-decryption_key-via-api"></a>
 #### 5.2.8. Wallet encryption (Enter decryption_key via API)
-**Endpoint:** `/api/v1/decryption-key`  
-**Authorization:** ApiKey.   
-**HTTP request method:**  POST request with a formdata body in the following format:  
+**Endpoint:** `/api/v1/decryption-key`
+**Authorization:** ApiKey.
+**HTTP request method:**  POST request with a formdata body in the following format:
 ```
 key=<decryption_key>
 ```
@@ -596,10 +640,10 @@ curl --location --request POST 'https://demo.shkeeper.io/api/v1/decryption-key' 
 <a name="retrieving-metrics"></a>
 #### 5.2.9. Retrieving Metrics
 
-**Endpoint:** `/metrics`  
-**Authorization:** HTTP Basic Auth using metric credentials. Metric credentials can be set by environment variables: `METRICS_USERNAME, METRICS_PASSWORD`. The default username/password is `shkeeper/shkeeper`.   
-**HTTP request method:**  GET  
-**Example Curl Request:**  
+**Endpoint:** `/metrics`
+**Authorization:** HTTP Basic Auth using metric credentials. Metric credentials can be set by environment variables: `METRICS_USERNAME, METRICS_PASSWORD`. The default username/password is `shkeeper/shkeeper`.
+**HTTP request method:**  GET
+**Example Curl Request:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/metrics' \
 --header 'Authorization: Basic c2hrZWVwZXI6c2hrZWVwZXI='
@@ -655,9 +699,9 @@ The task results are an array of objects, each containing the original payout re
 <a name="creating-a-payout-task"></a>
 ##### 5.2.11.1. Creating a Payout Task
 
-**Endpoint:** `/api/v1/<crypto_name>/payout`  
-**Authorization:** HTTP Basic Auth.   
-**HTTP request method:**  POST request with a JSON object in the following format:  
+**Endpoint:** `/api/v1/<crypto_name>/payout`
+**Authorization:** HTTP Basic Auth.
+**HTTP request method:**  POST request with a JSON object in the following format:
 ```
 {
   "amount": <amount_to_send>,
@@ -715,9 +759,9 @@ Callback Notification Example:
 <a name="creating-a-multipayout-task"></a>
 ##### 5.2.11.2. Creating a Multipayout Task
 
-**Endpoint:** `/api/v1/<crypto_name>/multipayout`   
-**Authorization:** HTTP Basic Auth.    
-**HTTP request method:**  POST request with a JSON object in the following format:  
+**Endpoint:** `/api/v1/<crypto_name>/multipayout`
+**Authorization:** HTTP Basic Auth.
+**HTTP request method:**  POST request with a JSON object in the following format:
 ```
 [{
   "amount": <amount_to_send>,
@@ -764,10 +808,10 @@ The order of the external_ids array is guaranteed to match the exact order in wh
 <a name="checking-task-status"></a>
 ##### 5.2.11.3. Checking Task Status
 
-**Endpoint:** `/api/v1/<crypto_name>/task/<task_id>`  
-**Authorization:** HTTP Basic Auth.  
-**HTTP request method:**  GET  
-**Curl Example:**  
+**Endpoint:** `/api/v1/<crypto_name>/task/<task_id>`
+**Authorization:** HTTP Basic Auth.
+**HTTP request method:**  GET
+**Curl Example:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH-USDC/task/7028c45b-0c88-483e-b703-dd455a361b2e' \
 --header 'Authorization: Basic  nApijGv8djih7ozY' \
@@ -821,9 +865,9 @@ When the task is in progress:
 <a name="get-crypto-balance-info"></a>
 ##### 5.2.11.4. Get crypto balance information
 
-**Endpoint:** `/api/v1/<crypto_name>/balance`  
-**Authorization:** ApiKey.    
-**HTTP request method:**  GET  
+**Endpoint:** `/api/v1/<crypto_name>/balance`
+**Authorization:** ApiKey.
+**HTTP request method:**  GET
 **Curl Example:**
 ```
 curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH/balance' \
@@ -851,13 +895,42 @@ curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH/balance' \
 }
 ```
 
-<a name="get-all-balances"></a>
-##### 5.2.11.5. Get All Crypto Balances
+<a name="get-fee-deposit-address"></a>
+##### 5.2.11.5. Get fee deposit address (if supported by crypto)
 
-**Endpoint:** `/api/v1/crypto/balances`.    
-**Authorization:** ApiKey.       
-**HTTP request method:** GET.       
-**Query Parameters: (optional)**.       
+**Endpoint:** `/api/v1/<crypto_name>/fee-deposit-address`
+**Authorization:** ApiKey.
+**HTTP request method:**  GET
+**Curl Example:**
+```
+curl --location --request GET 'https://demo.shkeeper.io/api/v1/ETH-USDT/fee-deposit-address' \
+--header 'X-Shkeeper-Api-Key: nApijGv8djih7ozY'
+```
+
+**Successful Response:**
+```
+{
+  "status": "success",
+  "crypto": "ETH-USDT",
+  "fee_deposit_address": "0x1234567890abcdef1234567890abcdef12345678"
+}
+```
+
+**Error Response:**
+```
+{
+  "status": "error",
+  "message": "Crypto XYZ is not enabled"
+}
+```
+
+<a name="get-all-balances"></a>
+##### 5.2.11.6. Get All Crypto Balances
+
+**Endpoint:** `/api/v1/crypto/balances`.
+**Authorization:** ApiKey.
+**HTTP request method:** GET.
+**Query Parameters: (optional)**.
 includes — Comma-separated list of crypto identifiers to return balances for (e.g., BTC,ETH,TRX). Case-insensitive. If omitted or empty, returns balances for all enabled cryptos. Unknown/disabled cryptos are ignored.
 
 **Curl Example:**
@@ -916,9 +989,9 @@ SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto/balances
 <a name="checking-payout-status"></a>
 5.2.11.5. Checking Payout Status
 
-**Endpoint:** `/api/v1/<crypto_name>/payout/status`        
-**Authorization:** ApiKey.        
-**HTTP request method:**  GET         
+**Endpoint:** `/api/v1/<crypto_name>/payout/status`
+**Authorization:** ApiKey.
+**HTTP request method:**  GET
 
 **Query Parameters:**
 external_id	is Required.	External ID assigned to the payout. Used to query its status.
@@ -1063,7 +1136,7 @@ SHKeeper payment gateway module for OpenCart 3
 
 The module has been tested on CMS OpenCart Version 3.0.3.9
 
-Find the module for Opencart 3 here: https://github.com/vsys-host/opencart-3-shkeeper-payment-module 
+Find the module for Opencart 3 here: https://github.com/vsys-host/opencart-3-shkeeper-payment-module
 
 <a name="prestashop-8"></a>
 #### 5.4.4. Prestashop 8
@@ -1110,5 +1183,3 @@ If you have experienced any problems using SHKeeper, you can contact the communi
 
 Stay informed with the latest SHKeeper news, updates, and technical announcements. Follow our Telegram to never miss important changes and improvements:
 https://t.me/shkeeper_updates
-
-
