@@ -25,6 +25,10 @@
   }
 }
 
+select option {
+  color: var(--secondary-bcg-color);
+}
+
 /* Navigation Menu Highlighting */
 .nav-link--active span {
   color: var(--accent-color);

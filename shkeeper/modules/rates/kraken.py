@@ -24,8 +24,18 @@ class Kraken(RateSource):
         if crypto in self.FIRO_CRYPTOS:
             crypto = "FIRO"
 
+        if crypto in self.ETH_CRYPTOS:
+            crypto = "ETH"
+        
+        if crypto == "ARB-TOKEN":
+            crypto = "ARB"
+
+        if crypto == "OP-TOKEN":
+            crypto = "OP"
+
         if fiat == "USD":
             fiat = "USDT"
+            
         url = f"https://api.kraken.com/0/public/Ticker?pair={crypto}{fiat}"
         answer = requests.get(url)
         if answer.status_code == requests.codes.ok:

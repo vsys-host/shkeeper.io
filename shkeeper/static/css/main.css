@@ -983,9 +983,10 @@ button#set-all {
   margin-top: 0;
 }
 
-.payouts-page .transactions-table-wrapper .address {
-  max-width: 400px;
-  overflow: auto;
+.payouts-page .transactions-table-wrapper .address, .payouts-page .transactions-table-wrapper .transactions {
+  max-width: 350px;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 @media (max-width: 450px) {
