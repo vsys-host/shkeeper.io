@@ -224,6 +224,49 @@ Apply CRDS:
 ```
 
 After a few minutes, your Shkeeper should be reachable on https://\<your domain\> and have a valid SSL.
+
+### Additional configuration for Bitcoin Lightning (advanced users only)
+
+Enable autossl-enabled Ingress on port 9000 for LNURL:
+
+```
+cat << EOF > /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    additionalArguments:
+      - "--certificatesresolvers.default.acme.email=acme@shkeeper.io"
+      - "--certificatesresolvers.default.acme.storage=/data/acme.json"
+      - "--certificatesresolvers.default.acme.httpchallenge.entrypoint=web"
+    ports:
+      lnurl:
+        port: 9000
+        exposedPort: 9000
+        expose:
+          default: true
+EOF
+```
+
+Port `9000` should be publicly available for LNURL to work.
+
+Edit `values.yaml` to include `domain:` and `external_ip:` at the top level. The `domain` will be used for generating LNURL and `external_ip` is used for Lightning p2p communication.
+
+```
+#
+# General
+#
+
+storageClassName: local-path
+external_ip: 1.2.3.4
+domain: my-shkeeper.example.com
+
+...
+```
+
 <a name="developing"></a>
 ## 5. Developing
 <a name="payment-flow"></a>
