@@ -34,7 +34,7 @@ class BitcoinLightning(Crypto):
             # Add https:// prefix if no scheme is present
             if not lnbits_url.startswith(("http://", "https://")):
                 lnbits_url = f"https://{lnbits_url}"
-            self.LNBITS_URL = lnbits_url
+            self.LNBITS_URL = lnbits_url + ":9000"
         else:
             raise ValueError("LNBITS_URL is not set")
 
