@@ -156,3 +156,7 @@ class BitcoinLikeCrypto(Crypto):
 
     def build_rpc_request(self, method, *params):
         return {"jsonrpc": "1.0", "id": "shkeeper", "method": method, "params": params}
+
+    @property
+    def fee_deposit_account(self):
+        return None
