@@ -1,5 +1,6 @@
 import functools
 import os
+import json
 import logging
 import secrets
 from decimal import Decimal
@@ -83,6 +84,10 @@ def create_app(test_config=None):
         DISABLE_CRYPTO_WHEN_LAGS=bool(
             os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)
         ),
+        # AML related 
+        AML_MODE = str(os.environ.get("AML_MODE", "False")),
+        AML_EXTERNAL_ADDRESSES = json.loads(str(os.environ.get("AML_EXTERNAL_ADDRESSES", '{}'))), # {'ETH': '0x9a5Af1C34eXXXXXXXXXXXXXXXXXXXXXXXXX', 'TRX': 'wefewGREGWGWFefwefew'}
+        AML_MIN_ACCEPT_SCORE = float(os.environ.get("AML_MIN_ACCEPT_SCORE", '1')),
     )
 
     if test_config is None:

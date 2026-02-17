@@ -5,6 +5,7 @@ from flask_apscheduler import APScheduler
 from shkeeper import scheduler, callback
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
+from .amlchecker import *
 
 @scheduler.task("interval", id="callback", seconds=60)
 def task_callback():
@@ -127,3 +128,12 @@ def task_create_wallet():
                     f"[Create Wallet] {crypto.crypto} shkeeper wallet "
                     f"creation error: {e}"
                 )
+
+
+@scheduler.task("interval", id="check_aml_results", seconds=15)
+def task_check_aml_results():
+    with scheduler.app.app_context():
+        scheduler.app.logger.info(scheduler.app.config.get("AML_MODE").lower())
+        if scheduler.app.config.get("AML_MODE").lower() != 'true':
+            return
+        check_all_paid_invoices()

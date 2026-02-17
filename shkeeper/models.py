@@ -292,6 +292,9 @@ class InvoiceStatus(enum.Enum):
     CANCELLED = enum.auto()
     REFUNDED = enum.auto()
     OUTGOING = enum.auto()
+    AML_CHECK_DECLINED = enum.auto() #new aml
+    AML_CHECK_PAID = enum.auto() #new aml
+    AML_CHECK_OVERPAID = enum.auto() #new aml
 
 
 class Invoice(db.Model):
@@ -339,7 +342,8 @@ class Invoice(db.Model):
     @property
     def rate(self):
         return ExchangeRate.get(self.fiat, self.crypto)
-
+    
+ 
     def update_with_tx(self, tx):
         # recalculate amount_crypto according to current exchange rate if enabled
         if tx.invoice.wallet.recalc > 0:
@@ -567,6 +571,7 @@ class Transaction(db.Model):
     need_more_confirmations = db.Column(db.Boolean, default=True)
     callback_confirmed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    aml_score = db.Column(db.Numeric)
     updated_at = db.Column(
         db.DateTime,
         default=db.func.current_timestamp(),

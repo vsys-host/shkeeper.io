@@ -81,6 +81,7 @@ def send_notification(tx):
                 "fee_fiat": remove_exponent(t.amount_fiat - amount_fiat_without_fee),
                 "trigger": tx.id == t.id,
                 "crypto": t.crypto,
+                "aml_score": str(float(t.aml_score)) if t.aml_score is not None else None
             }
         )
 
@@ -91,7 +92,7 @@ def send_notification(tx):
         "fiat": tx.invoice.fiat,
         "balance_fiat": remove_exponent(tx.invoice.balance_fiat),
         "balance_crypto": remove_exponent(tx.invoice.balance_crypto),
-        "paid": tx.invoice.status in (InvoiceStatus.PAID, InvoiceStatus.OVERPAID),
+        "paid": tx.invoice.status in (InvoiceStatus.PAID, InvoiceStatus.OVERPAID, InvoiceStatus.AML_CHECK_PAID, InvoiceStatus.AML_CHECK_OVERPAID),
         "status": tx.invoice.status.name,
         "transactions": transactions,
         "fee_percent": remove_exponent(tx.invoice.rate.fee),

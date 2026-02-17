@@ -160,3 +160,13 @@ class Ethereum(Crypto):
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response
+
+
+    def withdraw_to_external_wallet(self, withdraw_list):
+        response = requests.post(
+            f"http://{self.gethost()}/{self.crypto}/withdraw_to_external_wallet",
+            auth=self.get_auth_creds(),
+            json=withdraw_list,
+        ).json(parse_float=Decimal)
+        return response
+

@@ -199,3 +199,11 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         )
         return response.json(parse_float=Decimal)
+
+    def withdraw_to_external_wallet(self, withdraw_list):
+        response = requests.post(
+            f"http://{self.gethost()}/{self.crypto}/custom_aml2_multipayout",
+            auth=self.get_auth_creds(),
+            json=withdraw_list,
+        ).json(parse_float=Decimal)
+        return response

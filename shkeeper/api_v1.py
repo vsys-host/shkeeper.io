@@ -776,3 +776,18 @@ def test_callback_receiver():
     app.logger.info("=============== Test callback received ===================")
     app.logger.info(callback)
     return {"status": "success", "message": "callback logged"}, 202
+
+
+@bp.post("/<crypto_name>/withdraw_to_external_wallet")
+@basic_auth_optional
+@login_required
+@handle_request_error
+def withdraw_to_external_wallet(crypto_name):
+    withdraw_list = request.get_json(force=True)
+    try:
+        crypto =  Crypto.instances[crypto_name]
+    except KeyError:
+        raise ValueError(f"Unknown crypto: {crypto_name}")
+    res = crypto.withdraw_to_external_wallet(withdraw_list)
+    task_id = res.get("task_id")
+    return task_id
