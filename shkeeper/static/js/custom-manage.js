@@ -1,6 +1,6 @@
 const crypto = document.getElementById('cryptoname').getAttribute("cryptoname");
 // const BTC = "BTC";
-const LTC = "LTC";
+// const LTC = "LTC";
 const DOGE = "DOGE"
 console.log(crypto);
 
@@ -444,21 +444,21 @@ function sendAction()
         //     check = false;
         //   }
         // }
-        if(crypto == LTC)
-        {
-          let BTCRegExp = new RegExp('^([LM3][a-km-zA-HJ-NP-Z1-9]{26,33}|ltc1[a-z0-9]{39,59})$');
-          if(BTCRegExp.test(element.value))
-          {
-            document.querySelector(".dropdown__header").classList.remove("red-highlight");
-          }
-          else
-          {
-            alert("Destination Address doesn't match Valid Litecoin address.");
-            document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;
-          }
-        }
-        else if(crypto == DOGE)
+        // if(crypto == LTC)
+        // {
+        //   let BTCRegExp = new RegExp('^([LM3][a-km-zA-HJ-NP-Z1-9]{26,33}|ltc1[a-z0-9]{39,59})$');
+        //   if(BTCRegExp.test(element.value))
+        //   {
+        //     document.querySelector(".dropdown__header").classList.remove("red-highlight");
+        //   }
+        //   else
+        //   {
+        //     alert("Destination Address doesn't match Valid Litecoin address.");
+        //     document.querySelector(".dropdown__header").classList.add("red-highlight");
+        //     check = false;
+        //   }
+        // }
+        if(crypto == DOGE)
         {
           let BTCRegExp = new RegExp('^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$');
           if(BTCRegExp.test(element.value))
