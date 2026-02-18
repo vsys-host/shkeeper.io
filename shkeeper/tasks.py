@@ -137,3 +137,12 @@ def task_check_aml_results():
         if scheduler.app.config.get("AML_MODE").lower() != 'true':
             return
         check_all_paid_invoices()
+
+
+@scheduler.task("interval", id="check_aml_results2", seconds=150)
+def task_check_aml_results2():
+    with scheduler.app.app_context():
+        scheduler.app.logger.info(scheduler.app.config.get("AML_MODE").lower())
+        if scheduler.app.config.get("AML_MODE").lower() != 'true':
+            return
+        recheck_all_aml_invoices()

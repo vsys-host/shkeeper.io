@@ -64,18 +64,11 @@ def withdraw_to_external_wallet(crypto_name, source, destination):
 
 
 def check_all_paid_invoices():
-    # with app.app_context():
     app.logger.info(f"Check all invoices")
     paid_and_overpaid_invoices = (
     Invoice.query
     .filter(Invoice.status.in_([InvoiceStatus.PAID, 
-                                InvoiceStatus.OVERPAID,
-                                InvoiceStatus.AML_CHECK_PAID,
-                                InvoiceStatus.AML_CHECK_OVERPAID,]))
-    .all()
-    )
-
-
+                                InvoiceStatus.OVERPAID,])).all())
 
     for invoice in paid_and_overpaid_invoices:
         skip_invoice = False
@@ -142,10 +135,64 @@ def check_all_paid_invoices():
             db.session.commit()
         else:
             pass
-            # app.logger.info(f'Incorrect invoice {invoice.external_id} status in this context, should be paid or overpaid')
-            # continue  
         
         #if we here - all aml_scores are higher than AML_MIN_ACCEPT_SCORE
+        for tx in invoice_transactions:
+            # with app.app_context():
+            tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
+                                                     InvoiceAddress.crypto == tx.crypto).first()
+            withdraw_to_external_wallet(tx.crypto, 
+                                     tx_address.addr, 
+                                     app.config.get("AML_EXTERNAL_ADDRESSES")[tx.crypto])
+
+
+def recheck_all_aml_invoices():
+    # with app.app_context():
+    app.logger.info(f"Reheck all AML invoices")
+    paid_and_overpaid_invoices = (
+    Invoice.query
+    .filter(Invoice.status.in_([InvoiceStatus.AML_CHECK_PAID,
+                                InvoiceStatus.AML_CHECK_OVERPAID,])).all())
+
+    for invoice in paid_and_overpaid_invoices:
+        skip_invoice = False
+        invoice_transactions = Transaction.query.filter_by(invoice_id = invoice.id)
+        invoice_tx_aml_scores = []
+        invoice_tx_cryptos = []
+        for tx in invoice_transactions:
+            
+            tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
+                                                     InvoiceAddress.crypto == tx.crypto).first()
+            aml_result = get_tx_aml_score(tx.crypto, 
+                                         tx.txid, 
+                                         tx.amount_crypto, 
+                                         tx_address.addr)
+            if not aml_result:
+                app.logger.info(f"Cannot get info for {tx.txid} tx, skip invoice")
+                skip_invoice = True
+            else:
+                aml_score = aml_result['aml_score']
+            invoice_tx_aml_scores.append(aml_score)
+            invoice_tx_cryptos.append(tx.crypto)
+
+        if skip_invoice: 
+            app.logger.info(f"Skip invoce {invoice.external_id}")
+            continue
+            
+        all_aml_scores_above_limit = True
+
+        for aml_score in invoice_tx_aml_scores:
+            if -1 < aml_score < app.config.get("AML_MIN_ACCEPT_SCORE"):
+                # one invoice transaction is below the AML_MIN_ACCEPT_SCORE
+                # invoice should be DECLINED
+                app.logger.info(f"One of {invoice.external_id,} transactions below the AML_MIN_ACCEPT_SCORE, should refunded manually")
+                invoice.status = InvoiceStatus.AML_CHECK_DECLINED
+                db.session.commit()
+                all_aml_scores_above_limit = False
+
+        if not all_aml_scores_above_limit:
+            continue  
+
         for tx in invoice_transactions:
             # with app.app_context():
             tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
