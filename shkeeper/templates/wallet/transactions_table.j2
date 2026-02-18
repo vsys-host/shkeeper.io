@@ -5,13 +5,13 @@
       <th class="address table-subtitle">Adress</th>
       <th class="crypto table-subtitle">Crypto</th>
       <th class="amount table-subtitle">Amount</th>
-      <th class="amount-bucks table-subtitle">Amount $</th>
+      <th class="amount-bucks table-subtitle">Amount fiat</th>
       <th class="status table-subtitle">Status</th>
       <th class="date table-subtitle">Date</th>
       <th class="time table-subtitle">Time</th>
       <th class="invoice table-subtitle">External ID</th>
       <th class="invoice-crpt table-subtitle">Invoice Coin</th>
-      <th class="invoice-bucks table-subtitle">Invoice $</th>
+      <th class="invoice-bucks table-subtitle">Invoice fiat</th>
       <th class="inv-date table-subtitle">Inv. Date</th>
       <th class="inv-time table-subtitle">Inv. Time</th>
     </tr>
@@ -21,9 +21,9 @@
     <tr>
       <td value="{{tx.txid}}" class="row-{{loop.index}} transactions transactions-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.txid}}" data-bs-custom-class="custom-tooltips">{{tx.txid}}</td>
       <td value="{{tx.addr}}" class="row-{{loop.index}} address address-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.addr}}" data-bs-custom-class="custom-tooltips">{{tx.addr}}</td>
-      <td class="row-{{loop.index}} crypto">{{tx.crypto}}</td>
+      <td class="row-{{loop.index}} crypto">{{tx.crypto_label}}</td>
       <td class="row-{{loop.index}} amount">{{tx.amount_crypto|abs|format_decimal}}</td>
-      <td class="row-{{loop.index}} amount-bucks">${{tx.amount_fiat|abs|format_decimal(2)}}</td>
+      <td class="row-{{loop.index}} amount-bucks">{{tx.invoice.fiat}} {{tx.amount_fiat|abs|format_decimal(2)}}</td>
       <td class="row-{{loop.index}} status success-text">{{tx.invoice.status.name}}</td>
       <td class="row-{{loop.index}} date convertDate">{{tx.created_at.timestamp()}}</td>
       <td class="row-{{loop.index}} time">{{tx.created_at.strftime('%H:%M')}}</td>
@@ -36,7 +36,7 @@
       {% else %}
         <td class="row-{{loop.index}} invoice">{{tx.invoice.external_id|e}}</td>
         <td class="row-{{loop.index}} invoice-crpt">{{tx.invoice.amount_crypto|format_decimal}}</td>
-        <td class="row-{{loop.index}} invoice-bucks">${{tx.invoice.amount_fiat|format_decimal(2)}}</td>
+        <td class="row-{{loop.index}} invoice-bucks">{{tx.invoice.fiat}} {{tx.invoice.amount_fiat|format_decimal(2)}}</td>
         <td class="row-{{loop.index}} inv-date convertDate">{{tx.invoice.created_at.timestamp()}}</td>
         <td class="row-{{loop.index}} inv-time">{{tx.invoice.created_at.strftime('%H:%M')}}</td>
       {% endif %}

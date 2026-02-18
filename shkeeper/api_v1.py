@@ -414,7 +414,10 @@ def walletnotify(crypto_name, txid):
             app.logger.warning("Wrong backend key")
             return {"status": "error", "message": "Wrong backend key"}, 403
 
-        for addr, amount, confirmations, category in crypto.getaddrbytx(txid):
+        tx_data_from_crypto = crypto.getaddrbytx(txid)
+        app.logger.warning(tx_data_from_crypto)
+
+        for addr, amount, confirmations, category in tx_data_from_crypto:
             try:
                 if category not in ("send", "receive"):
                     app.logger.warning(

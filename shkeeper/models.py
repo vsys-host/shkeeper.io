@@ -111,7 +111,7 @@ class PayoutReservePolicy(enum.Enum):
 class Fiat:
     @classmethod
     def list(cls):
-        return ["USD", "EUR"]
+        return ["USD", "EUR", "TRY"]
 
 
 class Wallet(db.Model):
@@ -180,13 +180,9 @@ class Wallet(db.Model):
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
-        res = crypto.mkpayout(
-            self.pdest, balance, self.pfee, subtract_fee_from_amount=True
-        )
         task_id = res.get("task_id")
         app.logger.warning(f"payout do_payt create {res}")
-        if task_id:
-            return Payout.add(
+        Payout.add(
             {
                 "dest": self.pdest,
                 "amount": balance,
@@ -384,7 +380,9 @@ class Invoice(db.Model):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
         crypto_is_lightning = "BTC-LIGHTNING" == crypto.crypto
         invoice = cls.query.filter_by(
-            external_id=request["external_id"], callback_url=request["callback_url"]
+            external_id=request["external_id"], 
+            callback_url=request["callback_url"], 
+            fiat=request["fiat"]
         ).first()
         if invoice:
             # updating existing invoice
@@ -715,9 +713,9 @@ class Payout(db.Model):
                 payout.error = results
             db.session.commit()
             return
-        result_by_dest = {r["dest"]: r for r in results}
+        result_by_dest = {r["dest"].lower(): r for r in results}
         for payout in payouts:
-            r = result_by_dest.get(payout.dest_addr)
+            r = result_by_dest.get(payout.dest_addr.lower())
             if not r:
                 continue
             txids = r.get("txids", [])
@@ -728,8 +726,6 @@ class Payout(db.Model):
 
     @classmethod
     def add(cls, payout, crypto, task_id=None, external_id=None):
-        if not task_id:
-          return None
         app.logger.warning(f"payouts add {payout}")
         external_id = external_id or None
         p = cls(
@@ -743,10 +739,14 @@ class Payout(db.Model):
         )
         db.session.add(p)
         db.session.commit()
-        for txid in payout.get("txids", []):
-            ptx = PayoutTx(payout_id=p.id, txid=txid)
-            db.session.add(ptx)
-        db.session.commit()
+        txids = payout.get("txids")
+        if txids:
+            if isinstance(txids, str):
+                txids = [txids]
+            for txid in txids:
+                ptx = PayoutTx(payout_id=p.id, txid=txid)
+                db.session.add(ptx)
+            db.session.commit()
         return p
 
 class Notification(db.Model):

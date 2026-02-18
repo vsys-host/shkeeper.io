@@ -17,7 +17,7 @@
       <td class="date">{{payout.created_at.strftime('%Y-%m-%d %H:%M')}}</td>
       <td class="address">{{payout.dest_addr}}</td>
       <td class="amount">{{payout.amount|abs|format_decimal}}</td>
-      <td class="crypto">{{payout.crypto}}</td>
+      <td class="crypto">{{payout.crypto_label}}</td>
       {# <td class="status">{{payout.status.name|replace("_", " ")|title}}</td> #}
       <td class="transactions">
         <ul>
@@ -29,13 +29,13 @@
       <td class="crypto">{{ payout.external_id or '' }}</td>
       <td class="crypto">
         {% if payout.success == 'No' %}
-          <span class="tooltip-target tooltip-red" data-tooltip="{{ payout.error }}">
-            🔴 {{ payout.success }}
+          <span class="tooltip-target tooltip-red" data-tooltip="{{ payout.error }}" style="color: var(--danger-color);">
+            {{ payout.success }}
           </span>
         {% elif payout.success == 'Yes' %}
-            🟢 {{ payout.success }}
+            <div style="color: var(--success-color)">{{ payout.success }}</div>
         {% else %}
-          {{ payout.success or '' }}
+          <div>{{ payout.success or '' }}</div>
         {% endif %}
       </td>
     </tr>

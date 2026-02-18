@@ -2,16 +2,12 @@
 
 
 {% block content %}
-<div class="px-5 py-4 content-container">
-  <div class="row">
-    <div class="col">
-      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
-    </div>
-  </div>
+<div class="content-container overflow-auto payout-page">
+  <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
 
   <div class="row">
-    <div class="col ps-4 payout-wrapper">
-      <div class="autopayout-grid common-text ps-4">
+    <div class="col payout-wrapper">
+      <div class="autopayout-grid common-text">
         <div><p>Available:</p></div>
         <div>
           <p>
@@ -65,6 +61,16 @@
             <p class="ms-2">{{crypto.display_name}}</p>
           </div>
         </div>
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              name="external-id"
+            />
+          </div>
+        </div>
         <div><p>Fee:</p></div>
         <div>
           <div class="d-flex align-items-center">
@@ -91,9 +97,9 @@
     </div>
   </div>
   <div class="row">
-    <div class="col d-flex justify-content-end">
-      <button type="submit" class="button btn me-3 send-payment">Send</button>
-      <button type="button" class="button btn button-secondary" onclick="location.href='/';">
+    <div class="col d-flex justify-content-end mt-5">
+      <button type="submit" class="btn btn-outline-primary btn-outline-primary__customization btn-fixed-w me-3 send-payment">Send</button>
+      <button type="button" class="btn btn-outline-secondary btn-outline-secondary__customization" onclick="location.href='/';">
         Discard
       </button>
     </div>

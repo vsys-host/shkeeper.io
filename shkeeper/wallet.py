@@ -56,6 +56,16 @@ prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp = Blueprint("wallet", __name__)
 
+def get_crypto_label(crypto_code: str) -> str:
+    if not crypto_code:
+        return ""
+
+    for c in Crypto.instances.values():
+        if crypto_code in (c.crypto, c.getname()):
+            return getattr(c, "_display_name", None) or c.getname()
+
+    return crypto_code
+
 
 @bp.context_processor
 def inject_theme():
@@ -74,10 +84,11 @@ def wallets():
     return render_template("wallet/wallets.j2", cryptos=cryptos)
 
 
-@bp.get("/<crypto_name>/get-rate")
+@bp.get("/<crypto_name>/get-rate", defaults={"fiat": "USD"})
+@bp.get("/<crypto_name>/get-rate/<fiat>")
 @login_required
-def get_source_rate(crypto_name):
-    fiat = "USD"
+def get_source_rate(crypto_name, fiat):
+    #fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
     current_rate = rate.get_rate()
     return {crypto_name: current_rate}
@@ -102,7 +113,7 @@ def payout(crypto_name):
     if isinstance(crypto, Ethereum) and crypto_name != "ETH":
         tmpl = "wallet/payout_eth.j2"
 
-    if crypto_name in ["ETH", "BNB", "XRP", "MATIC", "AVAX", "SOL"]:
+    if crypto_name in ["ETH", "BNB", "XRP", "MATIC", "AVAX", "SOL", "ARBETH", "OPETH"]:
         tmpl = "wallet/payout_eth_coin.j2"
 
     if crypto_name in ["BTC", "LTC", "DOGE"]:
@@ -201,7 +212,7 @@ def save_rates(fiat):
 
         ExchangeRate.query.filter_by(crypto=symbol, fiat=fiat).update(fields)
     db.session.commit()
-    return redirect(url_for("wallet.list_rates"))
+    return redirect(url_for("wallet.list_rates", fiat = fiat))
 
 
 @bp.get("/transactions")
@@ -209,7 +220,15 @@ def save_rates(fiat):
 def transactions():
     return render_template(
         "wallet/transactions.j2",
-        cryptos=Crypto.instances.keys(),
+        # cryptos=Crypto.instances.keys(),
+        cryptos = [
+          {
+              "value": crypto.crypto,
+              "label": crypto.display_name,
+          }
+          for crypto in Crypto.instances.values()
+        ],
+
         invoice_statuses=[status.name for status in InvoiceStatus],
     )
 
@@ -337,11 +356,16 @@ def parts_transactions():
         return response
 
     pagination = query.order_by(Transaction.id.desc()).paginate(per_page=50)
+
+    txs = pagination.items
+    for tx in txs:
+        tx.crypto_label = get_crypto_label(tx.crypto)
+
     return render_template(
         "wallet/transactions_table.j2",
         cryptos=Crypto.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
-        txs=pagination.items,
+        txs=txs,
         pagination=pagination,
     )
 
@@ -351,7 +375,14 @@ def parts_transactions():
 def payouts():
     return render_template(
         "wallet/payouts.j2",
-        cryptos=Crypto.instances.keys(),
+        # cryptos=Crypto.instances.keys(),
+        cryptos = [
+          {
+              "value": crypto.crypto,
+              "label": crypto.display_name,
+          }
+          for crypto in Crypto.instances.values()
+        ],
         payout_statuses=[status.name for status in PayoutStatus],
         payout_tx_statuses=[status.name for status in PayoutTxStatus],
     )
@@ -408,9 +439,14 @@ def parts_payouts():
         return response
 
     pagination = query.order_by(Payout.id.desc()).paginate(per_page=50)
+
+    payouts = pagination.items
+    for p in payouts:
+        p.crypto_label = get_crypto_label(p.crypto)
+
     return render_template(
         "wallet/payouts_table.j2",
-        payouts=pagination.items,
+        payouts=payouts,
         pagination=pagination,
     )
 

@@ -15,12 +15,24 @@ class Binance(RateSource):
 
         if crypto in self.USDC_CRYPTOS:
             crypto = "USDC"
+        
+        if crypto in self.USDT_CRYPTOS:
+            crypto = "USDT"
 
         if crypto in self.BTC_CRYPTOS:
             crypto = "BTC"
         
         if crypto in self.FIRO_CRYPTOS:
             crypto = "FIRO"
+
+        if crypto in self.ETH_CRYPTOS:
+            crypto = "ETH"
+        
+        if crypto == "ARB-TOKEN":
+            crypto = "ARB"
+
+        if crypto == "OP-TOKEN":
+            crypto = "OP"
 
         if fiat == "USD":
             fiat = "USDT"

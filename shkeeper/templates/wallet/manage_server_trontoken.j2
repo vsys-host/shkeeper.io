@@ -1,7 +1,7 @@
 {% extends 'wallet/manage_server_crypto.j2' %}
 {% block custom_actions %}
-    <div class="mb-3 d-flex align-items-center justify-content-start">
-        <p class="server-width common-text">Advanced:</p>
+    <div class="mb-3 d-flex">
+        <p class="common-text manage-server-label">Advanced:</p>
         <a href="{{ url_for('wallet.configure_tron') }}"
            class="common-text accent-text">Configure Tron settings</a>
     </div>

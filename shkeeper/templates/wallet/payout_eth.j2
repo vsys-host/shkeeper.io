@@ -2,16 +2,13 @@
 
 
 {% block content %}
-<div class="px-5 py-4 content-container">
-  <div class="row">
-    <div class="col">
-      <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
-    </div>
-  </div>
+<div class="content-container overflow-auto payout-page">
+  <h1 class="title-text" id="cryptoname" cryptoname="{{crypto.crypto}}">{{crypto.display_name}} payout</h1>
+
 
   <div class="row">
-    <div class="col ps-4" style="max-width: 600px;">
-      <div class="autopayout-grid common-text ps-4">
+    <div class="col" style="max-width: 600px;">
+      <div class="autopayout-grid common-text">
 
         <div><p>Fee-deposit account:</p></div>
         <div>
@@ -74,7 +71,28 @@
             <p class="ms-2">{{crypto.display_name}}</p>
           </div>
         </div>
-
+        {% if enable_payout_callback %}
+          <div><p>Callback url:</p></div>
+          <div>
+            <div class="d-flex align-items-center">
+              <input
+                class="form-control common-text"
+                type="text"
+                id="callback-url"
+              />
+            </div>
+          </div>
+        {% endif %}
+        <div><p>External ID:</p></div>
+        <div>
+          <div class="d-flex align-items-center">
+            <input
+              class="form-control common-text"
+              type="text"
+              id="external-id"
+            />
+          </div>
+        </div>
         <div><p>Estimated fee:</p></div>
         <div>
             <p><span id="est_fee">0</span>  {{ crypto.network_currency }}</p>
@@ -87,20 +105,20 @@
 
       </div>
     </div>
-    <div class="col ps-4" style="max-width: 600px;">
+    <div class="col" style="max-width: 600px;">
       <p><img src="{{ fee_deposit_qrcode.svg_data_uri( scale=4, light='#060616' if theme == 'dark' else '#fff', dark='#fff' if theme == 'dark' else '#000') }}"></p>
     </div>
   </div>
   <div class="row">
-    <div class="col d-flex justify-content-end">
-      <button type="submit" class="button btn me-3 send-payment" data-progress="off">
+    <div class="col d-flex justify-content-end mt-5">
+      <button type="submit" class="btn btn-outline-primary btn-outline-primary__customization btn-fixed-w me-3 send-payment" data-progress="off">
         <span class="tx_standby">Send</span>
         <span class="tx_in_progress" style="display: none;">
           <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
           Sending...
         </span>
       </button>
-      <button type="button" class="button btn button-secondary" onclick="location.href='/';">
+      <button type="button" class="btn btn-outline-secondary btn-outline-secondary__customization" onclick="location.href='/';">
         Discard
       </button>
     </div>
@@ -140,6 +158,21 @@ function show_est_fee() {
       console.log(data);
     })
 }
+function validateCallback(element) {
+  if (!element || !element.value.trim()) {
+      element?.classList.remove("red-highlight");
+      return null;
+  }
+  element.value = element.value.trim();
+  if (element.value.startsWith("http://") || element.value.startsWith("https://")) {
+      element.classList.remove("red-highlight");
+      return element.value;
+  } else {
+      element.classList.add("red-highlight");
+      alert("Invalid Callback URL! Must start with http:// or https://");
+      return false;
+  }
+}
 
 var not_en_trx_msg = `Not enough {{ crypto.network_currency }} to pay for transaction. Please top up the fee-deposit account.`;
 
@@ -178,6 +211,10 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   document.tx_complete = false;
 
   let addr = document.querySelector("#paddress").value.trim();
+  let callbackUrl = validateCallback(document.getElementById("callback-url"));
+  if (callbackUrl === false) return;
+  let elExternalId = document.querySelector("#external-id");
+  let externalIdVal = elExternalId ? elExternalId.value : null;
 //  if (!(addr.startsWith('T') && addr.length == 34)) {
 //    alert('Please enter a valid ETH address.');
 //    return;
@@ -205,6 +242,8 @@ document.querySelector(".send-payment").addEventListener("click", e => {
     body: JSON.stringify({
       destination: addr,
       amount: amount,
+      callback_url: callbackUrl,
+      external_id: externalIdVal,
       fee: document.querySelector("#est_fee").innerText,
     })
   })

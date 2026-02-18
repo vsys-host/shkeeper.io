@@ -1,22 +1,22 @@
 <div class="input-block">
     <h2 class="subtitle-text mb-4">Server</h2>
 
-    <div class="d-flex ps-4 input-block">
+    <div class="d-flex input-block">
         <div class="w-100">
             <div class="mb-3 d-flex align-items-center justify-content-start flex-wrap">
-                <p class="server-width common-text">Host name:</p>
+                <p class="common-text">Host name:</p>
                 <p class="me-3 common-text">{{ crypto.gethost() }}</p>
             </div>
             <div class="mb-3 d-flex align-items-center justify-content-start">
-                <p class="server-width common-text">Blockchain key:</p>
+                <p class="common-text">Blockchain key:</p>
                 <a href="{{url_for('api_v1.backup', crypto_name=crypto.crypto)}}" class="common-text accent-text">Download</a>
             </div>
             <div class="mb-3 d-flex align-items-center justify-content-start">
-                <p class="server-width common-text">WEB interface:</p>
+                <p class="common-text">WEB interface:</p>
                 <a href="{{crypto.RTL_WEB_URL}}/?access-key={{crypto.rtl_cookie}}" class="common-text accent-text">Ride The Lightning</a>
             </div>
             <div class="mb-3 d-flex align-items-center justify-content-start">
-                <p id="server-status" class="server-width common-text server-inactive">Server offline</p>
+                <p id="server-status" class="common-text server-inactive">Server offline</p>
             </div>
         </div>
     </div>

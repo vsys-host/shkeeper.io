@@ -42,7 +42,13 @@ function getRealTRates(pairName, currentRate) {
     //let currentCrypto = currentRate.dataset.pairname.replace("USDT", "").toUpperCase();
     let currentCrypto = pairName.replace("usdt", "").toUpperCase();
     console.log('--->',currentCrypto)
-    let url = "/" + currentCrypto + "/get-rate";
+    let app_conf = document.getElementById("app-config");
+    let fiat = app_conf.dataset.fiat;
+    console.log('---->',fiat)
+    if (fiat !== 'USD')
+        { var url = "/" + currentCrypto + "/get-rate/" + fiat;} 
+    else
+        { var url = "/" + currentCrypto + "/get-rate";}
     let http2 = new XMLHttpRequest();
     http2.onload = function(){
         let data = "";

@@ -11,6 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;1,600&display=swap"
       rel="stylesheet"
     />
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -18,13 +19,11 @@
       crossorigin="anonymous"
     />
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js" integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}" />
-    <link id="css1" rel="stylesheet" href="{{ url_for('static', filename='css/main.min.' + theme + '.css') }}" />
-    <link id="css2" rel="stylesheet" href="{{ url_for('static', filename='css/custom-main.' + theme + '.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+    <link id="css1" rel="stylesheet" href="{{ url_for('static', filename='css/theme.' + theme + '.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tooltips.css') }}">
   </head>
   <body>
-
      {% block body %}{% endblock %}
 
     <script
@@ -43,20 +42,18 @@
 
       function setDark() {
         document.cookie = "theme=dark; path=/";
-        document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.dark.css') }}";
-        document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.dark.css') }}";
+        document.getElementById("css1").href = "{{ url_for('static', filename='css/theme.dark.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
         document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.light.', '.dark.'); });
-        document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
+        document.querySelectorAll('img.big-logo, img.menu-logo, img.bottom-bar-img ,img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.light.', '.dark.'); });
       }
 
       function setLight() {
         document.cookie = "theme=light; path=/";
-        document.getElementById("css1").href = "{{ url_for('static', filename='css/main.min.light.css') }}";
-        document.getElementById("css2").href = "{{ url_for('static', filename='css/custom-main.light.css') }}";
+        document.getElementById("css1").href = "{{ url_for('static', filename='css/theme.light.css') }}";
         document.querySelectorAll('.nav-icon use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
         document.querySelectorAll('.currency-logo use').forEach((e, i) => { e.href.baseVal = e.href.baseVal.replace('.dark.', '.light.'); });
-        document.querySelectorAll('img.big-logo, img.menu-logo, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
+        document.querySelectorAll('img.big-logo, img.menu-logo, img.bottom-bar-img, img.htmx-indicator').forEach((e, i) => { e.src = e.src.replace('.dark.', '.light.'); });
       }
 
       function forceColorScheme(is_dark) {
