@@ -87,19 +87,19 @@ def check_all_paid_invoices():
                 skip_invoice = True
             else:
                 aml_score = aml_result['aml_score']
-            invoice_tx_aml_scores.append(aml_score)
-            invoice_tx_cryptos.append(tx.crypto)
-            if float(aml_score) > -1:
-                if tx.aml_score == aml_score:
-                    app.logger.info("No need to update the tx")
-                else:
-                    app.logger.info("Update TX with AML scores")
-                    tx.aml_score = aml_score
-                    tx.callback_confirmed = False
-                    db.session.commit()
+                invoice_tx_aml_scores.append(aml_score)
+                invoice_tx_cryptos.append(tx.crypto)
+                if float(aml_score) > -1:
+                    if tx.aml_score == aml_score:
+                        app.logger.info("No need to update the tx")
+                    else:
+                        app.logger.info("Update TX with AML scores")
+                        tx.aml_score = aml_score
+                        tx.callback_confirmed = False
+                        db.session.commit()
         
         if skip_invoice: 
-            app.logger.info(f"Skip invoce {invoice.external_id}")
+            app.logger.info(f"Skip invoice {invoice.external_id}")
             continue
 
         app.logger.info(f"Invoice {invoice.external_id} have next txs scores: {invoice_tx_aml_scores}")
@@ -172,11 +172,11 @@ def recheck_all_aml_invoices():
                 skip_invoice = True
             else:
                 aml_score = aml_result['aml_score']
-            invoice_tx_aml_scores.append(aml_score)
-            invoice_tx_cryptos.append(tx.crypto)
+                invoice_tx_aml_scores.append(aml_score)
+                invoice_tx_cryptos.append(tx.crypto)
 
         if skip_invoice: 
-            app.logger.info(f"Skip invoce {invoice.external_id}")
+            app.logger.info(f"Skip invoice {invoice.external_id}")
             continue
             
         all_aml_scores_above_limit = True
