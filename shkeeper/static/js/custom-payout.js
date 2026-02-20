@@ -1,6 +1,6 @@
 const crypto = document.getElementById('cryptoname').getAttribute("cryptoname");
 // const BTC = "BTC";
-// const LTC = "LTC";
+const LTC = "LTC";
 const DOGE = "DOGE";
 function dropdown()
 {
