@@ -87,7 +87,7 @@ def create_app(test_config=None):
         # AML related 
         AML_MODE = str(os.environ.get("AML_MODE", "False")),
         AML_EXTERNAL_ADDRESSES = json.loads(str(os.environ.get("AML_EXTERNAL_ADDRESSES", '{}'))), # {'ETH': '0x9a5Af1C34eXXXXXXXXXXXXXXXXXXXXXXXXX', 'TRX': 'wefewGREGWGWFefwefew'}
-        AML_MIN_ACCEPT_SCORE = float(os.environ.get("AML_MIN_ACCEPT_SCORE", '1')),
+        AML_MAX_ACCEPT_SCORE = float(os.environ.get("AML_MAX_ACCEPT_SCORE", '0.1')),
     )
 
     if test_config is None:

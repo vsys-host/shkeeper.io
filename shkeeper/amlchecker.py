@@ -114,17 +114,17 @@ def check_all_paid_invoices():
         
         all_aml_scores_above_limit = True
         for aml_score in invoice_tx_aml_scores:
-            if -1 < aml_score < app.config.get("AML_MIN_ACCEPT_SCORE"):
-                # one invoice transaction is below the AML_MIN_ACCEPT_SCORE
+            if -1 < aml_score > app.config.get("AML_MAX_ACCEPT_SCORE"):
+                # one invoice transaction is above the AML_MAX_ACCEPT_SCORE
                 # invoice should be DECLINED
-                app.logger.info(f"One of {invoice.external_id,} transactions below the AML_MIN_ACCEPT_SCORE, should refunded manually")
+                app.logger.info(f"One of {invoice.external_id,} transactions above the AML_MAX_ACCEPT_SCORE, should refunded manually")
                 invoice.status = InvoiceStatus.AML_CHECK_DECLINED
                 db.session.commit()
                 all_aml_scores_above_limit = False
         if not all_aml_scores_above_limit:
             continue  
         
-        # invoice has all scores and all above the AML_MIN_ACCEPT_SCORE
+        # invoice has all scores and all below the AML_MAX_ACCEPT_SCORE
         # invoice should be AML_CHECK_PAID or AML_CHECK_OVERPAID
             
         if invoice.status == InvoiceStatus.PAID:
@@ -136,7 +136,7 @@ def check_all_paid_invoices():
         else:
             pass
         
-        #if we here - all aml_scores are higher than AML_MIN_ACCEPT_SCORE
+        #if we here - all aml_scores are lower than AML_MAX_ACCEPT_SCORE
         for tx in invoice_transactions:
             # with app.app_context():
             tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
@@ -182,10 +182,10 @@ def recheck_all_aml_invoices():
         all_aml_scores_above_limit = True
 
         for aml_score in invoice_tx_aml_scores:
-            if -1 < aml_score < app.config.get("AML_MIN_ACCEPT_SCORE"):
-                # one invoice transaction is below the AML_MIN_ACCEPT_SCORE
+            if -1 < aml_score > app.config.get("AML_MAX_ACCEPT_SCORE"):
+                # one invoice transaction is above the AML_MAX_ACCEPT_SCORE
                 # invoice should be DECLINED
-                app.logger.info(f"One of {invoice.external_id,} transactions below the AML_MIN_ACCEPT_SCORE, should refunded manually")
+                app.logger.info(f"One of {invoice.external_id,} transactions above the AML_MAX_ACCEPT_SCORE, should refunded manually")
                 invoice.status = InvoiceStatus.AML_CHECK_DECLINED
                 db.session.commit()
                 all_aml_scores_above_limit = False
