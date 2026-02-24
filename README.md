@@ -94,18 +94,24 @@ SHKeeper offers a direct way to receive BTC, ETH, LTC, DOGE, XMR, XRP, TRX, BNB,
 <a name="installation"></a>
 ## 4. Installation
 
+Make sure all the command bellow are executed as `root`
+
+```
+sudo su
+```
+
 Install k3s and helm on a fresh server (tested on Ubuntu 22):
 
 ```
-# curl -sfL https://get.k3s.io | sh -
-# mkdir /root/.kube && ln -s /etc/rancher/k3s/k3s.yaml /root/.kube/config
-# curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+curl -sfL https://get.k3s.io | sh -
+mkdir /root/.kube && ln -s /etc/rancher/k3s/k3s.yaml /root/.kube/config
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
 Create Shkeeper chart configuration file `values.yaml` with BTC, LTC, DOGE, XMR enabled:
 
 ```
-# cat << EOF > values.yaml
+cat << EOF > values.yaml
 
 #
 # General
@@ -119,6 +125,8 @@ storageClassName: local-path
 
 btc:
   enabled: true
+  legacy:
+    enabled: true # false I'm not sure
 ltc:
   enabled: true
 doge:
@@ -138,11 +146,11 @@ EOF
 Install Shkepeer helm chart:
 
 ```
-# helm repo add vsys-host https://vsys-host.github.io/helm-charts
-# helm repo add mittwald https://helm.mittwald.de
-# helm repo update
-# helm install kubernetes-secret-generator mittwald/kubernetes-secret-generator
-# helm install -f values.yaml shkeeper vsys-host/shkeeper
+helm repo add vsys-host https://vsys-host.github.io/helm-charts
+helm repo add mittwald https://helm.mittwald.de
+helm repo update
+helm install kubernetes-secret-generator mittwald/kubernetes-secret-generator
+helm install -f values.yaml shkeeper vsys-host/shkeeper
 ```
 
 Login to Shkeeper: http://\<ip>\:5000/
@@ -153,8 +161,8 @@ Login to Shkeeper: http://\<ip>\:5000/
 Install cert-manager:
 
 ```
-# helm repo add jetstack https://charts.jetstack.io
-# helm install \
+helm repo add jetstack https://charts.jetstack.io
+helm install \
   cert-manager jetstack/cert-manager \
   --namespace cert-manager \
   --create-namespace \
@@ -176,7 +184,7 @@ spec:
   commonName: demo.shkeeper.io
   secretName: shkeeper-cert
   dnsNames:
-    - demo.shkeeper.io
+    - demo.shkeeper.io # Replace with your own domain
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer
@@ -187,7 +195,7 @@ metadata:
   name: letsencrypt-production
 spec:
   acme:
-    email: support@v-sys.org
+    email: support@v-sys.org # Replace with your own email
     server: https://acme-v02.api.letsencrypt.org/directory
     privateKeySecretRef:
       name: your-own-very-secretive-key
@@ -196,7 +204,7 @@ spec:
           ingress:
             class: traefik
 ---
-apiVersion: traefik.containo.us/v1alpha1
+apiVersion: traefik.containo.us/v1alpha1 # If you get an error, run `kubectl api-resources | grep IngressRoute` and change the version accordingly
 kind: IngressRoute
 metadata:
   name: shkeeper
@@ -206,7 +214,7 @@ spec:
     - web
     - websecure
   routes:
-    - match: Host(`demo.shkeeper.io`)
+    - match: Host(`demo.shkeeper.io`) # Replace with your own domain
       kind: Rule
       services:
         - name: shkeeper
