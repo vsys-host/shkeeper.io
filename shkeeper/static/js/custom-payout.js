@@ -341,21 +341,20 @@ function sendPayment()
             check = false;
           }
         }
-        else if(crypto == DOGE)
-        {
-          let BTCRegExp = new RegExp('^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$');
-          if(BTCRegExp.test(element.value))
-          {
-            document.querySelector(".dropdown__header").classList.remove("red-highlight");
-          }
-          else
-          {
-            alert("Destination Address doesn't match Valid Dogecoin address.");
-            document.querySelector(".dropdown__header").classList.add("red-highlight");
-            check = false;
-          }
-        }
-
+        // else if(crypto == DOGE)
+        // {
+        //   let BTCRegExp = new RegExp('^D{1}[5-9A-HJ-NP-U]{1}[1-9A-HJ-NP-Za-km-z]{32}$');
+        //   if(BTCRegExp.test(element.value))
+        //   {
+        //     document.querySelector(".dropdown__header").classList.remove("red-highlight");
+        //   }
+        //   else
+        //   {
+        //     alert("Destination Address doesn't match Valid Dogecoin address.");
+        //     document.querySelector(".dropdown__header").classList.add("red-highlight");
+        //     check = false;
+        //   }
+        // }
       }
       else{
         document.querySelector(".dropdown__header").classList.add("red-highlight");

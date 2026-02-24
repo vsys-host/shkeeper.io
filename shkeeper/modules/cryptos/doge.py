@@ -5,4 +5,4 @@ class doge(Doge):
         self.crypto = "DOGE"
 
     def getname(self):
-        return "DOGE"
+        return "Dogecoin"
