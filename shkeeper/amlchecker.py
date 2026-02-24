@@ -63,6 +63,16 @@ def withdraw_to_external_wallet(crypto_name, source, destination):
     return res
 
 
+def get_tx_address(crypto_name, txid):
+    try:
+        crypto = Crypto.instances[crypto_name]
+    except KeyError:
+        raise ValueError(f"Unknown crypto: {crypto_name}")
+    tx_data_from_crypto = crypto.getaddrbytx(txid)
+    tx_address = tx_data_from_crypto[0][0]
+    return tx_address
+
+
 def check_all_paid_invoices():
     app.logger.info(f"Check all invoices")
     paid_and_overpaid_invoices = (
@@ -76,12 +86,12 @@ def check_all_paid_invoices():
         invoice_tx_aml_scores = []
         invoice_tx_cryptos = []
         for tx in invoice_transactions:
-            tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
-                                                     InvoiceAddress.crypto == tx.crypto).first()
+            tx_address = get_tx_address(tx.crypto, tx.txid)
+            
             aml_result = get_tx_aml_score(tx.crypto, 
                                          tx.txid, 
                                          tx.amount_crypto, 
-                                         tx_address.addr)
+                                         tx_address)
             if not aml_result:
                 app.logger.info(f"Cannot get info for {tx.txid} tx, skip invoice")
                 skip_invoice = True
@@ -138,11 +148,9 @@ def check_all_paid_invoices():
         
         #if we here - all aml_scores are lower than AML_MAX_ACCEPT_SCORE
         for tx in invoice_transactions:
-            # with app.app_context():
-            tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
-                                                     InvoiceAddress.crypto == tx.crypto).first()
+            tx_address = get_tx_address(tx.crypto, tx.txid)
             withdraw_to_external_wallet(tx.crypto, 
-                                     tx_address.addr, 
+                                     tx_address, 
                                      app.config.get("AML_EXTERNAL_ADDRESSES")[tx.crypto])
 
 
@@ -160,13 +168,11 @@ def recheck_all_aml_invoices():
         invoice_tx_aml_scores = []
         invoice_tx_cryptos = []
         for tx in invoice_transactions:
-            
-            tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
-                                                     InvoiceAddress.crypto == tx.crypto).first()
+            tx_address = get_tx_address(tx.crypto, tx.txid)
             aml_result = get_tx_aml_score(tx.crypto, 
                                          tx.txid, 
                                          tx.amount_crypto, 
-                                         tx_address.addr)
+                                         tx_address)
             if not aml_result:
                 app.logger.info(f"Cannot get info for {tx.txid} tx, skip invoice")
                 skip_invoice = True
@@ -194,11 +200,9 @@ def recheck_all_aml_invoices():
             continue  
 
         for tx in invoice_transactions:
-            # with app.app_context():
-            tx_address = InvoiceAddress.query.filter(InvoiceAddress.invoice_id == invoice.id, 
-                                                     InvoiceAddress.crypto == tx.crypto).first()
+            tx_address = get_tx_address(tx.crypto, tx.txid)
             withdraw_to_external_wallet(tx.crypto, 
-                                     tx_address.addr, 
+                                     tx_address, 
                                      app.config.get("AML_EXTERNAL_ADDRESSES")[tx.crypto])
 
 
