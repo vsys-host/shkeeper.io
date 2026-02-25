@@ -65,8 +65,7 @@ class Crypto(abc.ABC):
             "opeth",
             "op_usdc",
             "op_usdt",
-            "op_token"
-
+            "op_token",
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
@@ -125,6 +124,10 @@ class Crypto(abc.ABC):
 
     @abc.abstractmethod
     def get_all_addresses(self):
+        pass
+
+    @property
+    def fee_deposit_account(self):
         pass
 
     @property

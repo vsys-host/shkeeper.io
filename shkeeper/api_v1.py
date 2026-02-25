@@ -1,7 +1,7 @@
 import traceback
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
-from operator import  itemgetter
+from operator import itemgetter
 
 
 from werkzeug.datastructures import Headers
@@ -10,6 +10,7 @@ from flask import request
 from flask import Response
 from flask import stream_with_context
 from shkeeper.modules.cryptos.btc import Btc
+from shkeeper.modules.cryptos.ltc import Ltc
 from flask import current_app as app
 from flask.json import JSONDecoder
 from flask_sqlalchemy import sqlalchemy
@@ -54,6 +55,7 @@ blp_v1 = SmorestBlueprint(
     description="SHKeeper v1 endpoints"
 )
 
+
 def handle_request_error(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -62,6 +64,7 @@ def handle_request_error(func):
         except Exception as e:
             app.logger.exception("Payout error")
             return {"status": "error", "message": str(e)}, 500
+
     return wrapper
 
 @blp_v1.route("/crypto")
@@ -113,7 +116,10 @@ def payment_request(crypto_name):
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
             }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+        if (
+            app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+            and crypto.getstatus() != "Synced"
+        ):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable because of lagging",
@@ -155,7 +161,10 @@ def get_crypto_quote(crypto_name):
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable",
             }
-        if app.config.get("DISABLE_CRYPTO_WHEN_LAGS") and crypto.getstatus() != "Synced":
+        if (
+            app.config.get("DISABLE_CRYPTO_WHEN_LAGS")
+            and crypto.getstatus() != "Synced"
+        ):
             return {
                 "status": "error",
                 "message": f"{crypto_name} payment gateway is unavailable because of lagging",
@@ -302,7 +311,7 @@ def autopayout(crypto_name):
     if w.prespolicy == PayoutReservePolicy.AMOUNT:
         w.presamount = req["prespolicyValue"]
     elif w.prespolicy == PayoutReservePolicy.PERCENT:
-        w.presamount = int(req["prespolicyValue"]) # store percent as integer
+        w.presamount = int(req["prespolicyValue"])  # store percent as integer
     else:
         w.presamount = None
     w.pcond = req["policyValue"]
@@ -333,8 +342,7 @@ def status(crypto_name):
 @api_key_required
 def balance(crypto_name):
     if crypto_name not in Crypto.instances.keys():
-        return {"status": "error", 
-                "message": f"Crypto {crypto_name} is not enabled"}
+        return {"status": "error", "message": f"Crypto {crypto_name} is not enabled"}
     crypto = Crypto.instances[crypto_name]
     fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
@@ -359,10 +367,7 @@ def payout_status(crypto_name):
     external_id = request.args.get("external_id")
     if not external_id:
         return {"error": "external_id is required"}, 400
-    payout = Payout.query.filter_by(
-        external_id=external_id,
-        crypto=crypto_name
-    ).first()
+    payout = Payout.query.filter_by(external_id=external_id, crypto=crypto_name).first()
 
     if not payout:
         return {"error": "Payout not found"}, 404
@@ -373,7 +378,9 @@ def payout_status(crypto_name):
         "status": payout.status.name,
         "amount": str(payout.amount),
         "destination": payout.dest_addr,
-        "txid": payout.transactions[0].txid if payout.transactions and len(payout.transactions) > 0 else None,
+        "txid": payout.transactions[0].txid
+        if payout.transactions and len(payout.transactions) > 0
+        else None,
     }
     return result, 200
 
@@ -563,7 +570,7 @@ def set_server_host(crypto_name):
 def backup(crypto_name):
     """Return a wallet backup (either file content or streamed binary from a remote URL)."""
     crypto = Crypto.instances[crypto_name]
-    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, BitcoinLightning)):
+    if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, Ltc, BitcoinLightning)):
         filename, content = crypto.dump_wallet()
         headers = Headers()
         headers.add("Content-Type", "application/json")
