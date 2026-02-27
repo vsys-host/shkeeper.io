@@ -229,7 +229,7 @@ function addAddress()
       //     }
       //   }
 
-      // }
+      }
       // else{
       //   document.querySelector(".dropdown__header").classList.add("red-highlight");
       //   check = false;
