@@ -153,7 +153,7 @@ function policyFunc(){
     }
   }
 
-  
+
   function prespolicyChange()
   {
     let prespolicyOption = document.getElementById("prespolicy");
@@ -403,13 +403,13 @@ function sendAction()
           element.classList.add("red-highlight");
           check = false;
         }
-        
+
       }
       else{
         element.classList.add("red-highlight");
         check = false;
       }
-      
+
       return element.value;
     }
     function validateFloatValue(element)
@@ -477,7 +477,7 @@ function sendAction()
       // else{
       //   document.querySelector(".dropdown__header").classList.add("red-highlight");
       //   check = false;
-      // }
+      }
       return element.value;
     }
 
