@@ -40,7 +40,7 @@
               </a>
             </li>
             <li class="nav-item">
-              <a id="rates-link" href="{{ url_for('wallet.list_rates') }}" class="nav-link">
+              <a id="rates-link" href="{{ url_for('wallet.list_rates', fiat='USD') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
                   <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-source-rates"></use>
                 </svg>

@@ -11,7 +11,7 @@ import pyotp
 from flask import current_app as app
 
 from shkeeper import db
-from shkeeper.modules.rates import RateSource
+from shkeeper.modules.classes.rate_source import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from .utils import format_decimal, remove_exponent
 from .exceptions import NotRelatedToAnyInvoice
