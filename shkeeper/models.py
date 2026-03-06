@@ -295,6 +295,7 @@ class InvoiceStatus(enum.Enum):
     AML_CHECK_DECLINED = enum.auto() #new aml
     AML_CHECK_PAID = enum.auto() #new aml
     AML_CHECK_OVERPAID = enum.auto() #new aml
+    AML_CHECK_FAILED = enum.auto() #new aml
 
 
 class Invoice(db.Model):

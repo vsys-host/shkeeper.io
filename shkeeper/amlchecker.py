@@ -99,7 +99,7 @@ def check_all_paid_invoices():
                 aml_score = aml_result['aml_score']
                 invoice_tx_aml_scores.append(aml_score)
                 invoice_tx_cryptos.append(tx.crypto)
-                if float(aml_score) > -1:
+                if (float(aml_score) > -1) or  (float(aml_score) == -2):
                     if tx.aml_score == aml_score:
                         app.logger.info("No need to update the tx")
                     else:
@@ -121,13 +121,25 @@ def check_all_paid_invoices():
                 has_all_aml_scores = False
         if not has_all_aml_scores:
             continue  
+
+        without_failed_aml_score = True
+        for aml_score in invoice_tx_aml_scores:
+            if aml_score == -2:
+                # one invoice transaction failed to get AML score
+                # invoice should be AML_CHECK_FAILED
+                app.logger.info(f"One of {invoice.external_id,} transactions failed to get AML score")
+                invoice.status = InvoiceStatus.AML_CHECK_FAILED
+                db.session.commit()
+                without_failed_aml_score = False
+        if not without_failed_aml_score:
+            continue 
         
         all_aml_scores_above_limit = True
         for aml_score in invoice_tx_aml_scores:
             if -1 < aml_score > app.config.get("AML_MAX_ACCEPT_SCORE"):
                 # one invoice transaction is above the AML_MAX_ACCEPT_SCORE
                 # invoice should be DECLINED
-                app.logger.info(f"One of {invoice.external_id,} transactions above the AML_MAX_ACCEPT_SCORE, should refunded manually")
+                app.logger.info(f"One of {invoice.external_id} transactions above the AML_MAX_ACCEPT_SCORE, should refunded manually")
                 invoice.status = InvoiceStatus.AML_CHECK_DECLINED
                 db.session.commit()
                 all_aml_scores_above_limit = False
