@@ -111,7 +111,7 @@ class PayoutReservePolicy(enum.Enum):
 class Fiat:
     @classmethod
     def list(cls):
-        return ["USD", "EUR", "TRY"]
+        return ["USD", "EUR", "TRY", "CAD"]
 
 
 class Wallet(db.Model):
