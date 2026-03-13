@@ -7,6 +7,7 @@ from datetime import datetime
 import pyotp
 import segno
 from flask import Blueprint
+# from flask_smorest import Blueprint as SmorestBlueprint
 from flask import flash
 from flask import g
 from flask import redirect
@@ -23,7 +24,7 @@ from shkeeper import db
 
 
 bp = Blueprint("auth", __name__, url_prefix="/")
-
+# bp_auth = SmorestBlueprint("auth", __name__, url_prefix="/")
 
 @bp.context_processor
 def inject_theme():

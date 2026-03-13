@@ -2,9 +2,7 @@ import functools
 import os
 import logging
 import secrets
-from decimal import Decimal
 import shutil
-import threading
 
 from flask import logging as flog, render_template, request
 
@@ -21,6 +19,7 @@ from shkeeper.wallet_encryption import WalletEncryptionRuntimeStatus
 
 from .utils import format_decimal
 from .events import shkeeper_initialized
+import shkeeper.configs.swagger_config as sc
 
 from flask_apscheduler import APScheduler
 
@@ -28,6 +27,8 @@ scheduler = APScheduler()
 
 from sqlalchemy import MetaData
 import flask_sqlalchemy
+
+from flask_smorest import Api
 
 convention = {
     "ix": "ix_%(column_0_label)s",
@@ -50,7 +51,6 @@ def internal_server_error(e):
 
 def page_not_found_error(e):
     return render_template("404.j2", theme=request.cookies.get("theme", "light")), 404
-
 
 def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
@@ -80,10 +80,34 @@ def create_app(test_config=None):
         MIN_CONFIRMATION_BLOCK_FOR_PAYOUT=os.environ.get("MIN_CONFIRMATION_BLOCK_FOR_PAYOUT", 1),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
-        DISABLE_CRYPTO_WHEN_LAGS=bool(
-            os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)
-        ),
+        DISABLE_CRYPTO_WHEN_LAGS=bool(os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)),
     )
+
+    app.config.update(
+        API_TITLE=sc.API_TITLE,
+        API_VERSION=sc.API_VERSION,
+        OPENAPI_VERSION=sc.OPENAPI_VERSION,
+        OPENAPI_URL_PREFIX=sc.OPENAPI_URL_PREFIX,
+        OPENAPI_JSON_PATH=sc.OPENAPI_JSON_PATH,
+        OPENAPI_SWAGGER_UI_PATH=sc.OPENAPI_SWAGGER_UI_PATH,
+        OPENAPI_SWAGGER_UI_URL=sc.OPENAPI_SWAGGER_UI_URL,
+        API_SPEC_OPTIONS=sc.API_SPEC_OPTIONS,
+    )
+
+    api = Api(app)
+
+    for name, scheme in sc.SECURITY_SCHEMES.items():
+        api.spec.components.security_scheme(name, scheme)
+
+    # register new smorest-blueprint instead of the old one
+    from shkeeper.api_v1 import blp_v1
+    from shkeeper.wallet import bp_wallet
+    api.register_blueprint(bp_wallet)
+    api.register_blueprint(blp_v1)
+
+    @app.get("/_debug/spec")
+    def _debug_spec():
+        return api.spec.to_dict()
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
@@ -229,14 +253,13 @@ def create_app(test_config=None):
     app.jinja_env.filters["format_decimal"] = format_decimal
 
     # apply the blueprints to the app
-    from . import auth, wallet, api_v1, callback
+    from . import auth, wallet, callback
 
     app.register_blueprint(auth.bp)
-    app.register_blueprint(wallet.bp)
-    app.register_blueprint(api_v1.bp)
+    # app.register_blueprint(auth.bp_auth)
+    # app.register_blueprint(wallet.bp_wallet)
     app.register_blueprint(callback.bp)
-    app.register_error_handler(500, internal_server_error)
-    app.register_error_handler(404, page_not_found_error)
+    # app.register_blueprint(callback.bp_callback)
 
     shkeeper_initialized.set()
 
