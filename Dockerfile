@@ -13,12 +13,12 @@ CMD gunicorn \
     --access-logfile - \
     --error-logfile - \
     --workers 1 \
-    --threads 8 \
+    --threads 16 \
     --worker-class gthread \
-    --timeout 30 \
-    --graceful-timeout 30 \
-    --keep-alive 5 \
-    --max-requests 2000 \
-    --max-requests-jitter 200 \
+    # --timeout 30 \
+    # --graceful-timeout 30 \
+    # --keep-alive 5 \
+    # --max-requests 2000 \
+    # --max-requests-jitter 200 \
     -b 0.0.0.0:5000 \
     "shkeeper:create_app()"
