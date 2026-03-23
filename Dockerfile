@@ -9,6 +9,7 @@ COPY . .
 RUN pip3 install -r requirements.txt
 
 CMD gunicorn \
+    --no-control-socket \
     --access-logfile - \
     --error-logfile - \
     --workers 1 \
