@@ -34,6 +34,7 @@ from shkeeper.modules.rates import RateSource
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import (
     FeeCalculationPolicy,
+    Fiat,
     Invoice,
     InvoiceAddress,
     Payout,
@@ -55,6 +56,7 @@ prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
 prometheus_client.REGISTRY.unregister(prometheus_client.PROCESS_COLLECTOR)
 
 bp = Blueprint("wallet", __name__)
+
 
 def get_crypto_label(crypto_code: str) -> str:
     if not crypto_code:
@@ -88,7 +90,7 @@ def wallets():
 @bp.get("/<crypto_name>/get-rate/<fiat>")
 @login_required
 def get_source_rate(crypto_name, fiat):
-    #fiat = "USD"
+    # fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
     current_rate = rate.get_rate()
     return {crypto_name: current_rate}
@@ -123,7 +125,11 @@ def payout(crypto_name):
         tmpl = "wallet/payout_btc_lightning.j2"
 
     return render_template(
-        tmpl, crypto=crypto, pdest=pdest, enable_payout_callback=enable_payout_callback, fee_deposit_qrcode=fee_deposit_qrcode
+        tmpl,
+        crypto=crypto,
+        pdest=pdest,
+        enable_payout_callback=enable_payout_callback,
+        fee_deposit_qrcode=fee_deposit_qrcode,
     )
 
 
@@ -160,7 +166,7 @@ def manage(crypto_name):
         crypto=crypto,
         pdest=pdest,
         ppolicy=[i.value for i in PayoutPolicy],
-        prespolicy = [i.value for i in PayoutReservePolicy],
+        prespolicy=[i.value for i in PayoutReservePolicy],
         recalc=recalc,
         server_templates=server_templates,
     )
@@ -170,6 +176,10 @@ def manage(crypto_name):
 @bp.get("/rates/<fiat>")
 @login_required
 def list_rates(fiat):
+    currencies = Fiat.list()
+    if fiat not in currencies:
+        abort(404)
+
     cryptos = copy.deepcopy(Crypto.instances).values()
     for crypto in cryptos:
         rate = ExchangeRate.get(fiat, crypto.crypto)
@@ -182,6 +192,8 @@ def list_rates(fiat):
         "wallet/rates.j2",
         cryptos=cryptos,
         fiat=fiat,
+        currencies=currencies,
+        currency_symbols=Fiat.symbols(currencies),
         rate_providers=RateSource.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
         fee_calculation_policy=FeeCalculationPolicy,
@@ -192,6 +204,9 @@ def list_rates(fiat):
 @bp.post("/rates/<fiat>")
 @login_required
 def save_rates(fiat):
+    if fiat not in Fiat.list():
+        abort(404)
+
     rates = defaultdict(dict)
     for k, v in request.form.items():
         if k.startswith("rates__"):
@@ -212,7 +227,7 @@ def save_rates(fiat):
 
         ExchangeRate.query.filter_by(crypto=symbol, fiat=fiat).update(fields)
     db.session.commit()
-    return redirect(url_for("wallet.list_rates", fiat = fiat))
+    return redirect(url_for("wallet.list_rates", fiat=fiat))
 
 
 @bp.get("/transactions")
@@ -221,14 +236,13 @@ def transactions():
     return render_template(
         "wallet/transactions.j2",
         # cryptos=Crypto.instances.keys(),
-        cryptos = [
-          {
-              "value": crypto.crypto,
-              "label": crypto.display_name,
-          }
-          for crypto in Crypto.instances.values()
+        cryptos=[
+            {
+                "value": crypto.crypto,
+                "label": crypto.display_name,
+            }
+            for crypto in Crypto.instances.values()
         ],
-
         invoice_statuses=[status.name for status in InvoiceStatus],
     )
 
@@ -376,12 +390,12 @@ def payouts():
     return render_template(
         "wallet/payouts.j2",
         # cryptos=Crypto.instances.keys(),
-        cryptos = [
-          {
-              "value": crypto.crypto,
-              "label": crypto.display_name,
-          }
-          for crypto in Crypto.instances.values()
+        cryptos=[
+            {
+                "value": crypto.crypto,
+                "label": crypto.display_name,
+            }
+            for crypto in Crypto.instances.values()
         ],
         payout_statuses=[status.name for status in PayoutStatus],
         payout_tx_statuses=[status.name for status in PayoutTxStatus],

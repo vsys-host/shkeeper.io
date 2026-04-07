@@ -14,6 +14,7 @@
      - [Auth](#auth)
         - [ApiKey](#apikey)
         - [Basic (used only for Payout)](#basic-used-only-for-payout)
+        - [Supported fiat currencies](#supported-fiat-currencies)
      - [Retrieve the list of available cryptocurrencies](#retrieve-the-list-of-available-cryptocurrencies)
      - [Invoice creation](#invoice-creation)
      - [Retrieve created addresses](#retrieve-created-addresses)
@@ -349,6 +350,17 @@ The only request that does not require authorization is the one for retrieving t
 <a name="basic-used-only-for-payout"></a>
 ##### 5.2.1.2. Basic (used only for Payout)
 SHKeeper supports authenticating and authorizing user through the Basic HTTP authentication scheme only for Payout related API calls. Send the user and password encoded in base64 with the format `Basic {base64(username:password)}`. Using this authentication is required for payout-related [endpoints](#payout-related-endpoints).
+
+<a name="supported-fiat-currencies"></a>
+##### 5.2.1.3. Supported fiat currencies
+SHKeeper always supports `USD` and `EUR`.
+
+You can add more fiat currencies using the `EXTRA_CURRENCIES` environment variable.
+
+Examples:
+- `EXTRA_CURRENCIES=""` -> `USD`, `EUR`
+- `EXTRA_CURRENCIES="TRY,CAD"` -> `USD`, `EUR`, `TRY`, `CAD`
+
 <a name="retrieve-the-list-of-available-cryptocurrencies"></a>
 #### 5.2.2. Retrieve the list of available cryptocurrencies
 
@@ -407,7 +419,7 @@ SHKeeper uses a short-lived in-memory TTL cache to speed up the /crypto endpoint
 ```
 
 - `external_id`: A unique order_id or invoice_id from your store.
-- `fiat`: Currency code in ISO 4217 format for conversion. Currently, only USD is supported.
+- `fiat`: Currency code in ISO 4217 format for conversion. `USD` and `EUR` are enabled by default; additional currencies can be enabled with `EXTRA_CURRENCIES`.
 - `amount`: The amount for which the invoice should be created in SHKeeper.
 - `callback_url`: The URL to which SHKeeper will send notifications in the event of transactions related to the created invoices.
 
@@ -451,7 +463,7 @@ curl --location --request POST 'https://demo.shkeeper.io/api/v1/ETH/payment_requ
 }
 ```
 
-- `fiat`: Currency code in ISO 4217 format for conversion. Currently, only USD is supported.
+- `fiat`: Currency code in ISO 4217 format for conversion. `USD` and `EUR` are enabled by default; additional currencies can be enabled with `EXTRA_CURRENCIES`.
 - `amount`: The amount for which the crypto quote should be generated.
 
 This endpoint returns the crypto amount equivalent and the exchange rate used for the conversion. It does **not** create an invoice and is intended for informational purposes (e.g., showing the user how much crypto they'll need to pay before generating a real invoice).

@@ -1,21 +1,14 @@
 {% extends 'wallet/page.j2' %}
 
 {% block content %}
-{% set currency_symbols = {
-    'USD': '$',
-    'EUR': '€',
-    'TRY': '₺',
-    'CAD': 'C$'
-} %}
-
 <div class="content-container overflow-auto rates__page">
     <h1 class="title-text">Source of rates</h1>
     <div class="rates-wrapper">
     <div class="rates-currency">
-    {% for fiat_key in currency_symbols.keys() %}
+  {% for fiat_key in currencies %}
       <a class="rates-currency-link common-text"
-       href="{{ url_for("wallet.list_rates", fiat = fiat_key) }}"> 
-       {{fiat_key}} 
+       href="{{ url_for("wallet.list_rates", fiat = fiat_key) }}">
+       {{fiat_key}}
        </a>
     {% endfor%}
     </div>
@@ -32,7 +25,7 @@
               <div class="rates-name" crypto="{{crypto.crypto}}" fiat="{{ fiat }}">
                 <p class="common-text">{{crypto.display_name}}</p>
               </div>
-      
+
               <div class="rates-block rates-switcher">
                 <div class="field">
                   <label class="common-text field-label" for="rates__{{crypto.crypto}}__source">Source of rate:</label>
@@ -87,7 +80,7 @@
                     %}style="display: none;" {% endif %}>
                     <div class="field">
                       <div class="d-flex align-items-center gap-2">
-                        <span class="common-text symbol-prefix">$</span>
+                        <span class="common-text symbol-prefix">{{ currency_symbols.get(fiat, fiat) }}</span>
                         <input name="rates__{{crypto.crypto}}__fixed_fee" id="rates__{{crypto.crypto}}__fixed_fee"
                           class="fixed-fee-value form-control form-control-sm source-added-input common-text" type="number"
                           step="any" min="0" value="{{crypto.rate.fixed_fee|format_decimal}}" />
@@ -124,7 +117,7 @@
                     {% endfor %}
                   </select>
                 </div>
-      
+
                 <div class="fee-values">
                   <div id="percent-fee-for-all-container" style="display: none;">
                     <div class="d-flex align-items-center">
@@ -139,7 +132,7 @@
                   <div id="fixed-fee-for-all-container" style="display: none;">
                     <div class="d-flex align-items-center">
                       <div class="d-flex align-items-center gap-2">
-                        <span class="common-text symbol-prefix">$</span>
+                        <span class="common-text symbol-prefix">{{ currency_symbols.get(fiat, fiat) }}</span>
                         <input id="fixed-fee-value-for-all"
                             class="form-control form-control-sm source-added-input common-text" type="number" step="any"
                             min="0" value="" />
@@ -147,7 +140,7 @@
                     </div>
                   </div>
                 </div>
-                
+
               </div>
               <button id="set-all" class="btn btn-outline-secondary btn-outline-secondary__customization" type="button">Set all</button>
             </div>
@@ -159,6 +152,7 @@
 </div>
 <div id="app-config"
      data-fiat="{{ fiat }}"
+  >
 </div>
 <script src="{{ url_for('static', filename='js/custom-rates.js') }}"></script>
 <script>
