@@ -296,6 +296,7 @@ class InvoiceStatus(enum.Enum):
     AML_CHECK_PAID = enum.auto() #new aml
     AML_CHECK_OVERPAID = enum.auto() #new aml
     AML_CHECK_FAILED = enum.auto() #new aml
+    AML_CHECK_TRANSFERRED = enum.auto() #new aml
 
 
 class Invoice(db.Model):
@@ -712,7 +713,7 @@ class Payout(db.Model):
             return
         status = task_response.get("status")
         results = task_response.get("result")
-        if status != "SUCCESS":
+        if status != "SUCCESS" or results is None or not results:
             for payout in payouts:
                 payout.status = PayoutStatus.FAIL
                 payout.success = "No"
