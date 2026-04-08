@@ -283,9 +283,9 @@ def recheck_all_aml_invoices():
             if not tx_payout_status or tx_payout_status == "FAIL" or tx_payout_status == "IN_PROGRESS":
                 app.logger.info(f"One of {invoice.external_id,} payouts from {tx_address} failed or in progress, try to withdraw again")
                 invoice_withdrew = False
-                withdraw_to_external_wallet(tx.crypto, 
+                withdraw_to_external_wallet(tx_crypto, 
                                         tx_address, 
-                                        app.config.get("AML_EXTERNAL_ADDRESSES")[tx.crypto],
+                                        app.config.get("AML_EXTERNAL_ADDRESSES")[tx_crypto],
                                         invoice.external_id)
 
         if invoice_withdrew:
