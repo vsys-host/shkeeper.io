@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import bcrypt
 import pyotp
-from flask import current_app as app
+from flask import current_app as app, has_app_context
 
 from shkeeper import db
 from shkeeper.modules.classes.rate_source import RateSource
@@ -102,6 +102,7 @@ class PayoutPolicy(enum.Enum):
     SCHEDULED = "scheduled"
     LIMIT = "limit"
 
+
 class PayoutReservePolicy(enum.Enum):
     DISABLE = "disable"
     AMOUNT = "amount"
@@ -109,9 +110,37 @@ class PayoutReservePolicy(enum.Enum):
 
 
 class Fiat:
+    BASE = ["USD", "EUR"]
+    SYMBOLS = {
+        "USD": "$",
+        "EUR": "€",
+        "TRY": "₺",
+        "CAD": "C$",
+    }
+
     @classmethod
     def list(cls):
-        return ["USD", "EUR", "TRY"]
+        extras_value = ""
+        if has_app_context():
+            extras_value = app.config.get("EXTRA_CURRENCIES", "")
+
+        if isinstance(extras_value, (list, tuple, set)):
+            extras = [str(item).strip().upper() for item in extras_value]
+        else:
+            extras = [item.strip().upper() for item in str(extras_value).split(",")]
+
+        currencies = []
+        for fiat in [*cls.BASE, *extras]:
+            if not fiat or fiat in currencies:
+                continue
+            currencies.append(fiat)
+        return currencies
+
+    @classmethod
+    def symbols(cls, currencies=None):
+        if currencies is None:
+            currencies = cls.list()
+        return {fiat: cls.SYMBOLS.get(fiat, fiat) for fiat in currencies}
 
 
 class Wallet(db.Model):
@@ -131,9 +160,10 @@ class Wallet(db.Model):
     recalc = db.Column(db.Integer, default=0)
     confirmations = db.Column(db.Integer, default=1)
     bkey = db.Column(db.String)
-    prespolicy = db.Column(db.Enum(PayoutReservePolicy), default=PayoutReservePolicy.DISABLE)
+    prespolicy = db.Column(
+        db.Enum(PayoutReservePolicy), default=PayoutReservePolicy.DISABLE
+    )
     presamount = db.Column(db.String)
-
 
     @classmethod
     def register_currency(cls, crypto):
@@ -165,18 +195,24 @@ class Wallet(db.Model):
         elif crypto.wallet.prespolicy == PayoutReservePolicy.AMOUNT:
             should_payout = balance - Decimal(crypto.wallet.presamount)
             if should_payout <= 0:
-                raise Exception(f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}")
+                raise Exception(
+                    f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}"
+                )
             else:
                 res = crypto.mkpayout(
                     self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
                 )
         elif crypto.wallet.prespolicy == PayoutReservePolicy.PERCENT:
-            should_payout = balance * (1 - (Decimal(crypto.wallet.presamount) / 100)) # presamount is stored as integer percent
+            should_payout = balance * (
+                1 - (Decimal(crypto.wallet.presamount) / 100)
+            )  # presamount is stored as integer percent
             res = crypto.mkpayout(
                 self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
             )
         else:
-            app.logger.info(f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation")
+            app.logger.info(
+                f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation"
+            )
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
@@ -380,9 +416,9 @@ class Invoice(db.Model):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
         crypto_is_lightning = "BTC-LIGHTNING" == crypto.crypto
         invoice = cls.query.filter_by(
-            external_id=request["external_id"], 
-            callback_url=request["callback_url"], 
-            fiat=request["fiat"]
+            external_id=request["external_id"],
+            callback_url=request["callback_url"],
+            fiat=request["fiat"],
         ).first()
         if invoice:
             # updating existing invoice
@@ -605,13 +641,12 @@ class Transaction(db.Model):
             existed_tx = Transaction.query.filter_by(txid=txid).first()
 
             if not existed_tx:
-
                 payout_invoice = Invoice(
                     addr=addr, fiat="USD", status=InvoiceStatus.OUTGOING
                 )
                 db.session.add(payout_invoice)
                 db.session.commit()
-    
+
                 tx = cls()
                 tx.invoice_id = payout_invoice.id
                 tx.txid = txid
@@ -621,10 +656,10 @@ class Transaction(db.Model):
                 tx.amount_fiat = tx.amount_crypto * rate
                 tx.need_more_confirmations = False
                 tx.callback_confirmed = True
-    
+
                 db.session.add(tx)
                 db.session.commit()
-            
+
             else:
                 pass
                 # Already in DB, skip
@@ -693,7 +728,9 @@ class Payout(db.Model):
     callback_url = db.Column(db.String, nullable=True)
     task_id = db.Column(db.String, nullable=True, index=True)
     external_id = db.Column(db.String, nullable=True)
-    status = db.Column(db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS, index=True)
+    status = db.Column(
+        db.Enum(PayoutStatus), default=PayoutStatus.IN_PROGRESS, index=True
+    )
     transactions = db.relationship("PayoutTx", backref="payout", lazy=True)
 
     @classmethod
@@ -749,6 +786,7 @@ class Payout(db.Model):
             db.session.commit()
         return p
 
+
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     txid = db.Column(db.String)
@@ -761,9 +799,7 @@ class Notification(db.Model):
     callback_url = db.Column(db.String, nullable=False)
     message = db.Column(db.String, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    __table_args__ = (
-        db.UniqueConstraint("type", "object_id"),
-    )
+    __table_args__ = (db.UniqueConstraint("type", "object_id"),)
 
     def to_json(self):
         return {
@@ -779,7 +815,16 @@ class Notification(db.Model):
         }
 
     @classmethod
-    def add(cls, type_, object_id, message=None, txid=None, crypto=None, amount_crypto=None, callback_url=None):
+    def add(
+        cls,
+        type_,
+        object_id,
+        message=None,
+        txid=None,
+        crypto=None,
+        amount_crypto=None,
+        callback_url=None,
+    ):
         app.logger.info(f"Add notification {type_} for object {object_id}")
         notif = Notification(
             type=type_,
@@ -801,6 +846,7 @@ class Notification(db.Model):
             db.delete(Notification).filter_by(type=type_, object_id=object_id)
         )
         db.session.commit()
+
 
 class PayoutTxStatus(enum.Enum):
     IN_PROGRESS = enum.auto()
