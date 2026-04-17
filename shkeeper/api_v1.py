@@ -325,6 +325,23 @@ def autopayout(crypto_name):
     db.session.commit()
     return {"status": "success"}
 
+@blp_v1.get("/<string:crypto_name>/fee-deposit-address")
+@api_key_required
+def get_fee_deposit_address(crypto_name):
+    if crypto_name not in Crypto.instances.keys():
+        return {
+            "status": "error",
+            "message": f"Crypto {crypto_name} is not enabled",
+        }, 400
+
+    crypto = Crypto.instances[crypto_name]
+    fee_deposit_address = crypto.fee_deposit_account.addr
+
+    return {
+        "status": "success",
+        "crypto": crypto_name,
+        "fee_deposit_address": fee_deposit_address,
+    }
 
 @blp_v1.get("/<string:crypto_name>/status")
 @login_required
@@ -422,7 +439,7 @@ def payoutnotify(crypto_name):
         return {"status": "error", "message": f"Error: {e}", "traceback": traceback.format_exc()}
 
 
-@blp_v1.route("/walletnotify/<string:crypto_name>/<string:txid>")
+@blp_v1.post("/walletnotify/<string:crypto_name>/<string:txid>")
 @blp_v1.doc(**transaction_callback_doc)
 def walletnotify(crypto_name, txid):
     """Receive on-chain tx notifications from backend wallet services."""
