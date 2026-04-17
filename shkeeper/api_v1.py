@@ -48,6 +48,9 @@ bp = Blueprint("api_v1", __name__, url_prefix="/api/v1/")
 
 # bp.json_decoder = DecimalJSONDecoder
 
+PUBLIC_SETTINGS = {
+    "start_banner_shown",
+}
 
 def handle_request_error(func):
     @wraps(func)
@@ -224,6 +227,39 @@ def payment_gateway_set_token(crypto_name):
     db.session.commit()
     return {"status": "success"}
 
+
+@bp.get("/settings/<string:key>")
+@login_required
+def get_setting(key):
+    app.logger.warning(f"Getting setting {key}")
+    if key not in PUBLIC_SETTINGS:
+        return {"status": "error", "message": "forbidden"}, 403
+
+    setting = Setting.query.get(key)
+
+    return {
+        "status": "success",
+        "key": key,
+        "value": setting.value if setting else None
+    }
+
+@bp.post("/settings/<string:key>")
+@login_required
+def set_setting(key):
+    if key not in PUBLIC_SETTINGS:
+        return {"status": "error", "message": "forbidden"}, 403
+    data = request.json or {}
+    value = data.get("value")
+    if value is None:
+        return {"status": "error", "message": "value required"}, 400
+    setting = Setting.query.get(key)
+    if not setting:
+        setting = Setting(name=key, value=str(value))
+        db.session.add(setting)
+    else:
+        setting.value = str(value)
+    db.session.commit()
+    return {"status": "success"}
 
 @bp.post("/<crypto_name>/transaction")
 @login_required
