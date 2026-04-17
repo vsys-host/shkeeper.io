@@ -49,8 +49,8 @@ class Ton(Ethereum):
             now_ts = int(datetime.datetime.now().timestamp())
 
             delta = abs(now_ts - block_ts)
-            block_interval = 3
-            if delta < block_interval * 10:
+            block_interval = 0.4
+            if delta < block_interval * 900:
                 return "Synced"
             else:
                 return "Sync In Progress (%d blocks behind)" % (delta // block_interval)
