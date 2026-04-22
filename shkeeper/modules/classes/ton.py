@@ -29,9 +29,7 @@ class Ton(Ethereum):
             if fee >= amount:
                 return f"Payout failed: not enought {self.network_currency} to pay for transaction. Need {fee}, balance {amount}"
             else:
-                amount = (
-                    amount - fee - 10
-                )  # 10XRP need to keep the fee-deposit account active
+                amount = amount - fee
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
             auth=self.get_auth_creds(),
