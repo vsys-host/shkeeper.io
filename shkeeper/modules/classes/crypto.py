@@ -66,6 +66,9 @@ class Crypto(abc.ABC):
             "op_usdc",
             "op_usdt",
             "op_token",
+            # TON
+            "ton",
+            "ton_usdt",
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:
