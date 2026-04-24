@@ -6,14 +6,59 @@ on:
       - "v*.*.*"
 
 jobs:
+  build-openapi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate OpenAPI
+        run: PYTHONPATH=. python scripts/export_openapi.py
+
+      - name: Validate OpenAPI
+        run: |
+          echo "Checking OpenAPI..."
+          ls -lah static/openapi
+          test -s static/openapi/openapi.json
+          python - << 'EOF'
+          import json
+          with open('static/openapi/openapi.json') as f:
+              data = json.load(f)
+          assert 'openapi' in data, 'Missing openapi field'
+          assert str(data['openapi']).startswith('3'), f"Wrong version: {data.get('openapi')}"
+          print("First 20 lines of OpenAPI JSON:")
+          print(json.dumps(data, indent=2).splitlines()[:20])
+          EOF
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi
+          path: static/openapi/openapi.json
+
+      - name: Upload OpenAPI to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: static/openapi/openapi.json
+          fail_on_unmatched_files: false
+
   docker:
     runs-on: ubuntu-latest
+    needs: build-openapi
+
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v3
-      -
-        name: Docker meta
+      - uses: actions/checkout@v3
+
+      - name: Docker meta
         id: meta
         uses: docker/metadata-action@v4
         with:
@@ -21,20 +66,32 @@ jobs:
           flavor: |
             latest=false
           # list of Docker images to use as base name for tags
-          images: |
-            vsyshost/shkeeper
+          images: vsyshost/shkeeper
           # generate Docker tags based on the following events/attributes
           tags: |
             type=semver,pattern={{version}}
-      -
-        name: Login to Docker Hub
+
+      - name: Login Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
+
+      - name: Build & push
         uses: docker/build-push-action@v4
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+
+  trigger-docs:
+    runs-on: ubuntu-latest
+    needs: docker
+
+    steps:
+      - name: Trigger docs build
+        run: |
+          curl -X POST https://api.github.com/repos/vsys-host/shkeeper-docs/dispatches \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"event_type\":\"build-docs\",\"client_payload\":{\"tag\":\"${GITHUB_REF_NAME}\"}}"
