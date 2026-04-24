@@ -69,6 +69,86 @@ function getCryptoRate(crypto)
 
 }
 
+function handleNetworkBanner() {
+    const banner = document.getElementById("network-warning-banner");
+    const closeBtn = document.getElementById("close-banner-btn");
+    if (!banner || !closeBtn) return;
+    fetch("/api/v1/settings/start_banner_shown")
+        .then(res => res.json())
+        .then(data => {
+            if (data.value === "true") return;
+            runBannerLogic(banner, closeBtn);
+    });
+}
+
+function runBannerLogic(banner, closeBtn) {
+    const triggerNetworks = [
+        "ETH-USDT",
+        "ETH-USDC",
+        "ETH-PYUSD",
+        "USDT",
+        "USDC",
+        "SOLANA-USDT",
+        "SOLANA-USDC",
+        "SOLANA-PYUSD",
+        "ARB-USDT",
+        "ARB-USDC",
+        "ARB-PYUSD",
+        "OP-USDT",
+        "OP-USDC",
+        "POLYGON-USDT",
+        "POLYGON-USDC",
+        "AVALANCHE-USDT",
+        "AVALANCHE-USDC",
+        "BNB-USDT",
+        "BNB-USDC"
+    ];
+
+    let shouldShow = false;
+
+    document.querySelectorAll(".coin-amount-value").forEach(wallet => {
+        let crypto = wallet.id.toUpperCase();
+        console.log("Checking wallet:", crypto);
+        console.log("triggerNetworks:", triggerNetworks);
+
+        if (triggerNetworks.some(n => crypto.includes(n))) {
+            shouldShow = true;
+        }
+    });
+
+    if (!shouldShow) return;
+
+    banner.classList.remove("hidden");
+
+    closeBtn.disabled = true;
+
+    let seconds = 10;
+    closeBtn.innerText = `Close (${seconds})`;
+
+    let interval = setInterval(() => {
+        seconds--;
+        closeBtn.innerText = `Close (${seconds})`;
+
+        if (seconds <= 0) {
+            clearInterval(interval);
+            closeBtn.disabled = false;
+            closeBtn.innerText = "Close";
+        }
+    }, 1000);
+
+    closeBtn.onclick = function () {
+        banner.classList.add("hidden");
+
+        fetch("/api/v1/settings/start_banner_shown", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ value: "true" })
+    });
+  };
+}
+
 function refreshWalletInfo()
 {
     let serverStatus = document.getElementsByClassName("server-status");
@@ -229,6 +309,7 @@ window.addEventListener('DOMContentLoaded',function(){
     refreshRates();
     refreshWalletInfo();
     setPolicyStatus();
+    handleNetworkBanner();
 
     setInterval(refreshRates, 10000);
 });
