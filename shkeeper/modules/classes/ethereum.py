@@ -145,7 +145,9 @@ class Ethereum(Crypto):
         try:
             success_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 1.0\n"
             response = requests.get(
-                f"http://{self.gethost()}/metrics", auth=self.get_auth_creds(), timeout=10
+                f"http://{self.gethost()}/metrics",
+                auth=self.get_auth_creds(),
+                timeout=10,
             )
             response.raise_for_status()
             return response.text + success_text
