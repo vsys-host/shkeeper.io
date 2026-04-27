@@ -591,7 +591,31 @@ def metrics():
     # Shkeeper metrics
     crypto_metrics += prometheus_client.generate_latest().decode()
 
-    return crypto_metrics
+    return _filter_metrics(crypto_metrics)
+
+
+_FILTERED_METRIC_SUFFIXES = ("last_release_info", "fullnode_version_info")
+
+
+def _filter_metrics(text: str) -> str:
+    """Remove metric families whose name ends with any of the filtered suffixes."""
+    out = []
+    for line in text.splitlines(keepends=True):
+        stripped = line.strip()
+        if not stripped:
+            out.append(line)
+            continue
+        if stripped.startswith("# HELP ") or stripped.startswith("# TYPE "):
+            # "# HELP metric_name ..." or "# TYPE metric_name ..."
+            parts = stripped.split(None, 3)
+            metric_name = parts[2] if len(parts) >= 3 else ""
+        else:
+            # data line: "metric_name{labels} value" or "metric_name value"
+            metric_name = stripped.split("{")[0].split()[0]
+        if metric_name.endswith(_FILTERED_METRIC_SUFFIXES):
+            continue
+        out.append(line)
+    return "".join(out)
 
 
 @bp.get("/unlock")
