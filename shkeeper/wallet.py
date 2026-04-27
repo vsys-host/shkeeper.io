@@ -1,4 +1,5 @@
 from collections import defaultdict
+import concurrent.futures
 import copy
 import csv
 from decimal import Decimal, InvalidOperation
@@ -556,22 +557,29 @@ def post_parts_tron_staking_stake():
 @bp.get("/metrics")
 @metrics_basic_auth
 def metrics():
-    metrics = ""
-
-    # Crypto metrics
+    # Deduplicate: one metrics() call per base class
     seen = set()
+    unique_cryptos = []
     for crypto in Crypto.instances.values():
         if crypto.__class__.__base__ not in seen:
+            seen.add(crypto.__class__.__base__)
+            unique_cryptos.append(crypto)
+
+    # Fetch all crypto node metrics in parallel
+    crypto_metrics = ""
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(crypto.metrics): crypto for crypto in unique_cryptos}
+        for future in concurrent.futures.as_completed(futures):
+            crypto = futures[future]
             try:
-                metrics += crypto.metrics()
-                seen.add(crypto.__class__.__base__)
-            except AttributeError:
-                continue
+                crypto_metrics += future.result()
+            except Exception as e:
+                app.logger.warning(f"metrics() failed for {crypto.crypto}: {e}")
 
     # Shkeeper metrics
-    metrics += prometheus_client.generate_latest().decode()
+    crypto_metrics += prometheus_client.generate_latest().decode()
 
-    return metrics
+    return crypto_metrics
 
 
 @bp.get("/unlock")
