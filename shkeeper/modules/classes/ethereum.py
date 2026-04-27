@@ -144,12 +144,11 @@ class Ethereum(Crypto):
         host = host.split(":")[0].replace("-", "_")
         try:
             success_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 1.0\n"
-            return (
-                requests.get(
-                    f"http://{self.gethost()}/metrics", auth=self.get_auth_creds(), timeout=10
-                ).text
-                + success_text
+            response = requests.get(
+                f"http://{self.gethost()}/metrics", auth=self.get_auth_creds(), timeout=10
             )
+            response.raise_for_status()
+            return response.text + success_text
         except Exception as e:
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
