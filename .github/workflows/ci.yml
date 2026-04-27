@@ -88,10 +88,18 @@ jobs:
     needs: docker
 
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: olegsta
+
       - name: Trigger docs build
         run: |
           curl -X POST https://api.github.com/repos/vsys-host/shkeeper-docs/dispatches \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.REPO_TOKEN }}" \
+            -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
             -H "Content-Type: application/json" \
             -d "{\"event_type\":\"build-docs\",\"client_payload\":{\"tag\":\"${GITHUB_REF_NAME}\"}}"
