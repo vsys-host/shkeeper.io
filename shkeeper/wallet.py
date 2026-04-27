@@ -116,7 +116,17 @@ def payout(crypto_name):
     if isinstance(crypto, Ethereum) and crypto_name != "ETH":
         tmpl = "wallet/payout_eth.j2"
 
-    if crypto_name in ["ETH", "BNB", "XRP", "MATIC", "AVAX", "SOL", "ARBETH", "OPETH", "TON"]:
+    if crypto_name in [
+        "ETH",
+        "BNB",
+        "XRP",
+        "MATIC",
+        "AVAX",
+        "SOL",
+        "ARBETH",
+        "OPETH",
+        "TON",
+    ]:
         tmpl = "wallet/payout_eth_coin.j2"
 
     if crypto_name in ["BTC", "LTC", "DOGE"]:
@@ -557,11 +567,13 @@ def post_parts_tron_staking_stake():
 @bp.get("/metrics")
 @metrics_basic_auth
 def metrics():
-    # Deduplicate: one metrics() call per base class
+    # Deduplicate: one metrics() call per base class; skip cryptos without metrics()
     seen = set()
     unique_cryptos = []
     for crypto in Crypto.instances.values():
-        if crypto.__class__.__base__ not in seen:
+        if crypto.__class__.__base__ not in seen and callable(
+            getattr(crypto, "metrics", None)
+        ):
             seen.add(crypto.__class__.__base__)
             unique_cryptos.append(crypto)
 
