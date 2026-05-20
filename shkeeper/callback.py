@@ -198,7 +198,6 @@ def poll_unconfirmed_payouts():
     payouts = (
         Payout.query
         .filter(
-            Payout.task_id.isnot(None),
             Payout.status == PayoutStatus.IN_PROGRESS,
             Payout.created_at >= cutoff
         )
