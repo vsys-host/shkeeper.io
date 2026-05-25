@@ -30,6 +30,7 @@ class Crypto(abc.ABC):
             "eth_usdc",
             "eth_usdt",
             "eth_pyusd",
+            "eth_dai",
             # Monero
             "Monero",
             # BNB
@@ -66,6 +67,9 @@ class Crypto(abc.ABC):
             "op_usdc",
             "op_usdt",
             "op_token",
+            # TON
+            "ton",
+            "ton_usdt",
         ]
         default_on = ["btc", "ltc", "doge"]
         for symbol in default_off:

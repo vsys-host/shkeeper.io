@@ -1,4 +1,5 @@
 from collections import defaultdict
+import concurrent.futures
 import copy
 import csv
 from decimal import Decimal, InvalidOperation
@@ -112,7 +113,17 @@ def payout(crypto_name):
     if isinstance(crypto, Ethereum) and crypto_name != "ETH":
         tmpl = "wallet/payout_eth.j2"
 
-    if crypto_name in ["ETH", "BNB", "XRP", "MATIC", "AVAX", "SOL", "ARBETH", "OPETH"]:
+    if crypto_name in [
+        "ETH",
+        "BNB",
+        "XRP",
+        "MATIC",
+        "AVAX",
+        "SOL",
+        "ARBETH",
+        "OPETH",
+        "TON",
+    ]:
         tmpl = "wallet/payout_eth_coin.j2"
 
     if crypto_name in ["BTC", "LTC", "DOGE"]:
@@ -554,22 +565,55 @@ def post_parts_tron_staking_stake():
 @bp_wallet.doc(**metrics_doc)
 @metrics_basic_auth
 def metrics():
-    metrics = ""
-
-    # Crypto metrics
+    # Deduplicate: one metrics() call per base class; skip cryptos without metrics()
     seen = set()
+    unique_cryptos = []
     for crypto in Crypto.instances.values():
-        if crypto.__class__.__base__ not in seen:
+        if crypto.__class__.__base__ not in seen and callable(
+            getattr(crypto, "metrics", None)
+        ):
+            seen.add(crypto.__class__.__base__)
+            unique_cryptos.append(crypto)
+
+    # Fetch all crypto node metrics in parallel
+    crypto_metrics = ""
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(crypto.metrics): crypto for crypto in unique_cryptos}
+        for future in concurrent.futures.as_completed(futures):
+            crypto = futures[future]
             try:
-                metrics += crypto.metrics()
-                seen.add(crypto.__class__.__base__)
-            except AttributeError:
-                continue
+                crypto_metrics += future.result()
+            except Exception as e:
+                app.logger.warning(f"metrics() failed for {crypto.crypto}: {e}")
 
     # Shkeeper metrics
-    metrics += prometheus_client.generate_latest().decode()
+    crypto_metrics += prometheus_client.generate_latest().decode()
 
-    return metrics
+    return _filter_metrics(crypto_metrics)
+
+
+_FILTERED_METRIC_SUFFIXES = ("last_release_info", "fullnode_version_info")
+
+
+def _filter_metrics(text: str) -> str:
+    """Remove metric families whose name ends with any of the filtered suffixes."""
+    out = []
+    for line in text.splitlines(keepends=True):
+        stripped = line.strip()
+        if not stripped:
+            out.append(line)
+            continue
+        if stripped.startswith("# HELP ") or stripped.startswith("# TYPE "):
+            # "# HELP metric_name ..." or "# TYPE metric_name ..."
+            parts = stripped.split(None, 3)
+            metric_name = parts[2] if len(parts) >= 3 else ""
+        else:
+            # data line: "metric_name{labels} value" or "metric_name value"
+            metric_name = stripped.split("{")[0].split()[0]
+        if metric_name.endswith(_FILTERED_METRIC_SUFFIXES):
+            continue
+        out.append(line)
+    return "".join(out)
 
 
 @bp_wallet.get("/unlock")

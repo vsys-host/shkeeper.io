@@ -9,6 +9,17 @@
             <h1 class="title-text">Wallets</h1>
           </div>
         </div>
+        <div id="network-warning-banner" class="network-banner hidden">
+          <div class="network-banner-content">
+            <p>
+              ⚠️ To send or receive tokens (USDT, USDC, PYUSD, DAI), your wallet must have a small amount of the network’s native coin (e.g. ETH, TRX, BNB, MATIC, AVAX, SOL, TON) to cover transaction fees.
+              Without it, token transfers cannot be processed. To obtain a fee deposit account, please click the “Payout” button. You will find the field “Fee-deposit account:”, where the required information will be provided.
+            </p>
+            <button id="close-banner-btn" class="btn btn-outline-primary btn-outline-primary__customization" disabled>
+               Close (10)
+             </button>
+          </div>
+        </div>
 
         <div class="d-flex flex-wrap justify-content-center wallets-container">
           {% for crypto in cryptos %}

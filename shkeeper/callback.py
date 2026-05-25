@@ -9,6 +9,7 @@ from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
+from shkeeper.services.webhook_hmac import compact_json_bytes, shkeeper_webhook_auth_headers
 from datetime import datetime, timedelta
 
 bp = Blueprint("callback", __name__)
@@ -39,13 +40,18 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
     }
 
     app.logger.warning(
-        f"[{utx.crypto}/{utx.txid}] Posting {notification} to {invoice.callback_url} with api key {apikey}"
+        f"[{utx.crypto}/{utx.txid}] Posting {notification} to {invoice.callback_url} with api key [REDACTED]"
     )
+    body = compact_json_bytes(notification)
     try:
         r = requests.post(
             invoice.callback_url,
-            json=notification,
-            headers={"X-Shkeeper-Api-Key": apikey},
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Shkeeper-Api-Key": apikey,
+                **shkeeper_webhook_auth_headers(apikey, body),
+            },
             timeout=app.config.get("REQUESTS_NOTIFICATION_TIMEOUT"),
         )
     except Exception as e:
@@ -116,13 +122,18 @@ def send_notification(tx):
 
     apikey = Crypto.instances[tx.crypto].wallet.apikey
     app.logger.warning(
-        f"[{tx.crypto}/{tx.txid}] Posting {json.dumps(notification)} to {tx.invoice.callback_url} with api key {apikey}"
+        f"[{tx.crypto}/{tx.txid}] Posting {json.dumps(notification)} to {tx.invoice.callback_url} with api key [REDACTED]"
     )
+    body = compact_json_bytes(notification)
     try:
         r = requests.post(
             tx.invoice.callback_url,
-            json=notification,
-            headers={"X-Shkeeper-Api-Key": apikey},
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "X-Shkeeper-Api-Key": apikey,
+                **shkeeper_webhook_auth_headers(apikey, body),
+            },
             timeout=app.config.get("REQUESTS_NOTIFICATION_TIMEOUT"),
         )
     except Exception as e:
@@ -291,14 +302,22 @@ def send_payout_notification(notif: Notification):
         "timestamp": payout.created_at.isoformat(),
     }
 
+    crypto = Crypto.instances.get(payout.crypto)
+    apikey = crypto.wallet.apikey if crypto and crypto.wallet else ""
+
     retries = getattr(notif, "retries", 0)
     wait = (retries + 1) ** 2
     app.logger.info(f"[PAYOUT {payout.id}] Sending webhook try={retries}, wait={wait}s")
 
+    body = compact_json_bytes(payload)
+    headers = {"Content-Type": "application/json"}
+    if apikey:
+        headers.update(shkeeper_webhook_auth_headers(apikey, body))
     try:
         r = requests.post(
             payout.callback_url,
-            json=payload,
+            data=body,
+            headers=headers,
             timeout=app.config.get("REQUESTS_NOTIFICATION_TIMEOUT", 10),
         )
     except Exception as e:
