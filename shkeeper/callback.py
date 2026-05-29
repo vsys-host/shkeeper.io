@@ -1,7 +1,10 @@
 import click
+from apscheduler.schedulers import SchedulerNotRunningError
+
 from shkeeper import requests
 
 from flask import Blueprint, json
+# from flask_smorest import Blueprint as SmorestBlueprint
 from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
@@ -10,6 +13,7 @@ from shkeeper.services.webhook_hmac import compact_json_bytes, shkeeper_webhook_
 from datetime import datetime, timedelta
 
 bp = Blueprint("callback", __name__)
+# bp_callback = SmorestBlueprint("callback", __name__)
 
 DEFAULT_CURRENCY = 'USD'
 
