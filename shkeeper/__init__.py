@@ -109,10 +109,6 @@ def create_app(test_config=None):
     api.register_blueprint(bp_wallet)
     api.register_blueprint(blp_v1)
 
-    @app.get("/_debug/spec")
-    def _debug_spec():
-        return api.spec.to_dict()
-
     if test_config is None:
         # load the instance config, if it exists, when not testing
         app.config.from_pyfile("config.py", silent=True)
