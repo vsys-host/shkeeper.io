@@ -113,11 +113,14 @@ class Ltc(Crypto):
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
-            fee = Decimal(self.estimate_tx_fee(amount)["fee"])
-            if fee >= amount:
-                return f"Payout failed: not enought BTC to pay for transaction. Need {fee}, balance {amount}"
-            else:
-                amount -= fee
+            # Autopayout: hand the payout amount to the node-side wallet, which
+            # spends the UTXOs, computes the real size-aware fee, sends amount-fee
+            # to dest and keeps any reserve (balance-amount) as change.
+            response = requests.post(
+                f"http://{self.gethost()}/{self.crypto}/sweep-payout/{destination}/{amount}",
+                auth=self.get_auth_creds(),
+            ).json(parse_float=Decimal)
+            return response
         current_fee = (
             fee
             if fee not in (None, 0, 0.0, "0", "")
