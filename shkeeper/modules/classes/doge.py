@@ -113,14 +113,16 @@ class Doge(Crypto):
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
-            # Autopayout: hand the payout amount to the node-side wallet, which
-            # spends the UTXOs, computes the real size-aware fee, sends amount-fee
-            # to dest and keeps any reserve (balance-amount) as change.
-            response = requests.post(
-                f"http://{self.gethost()}/{self.crypto}/sweep-payout/{destination}/{amount}",
-                auth=self.get_auth_creds(),
-            ).json(parse_float=Decimal)
-            return response
+            # Autopayout fix (dual-path): full payout -> node-side sweep (real
+            # size-aware fee subtracted from amount); partial/reserve payout ->
+            # standard /payout below where the retained reserve covers the fee.
+            balance = self.balance()
+            if amount >= balance:
+                response = requests.post(
+                    f"http://{self.gethost()}/{self.crypto}/sweep-payout/{destination}",
+                    auth=self.get_auth_creds(),
+                ).json(parse_float=Decimal)
+                return response
         current_fee = (
             fee
             if fee not in (None, 0, 0.0, "0", "")
