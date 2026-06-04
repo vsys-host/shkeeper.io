@@ -114,7 +114,7 @@ class Btc(Crypto):
 
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
-            fee = Decimal(self.estimate_tx_fee(amount)["fee"])
+            fee = Decimal(self.estimate_tx_fee(amount)["fee"]) / Decimal("100000000")
             if fee >= amount:
                 return f"Payout failed: not enought BTC to pay for transaction. Need {fee}, balance {amount}"
             else:
