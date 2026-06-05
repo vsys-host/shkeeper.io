@@ -51,19 +51,62 @@ class PayoutService:
 
     @classmethod
     def single_payout(cls, crypto_name, req):
-        crypto = cls.get_crypto(crypto_name)
-        cls.check_external_id_unique(req, crypto_name)
+        app.logger.info(f"[single_payout] Started for crypto={crypto_name} destination={req.get('destination')} amount={req.get('amount')} external_id={req.get('external_id')}")
+
+        try:
+            crypto = cls.get_crypto(crypto_name)
+            app.logger.info(f"[single_payout] Crypto instance resolved: {crypto_name}")
+        except ValueError as e:
+            app.logger.error(f"[single_payout] Unknown crypto: {crypto_name} — {e}")
+            raise
+
+        try:
+            cls.check_external_id_unique(req, crypto_name)
+            app.logger.info(f"[single_payout] external_id uniqueness check passed for external_id={req.get('external_id')}")
+        except ValueError as e:
+            app.logger.warning(f"[single_payout] Duplicate external_id detected: {e}")
+            raise
+
         callback_url = req.get("callback_url")
-        cls.validate_callback_url(callback_url)
-        res = crypto.mkpayout(
-            req["destination"],
-            Decimal(req["amount"]),
-            req["fee"],
-        )
+        try:
+            cls.validate_callback_url(callback_url)
+            app.logger.info(f"[single_payout] callback_url validated: {callback_url!r}")
+        except ValueError as e:
+            app.logger.error(f"[single_payout] Invalid callback_url={callback_url!r}: {e}")
+            raise
+
+        app.logger.info(f"[single_payout] Calling mkpayout: destination={req['destination']} amount={req['amount']} fee={req['fee']}")
+        try:
+            res = crypto.mkpayout(
+                req["destination"],
+                Decimal(req["amount"]),
+                req["fee"],
+            )
+        except Exception as e:
+            app.logger.error(f"[single_payout] mkpayout failed: {e}")
+            raise
+
         task_id = res.get("task_id")
-        cls.create_payout_record(req, crypto_name, task_id=task_id, txids=res.get("result", []))
+        txids = res.get("result", [])
+        app.logger.info(f"[single_payout] mkpayout response: task_id={task_id} txids={txids} full_response={res}")
+
+        if not task_id:
+            app.logger.warning(f"[single_payout] No task_id returned from mkpayout — payout will rely on txid-based confirmation only")
+
+        if not txids:
+            app.logger.warning(f"[single_payout] No txids in mkpayout result — PayoutTx will be empty until task resolves")
+
+        try:
+            payout = cls.create_payout_record(req, crypto_name, task_id=task_id, txids=txids)
+            app.logger.info(f"[single_payout] Payout record created: payout_id={payout.id} task_id={task_id} txids={txids}")
+        except Exception as e:
+            app.logger.error(f"[single_payout] Failed to create payout record: {e}")
+            raise
+
         if req.get("external_id"):
             res["external_id"] = req["external_id"]
+
+        app.logger.info(f"[single_payout] Completed successfully: payout_id={payout.id} external_id={res.get('external_id')} task_id={task_id}")
         return res
 
     @classmethod
