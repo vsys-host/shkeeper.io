@@ -238,7 +238,27 @@ Apply CRDS:
 
 After a few minutes, your Shkeeper should be reachable on https://\<your domain\> and have a valid SSL.
 
-### Additional configuration for Bitcoin Lightning (advanced users only)
+### Alternative SSL configuration (requred for multidomain via .Values.additional_domains)
+
+```
+cat << EOF > /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    additionalArguments:
+      - "--certificatesresolvers.default.acme.email=acme@shkeeper.io"
+      - "--certificatesresolvers.default.acme.storage=/data/acme.json"
+      - "--certificatesresolvers.default.acme.httpchallenge.entrypoint=web"
+    persistence:
+      enabled: true
+EOF
+```
+
+### SSl configuration for Bitcoin Lightning (advanced users only)
 
 Enable autossl-enabled Ingress on port 9000 for LNURL:
 
@@ -255,6 +275,8 @@ spec:
       - "--certificatesresolvers.default.acme.email=acme@shkeeper.io"
       - "--certificatesresolvers.default.acme.storage=/data/acme.json"
       - "--certificatesresolvers.default.acme.httpchallenge.entrypoint=web"
+    persistence:
+      enabled: true
     ports:
       lnurl:
         port: 9000
