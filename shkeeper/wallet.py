@@ -49,6 +49,7 @@ from shkeeper.models import (
     Transaction,
 )
 from shkeeper.api.schemas.api_docs import metrics_doc
+from shkeeper.callback import send_notification
 
 prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
 prometheus_client.REGISTRY.unregister(prometheus_client.PLATFORM_COLLECTOR)
@@ -706,3 +707,57 @@ def process_unlock():
         else:
             wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.fail)
         return redirect(url_for("wallet.show_unlock"))
+
+
+@bp_wallet.post("/invoice/<int:invoice_id>/mark-paid")
+@login_required
+def mark_invoice_paid(invoice_id):
+    """Manually mark a PARTIAL invoice as PAID and trigger callback."""
+    invoice = Invoice.query.get(invoice_id)
+    if not invoice:
+        return {"status": "error", "message": "Invoice not found"}, 404
+    if invoice.status == InvoiceStatus.OUTGOING:
+        return {"status": "error", "message": "Cannot mark OUTGOING invoice as paid"}, 400
+    if invoice.status not in (InvoiceStatus.PARTIAL, InvoiceStatus.UNPAID):
+        return {"status": "error", "message": f"Invoice status is {invoice.status.name}, not PARTIAL/UNPAID"}, 400
+
+    invoice.status = InvoiceStatus.PAID
+    db.session.commit()
+
+    tx = Transaction.query.filter_by(
+        invoice_id=invoice.id,
+        callback_confirmed=False,
+        need_more_confirmations=False,
+    ).first()
+
+    if tx:
+        try:
+            send_notification(tx)
+        except Exception as e:
+            app.logger.exception(f"Failed to send callback for invoice {invoice_id}")
+            return {"status": "error", "message": f"Invoice marked as PAID but callback failed: {e}"}, 500
+    else:
+        tx_any = Transaction.query.filter_by(
+            invoice_id=invoice.id,
+            callback_confirmed=False,
+        ).first()
+        if tx_any:
+            tx_any.need_more_confirmations = False
+            db.session.commit()
+            try:
+                send_notification(tx_any)
+            except Exception as e:
+                app.logger.exception(f"Failed to send callback for invoice {invoice_id}")
+                return {"status": "error", "message": f"Invoice marked as PAID but callback failed: {e}"}, 500
+        else:
+            tx_last = Transaction.query.filter_by(invoice_id=invoice.id).order_by(Transaction.id.desc()).first()
+            if tx_last:
+                tx_last.callback_confirmed = False
+                db.session.commit()
+                try:
+                    send_notification(tx_last)
+                except Exception as e:
+                    app.logger.exception(f"Failed to send callback for invoice {invoice_id}")
+                    return {"status": "error", "message": f"Invoice marked as PAID but callback failed: {e}"}, 500
+
+    return {"status": "success", "message": f"Invoice {invoice_id} marked as PAID, callback sent"}
