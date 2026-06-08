@@ -261,6 +261,11 @@ def create_app(test_config=None):
     app.register_blueprint(callback.bp)
     # app.register_blueprint(callback.bp_callback)
 
+    from .modules.classes.crypto import Crypto
+
+    if btc_lightning := Crypto.instances.get("BTC-LIGHTNING"):
+        btc_lightning.start_threads(app)
+
     shkeeper_initialized.set()
 
     return app

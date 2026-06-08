@@ -77,50 +77,53 @@ class BitcoinLightning(Crypto):
         )
 
         self._lnurl = None
+        self._threads_started = False
 
-        self.start_threads()
+    def start_threads(self, flask_app):
+        if self._threads_started:
+            return
+        self._threads_started = True
 
-    def start_threads(self):
         threading.Thread(
             target=self.invoice_listener,
             name="invoice listener",
             daemon=True,
-            args=(app._get_current_object(),),
+            args=(flask_app,),
         ).start()
 
         threading.Thread(
             target=self.invoice_refresher,
             name="invoice refresher",
             daemon=True,
-            args=(app._get_current_object(),),
+            args=(flask_app,),
         ).start()
 
         threading.Thread(
             target=self.invoice_notificator,
             name="invoice notificator",
             daemon=True,
-            args=(app._get_current_object(),),
+            args=(flask_app,),
         ).start()
 
         # threading.Thread(
         #     target=self.wallet_unlocker,
         #     name="wallet_unlocker",
         #     daemon=True,
-        #     args=(app._get_current_object(),),
+        #     args=(flask_app,),
         # ).start()
 
         threading.Thread(
             target=self.seed_saver,
             name="seed saver",
             daemon=True,
-            args=(app._get_current_object(),),
+            args=(flask_app,),
         ).start()
 
         threading.Thread(
             target=self.lnurl_setup,
             name="lnurl setup",
             daemon=True,
-            args=(app._get_current_object(),),
+            args=(flask_app,),
         ).start()
 
     def getname(self):
