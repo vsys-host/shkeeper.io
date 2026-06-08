@@ -81,6 +81,7 @@ class BitcoinLightning(Crypto):
 
     def start_threads(self, flask_app):
         if self._threads_started:
+            flask_app.logger.warning("Threads already started.")
             return
         self._threads_started = True
 
@@ -245,9 +246,7 @@ class BitcoinLightning(Crypto):
         return r["payment_request"]
 
     def invoice_listener(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
-        shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("Thread started.")
 
         while True:
             with app.app_context():
@@ -275,9 +274,7 @@ class BitcoinLightning(Crypto):
                     sleep(self.LIGHTNING_INVOICE_ERROR_WAIT_PERIOD)
 
     def invoice_refresher(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
-        shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("Thread started.")
 
         inactive_statuses = ("SETTLED", "CANCELED")
         while True:
@@ -302,9 +299,7 @@ class BitcoinLightning(Crypto):
                     app.logger.exception(f"error: {e}")
 
     def invoice_notificator(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
-        shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("Thread started.")
 
         s = requests.Session()
         s.headers = {
@@ -336,9 +331,7 @@ class BitcoinLightning(Crypto):
                     app.logger.exception(f"error: {e}")
 
     def wallet_unlocker(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
-        shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("Thread started.")
 
         while True:
             with app.app_context():
@@ -369,9 +362,7 @@ class BitcoinLightning(Crypto):
             sleep(self.LIGHTNING_WALLET_UNLOCK_PERIOD)
 
     def seed_saver(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
-        shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("Thread started.")
 
         while True:
             sleep(self.LIGHTNING_WALLET_SEED_SAVER_PERIOD)
@@ -410,9 +401,7 @@ class BitcoinLightning(Crypto):
         app.logger.debug(f"thread exiting.")
 
     def lnurl_setup(self, app):
-        app.logger.debug(f"waiting for shkeeper initialization...")
-        shkeeper_initialized.wait()
-        app.logger.debug(f"received shkeeper initialization signal!")
+        app.logger.debug("Thread started.")
 
         sleep(5)  # Wait for LNbits to be ready
 
