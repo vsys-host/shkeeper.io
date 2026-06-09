@@ -57,6 +57,9 @@ def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__, instance_relative_config=True)
 
+    #  Force autoescaping globally
+    app.jinja_env.autoescape = True
+
     app.config.from_mapping(
         # all sessions are invalidated at app restart by design, unless key is overriden from env
         SECRET_KEY=os.environ.get("SECRET_KEY", secrets.token_urlsafe(32)),

@@ -29,7 +29,7 @@
       <td class="crypto">{{ payout.external_id or '' }}</td>
       <td class="crypto">
         {% if payout.success == 'No' %}
-          <span class="tooltip-target tooltip-red" data-tooltip="{{ payout.error|e }}" style="color: var(--danger-color);">
+          <span class="tooltip-target tooltip-red" data-tooltip="{{ payout.error }}" style="color: var(--danger-color);">
             {{ payout.success }}
           </span>
         {% elif payout.success == 'Yes' %}
