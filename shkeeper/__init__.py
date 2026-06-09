@@ -52,12 +52,14 @@ def internal_server_error(e):
 def page_not_found_error(e):
     return render_template("404.j2", theme=request.cookies.get("theme", "light")), 404
 
+
 def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__, instance_relative_config=True)
+
     app.config.from_mapping(
-        # a default secret that should be overridden by instance config
-        SECRET_KEY="dev",
+        # all sessions are invalidated at app restart by design, unless key is overriden from env
+        SECRET_KEY=os.environ.get("SECRET_KEY", secrets.token_urlsafe(32)),
         # store the database in the instance folder
         DATABASE=os.path.join(app.instance_path, "shkeeper.sqlite"),
         SQLALCHEMY_DATABASE_URI="sqlite:///"
@@ -82,9 +84,14 @@ def create_app(test_config=None):
         ),
         NOTIFICATION_TASK_DELAY=int(os.environ.get("NOTIFICATION_TASK_DELAY", 60)),
         TEMPLATES_AUTO_RELOAD=True,
-        DISABLE_CRYPTO_WHEN_LAGS=bool(os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)),
+        DISABLE_CRYPTO_WHEN_LAGS=bool(
+            os.environ.get("DISABLE_CRYPTO_WHEN_LAGS", False)
+        ),
         EXTRA_CURRENCIES=os.environ.get("EXTRA_CURRENCIES", ""),
     )
+
+    if app.config.get("DEV_MODE"):
+        app.config.update(SECRET_KEY="dev")
 
     app.config.update(
         API_TITLE=sc.API_TITLE,
@@ -106,6 +113,7 @@ def create_app(test_config=None):
     # register new smorest-blueprint instead of the old one
     from shkeeper.api_v1 import blp_v1
     from shkeeper.wallet import bp_wallet
+
     api.register_blueprint(bp_wallet)
     api.register_blueprint(blp_v1)
 
