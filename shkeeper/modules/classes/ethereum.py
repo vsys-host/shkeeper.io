@@ -108,6 +108,7 @@ class Ethereum(Crypto):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/dump",
             auth=self.get_auth_creds(),
+            timeout=60,
         ).json(parse_float=Decimal)
         now = datetime.datetime.now().strftime("%F_%T")
         filename = f"{now}_{self.crypto}_shkeeper_wallet.json"
