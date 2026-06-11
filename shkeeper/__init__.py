@@ -286,6 +286,7 @@ def create_app(test_config=None):
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline'; "
             "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
             "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
         )
         resp.headers["X-Frame-Options"] = "DENY"
