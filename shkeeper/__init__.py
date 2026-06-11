@@ -283,7 +283,9 @@ def create_app(test_config=None):
     @app.after_request
     def security_headers(resp):
         resp.headers["Content-Security-Policy"] = (
-            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
             "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
         )
         resp.headers["X-Frame-Options"] = "DENY"
