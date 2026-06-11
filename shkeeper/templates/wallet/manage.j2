@@ -26,7 +26,7 @@
             <p class="common-text manage-gateway-label">API URL:</p>
             <p class="common-text">{{ url_for('api_v1.payment_request', crypto_name=crypto.crypto) }}</p>
           </div>
-          
+
           <div class="mb-3 d-flex align-items-center justify-content-end">
             <p class="common-text manage-gateway-label">API Key:</p>
             <div class="d-flex align-items-center">
@@ -36,7 +36,7 @@
           </div>
     </div>
    </div>
-   
+
    <div class="">
     <h2 class="subtitle-text mb-4">Autopayout Policy</h2>
     <div class="text-nowrap autopayout-policy-block">
@@ -58,7 +58,7 @@
               {% for pd in pdest %}
               <div class="dropdown__item">
                 <div class="dropdown__item-wraper">
-                  <div class="dropdown__text">{{ pd.addr | e }}</div>
+                  <div class="dropdown__text">{{ pd.addr }}</div>
                 </div>
                 <button class="dropdown-delete-button delete-button" type="button">
                     <svg width="10" height="10">
@@ -245,7 +245,7 @@
       </div>
     </div>
    </div>
-   
+
    <div class="row">
     <div class="col d-flex">
       <button type="button" class="btn btn-outline-primary btn-outline-primary__customization btn-fixed-w" id="sbutton">Save</button>
