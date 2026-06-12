@@ -70,6 +70,9 @@ def create_app(test_config=None):
         SUGGESTED_WALLET_APIKEY=secrets.token_urlsafe(16),
         SESSION_TYPE="filesystem",
         SESSION_FILE_DIR=os.path.join(app.instance_path, "flask_session"),
+        SESSION_COOKIE_SECURE=False,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Strict",
         TRON_MULTISERVER_GUI=bool(os.environ.get("TRON_MULTISERVER_GUI")),
         TRON_STAKING_GUI=bool(os.environ.get("TRON_STAKING_GUI")),
         FORCE_WALLET_ENCRYPTION=bool(os.environ.get("FORCE_WALLET_ENCRYPTION")),
@@ -276,6 +279,20 @@ def create_app(test_config=None):
 
     if btc_lightning := Crypto.instances.get("BTC-LIGHTNING"):
         btc_lightning.start_threads(app)
+
+    @app.after_request
+    def security_headers(resp):
+        resp.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "object-src 'none'; frame-ancestors 'none'; base-uri 'self'"
+        )
+        resp.headers["X-Frame-Options"] = "DENY"
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        resp.headers["Referrer-Policy"] = "no-referrer"
+        return resp
 
     shkeeper_initialized.set()
 

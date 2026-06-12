@@ -32,21 +32,21 @@
   {% set content %}
 
     {% if tron_config.config.energy_delegation_mode %}
-      {{ manage.manage_block_row("<b>Staking account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
+      {{ manage.manage_block_row(("<b>Staking account:</b>&nbsp;&nbsp;&nbsp;" | safe), i.account_info.address) }}
       {% if i.account_info.trx() >= 1 %}
-      {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % i.account_info.trx() ) }}
+      {{ manage.manage_block_row(("<b>Balance:</b>&nbsp;&nbsp;&nbsp;" | safe), "%f TRX" % i.account_info.trx() ) }}
       {% else %}
-      {{ manage.manage_block_row("<b>Balance:</b>&nbsp;&nbsp;&nbsp;", "<span style='color: var(--danger-color);'>%f TRX</span>" % i.account_info.trx() ) }}
+      {{ manage.manage_block_row(("<b>Balance:</b>&nbsp;&nbsp;&nbsp;" | safe), ("<span style='color: var(--danger-color);'>%f TRX</span>" % i.account_info.trx()) | safe) }}
       {% endif %}
 
-      {{ manage.manage_block_row("<b>Energy:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_en() , i.account_resource.EnergyLimit)) }}
-      {{ manage.manage_block_row("<b>Bandwidth:</b>&nbsp;&nbsp;&nbsp;", "%d / %d" % (i.account_resource.available_staked_bw() , i.account_resource.NetLimit)) }}
+      {{ manage.manage_block_row(("<b>Energy:</b>&nbsp;&nbsp;&nbsp;" | safe), "%d / %d" % (i.account_resource.available_staked_en() , i.account_resource.EnergyLimit)) }}
+      {{ manage.manage_block_row(("<b>Bandwidth:</b>&nbsp;&nbsp;&nbsp;" | safe), "%d / %d" % (i.account_resource.available_staked_bw() , i.account_resource.NetLimit)) }}
       {# {{ manage.manage_block_row("<b>Voting reward:</b>&nbsp;&nbsp;&nbsp;", "%f TRX" % (i.account_info.allowance / 1_000_000) ) }} #}
-      {{ manage.manage_block_row("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;", "enabled") }}
-      {{ manage.manage_block_row("<b>Actions:</b>&nbsp;&nbsp;&nbsp;", actions) }}
+      {{ manage.manage_block_row(("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;" | safe), "enabled") }}
+      {{ manage.manage_block_row(("<b>Actions:</b>&nbsp;&nbsp;&nbsp;" | safe), actions) }}
     {% else %}
-      {{ manage.manage_block_row("<b>Balances account:</b>&nbsp;&nbsp;&nbsp;", i.account_info.address) }}
-      {{ manage.manage_block_row("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;", "disabled") }}
+      {{ manage.manage_block_row(("<b>Balances account:</b>&nbsp;&nbsp;&nbsp;" | safe), i.account_info.address) }}
+      {{ manage.manage_block_row(("<b>Energy delegation:</b>&nbsp;&nbsp;&nbsp;" | safe), "disabled") }}
     {% endif %}
 
 

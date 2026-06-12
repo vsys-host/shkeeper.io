@@ -10,9 +10,9 @@
     </span>
 {% endset %}
 {% set content %}
-    {{ manage.manage_block_row("Staked:&nbsp;&nbsp;&nbsp;", request.values.amount_trx + " TRX") }}
-    {{ manage.manage_block_row("Resource:&nbsp;&nbsp;&nbsp;", request.values.resource) }}
-    {{ manage.manage_block_row("TXID:&nbsp;&nbsp;&nbsp;", result_url) }}
-    {{ manage.manage_block_row("", return_link) }}
+    {{ manage.manage_block_row(("Staked:&nbsp;&nbsp;&nbsp;" | safe), request.values.amount_trx + " TRX") }}
+    {{ manage.manage_block_row(("Resource:&nbsp;&nbsp;&nbsp;" | safe), request.values.resource) }}
+    {{ manage.manage_block_row(("TXID:&nbsp;&nbsp;&nbsp;" | safe), result_url | safe) }}
+    {{ manage.manage_block_row("", return_link | safe) }}
 {% endset %}
 <div id="tron_staking">{{ manage.manage_block("Staking result", content) }}</div>
