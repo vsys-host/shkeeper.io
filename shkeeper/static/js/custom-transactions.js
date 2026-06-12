@@ -1,3 +1,33 @@
+function markAsPaid(btn, invoiceId) {
+  if (!confirm('Mark this invoice as PAID and send callback?')) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  fetch('/invoice/' + invoiceId + '/mark-paid', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(data) {
+    if (data.status === 'success') {
+      alert('Invoice marked as PAID. Callback sent.');
+      update_tx_table();
+    } else {
+      alert('Error: ' + data.message);
+      btn.disabled = false;
+      btn.textContent = 'u2713';
+    }
+  })
+  .catch(function(err) {
+    alert('Request failed: ' + err);
+    btn.disabled = false;
+    btn.textContent = 'u2713';
+  });
+}
+
 function hideElement(name) {
   let transactionsElem = document.getElementsByClassName(name);
   for (let i = 0; i < transactionsElem.length; i++) {
