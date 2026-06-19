@@ -1,0 +1,72 @@
+<h2 class="subtitle-text mb-4">Undelegate Resources</h2>
+        <p class="common-text mb-3">
+            <b>Recipient:</b>&nbsp;&nbsp;&nbsp;
+            {{ recipient_address }}
+        </p>
+        <p class="common-text mb-3">
+            <b>Bandwidth available:</b>&nbsp;&nbsp;&nbsp;
+            <span onclick="document.getElementById('trx_undelegate_input').value = {{ (bandwidth_amount / 1_000_000) | round(6) }};"
+                  style="cursor: pointer; text-decoration: underline; color: var(--info-color)">
+                {{ (bandwidth_amount / 1_000_000) | round(6) }} TRX
+            </span>
+        </p>
+        <p class="common-text mb-3">
+            <b>Energy available:</b>&nbsp;&nbsp;&nbsp;
+            <span onclick="document.getElementById('trx_undelegate_input').value = {{ (energy_amount / 1_000_000) | round(6) }};"
+                  style="cursor: pointer; text-decoration: underline; color: var(--info-color)">
+                {{ (energy_amount / 1_000_000) | round(6) }} TRX
+            </span>
+        </p>
+        <p class="common-text mb-3">
+            <b>Amount to reclaim:</b>&nbsp;&nbsp;&nbsp;
+            <input class="form-control common-text"
+                   type="number"
+                   style="display: inline;
+                          width: 80px"
+                   id="trx_undelegate_input"
+                   name="amount_trx"
+                   step="0.000001"
+                   min="0.000001">
+        </p>
+        <ul>
+            <li>
+                <span hx-post="/parts/tron-staking-undelegate?resource=ENERGY&to={{ recipient_address }}"
+                      hx-include="#trx_undelegate_input"
+                      hx-trigger="click"
+                      hx-target="#dialog_undelegation_content"
+                      hx-swap="innerHTML"
+                      hx-confirm="Are you sure you wish to undelegate energy resources?"
+                      class="common-text accent-text"
+                      style="cursor: pointer;
+                             color: var(--info-color)">
+                    <img height="16"
+                         width="16"
+                         class="htmx-indicator"
+                         src="{{ url_for('static', filename='images/svg-loaders/spinning-circles.' + theme + '.svg') }}" />
+                    Reclaim energy
+                </span>
+            </li>
+            <li>
+                <span hx-post="/parts/tron-staking-undelegate?resource=BANDWIDTH&to={{ recipient_address }}"
+                      hx-include="#trx_undelegate_input"
+                      hx-trigger="click"
+                      hx-target="#dialog_undelegation_content"
+                      hx-swap="innerHTML"
+                      hx-confirm="Are you sure you wish to undelegate bandwidth resources?"
+                      class="common-text accent-text"
+                      style="cursor: pointer;
+                             color: var(--success-color)">
+                    <img height="16"
+                         width="16"
+                         class="htmx-indicator"
+                         src="{{ url_for('static', filename='images/svg-loaders/spinning-circles.' + theme + '.svg') }}" />
+                    Reclaim bandwidth
+                </span>
+            </li>
+            <li>
+                <span onclick="dialog_undelegation.close()"
+                      class="common-text accent-text"
+                      style="cursor: pointer;
+                             color: var(--danger-color)">Cancel</span>
+            </li>
+        </ul>

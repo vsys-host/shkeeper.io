@@ -1,18 +1,19 @@
 {% import 'macros.j2' as manage %}
 {% set result_url %}
-    <a href="https://tronscan.org/#/transaction/{{ stake_result.id }}" target="_blank">{{ stake_result.id }}</a>
+    <a href="https://tronscan.org/#/transaction/{{ undelegate_result.id }}" target="_blank">{{ undelegate_result.id }}</a>
 {% endset %}
 {% set return_link %}
-    <span onclick="dialog_staking.close(); location.reload();"
+    <span onclick="dialog_undelegation.close(); location.reload();"
           class="common-text accent-text"
           style="cursor: pointer">
         Return
     </span>
 {% endset %}
 {% set content %}
-    {{ manage.manage_block_row(("Staked:&nbsp;&nbsp;&nbsp;" | safe), request.values.amount_trx + " TRX") }}
+    {{ manage.manage_block_row(("Reclaimed:&nbsp;&nbsp;&nbsp;" | safe), request.values.amount_trx + " TRX") }}
     {{ manage.manage_block_row(("Resource:&nbsp;&nbsp;&nbsp;" | safe), request.values.resource) }}
+    {{ manage.manage_block_row(("From:&nbsp;&nbsp;&nbsp;" | safe), request.values.to) }}
     {{ manage.manage_block_row(("TXID:&nbsp;&nbsp;&nbsp;" | safe), result_url | safe) }}
     {{ manage.manage_block_row("", return_link | safe) }}
 {% endset %}
-<div id="tron_staking">{{ manage.manage_block("Staking result", content) }}</div>
+<div id="tron_undelegation">{{ manage.manage_block("Undelegation result", content) }}</div>

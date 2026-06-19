@@ -67,6 +67,7 @@ def get_crypto_label(crypto_code: str) -> str:
 
     return crypto_code
 
+
 @bp_wallet.context_processor
 def inject_theme():
     return {"theme": request.cookies.get("theme", "light")}
@@ -558,6 +559,38 @@ def post_parts_tron_staking_stake():
     return render_template(
         "wallet/configure/tron/main__dialog_staking__result.j2",
         stake_result=stake_result,
+    )
+
+
+@bp_wallet.get("/parts/tron-staking-undelegate")
+@login_required
+def get_parts_tron_staking_undelegate():
+    recipient_address = request.values.get("to")
+    bandwidth_amount = int(request.values.get("bandwidth", 0))
+    energy_amount = int(request.values.get("energy", 0))
+
+    return render_template(
+        "wallet/configure/tron/main__dialog_undelegation.j2",
+        recipient_address=recipient_address,
+        bandwidth_amount=bandwidth_amount,
+        energy_amount=energy_amount,
+    )
+
+
+@bp_wallet.post("/parts/tron-staking-undelegate")
+@login_required
+def post_parts_tron_staking_undelegate():
+    tron: TronToken = next(
+        filter(lambda x: isinstance(x, TronToken), Crypto.instances.values())
+    )
+    undelegate_result = tron.undelegate_trx(
+        request.values.get("to"),
+        request.values.get("amount_trx"),
+        request.values.get("resource"),
+    )
+    return render_template(
+        "wallet/configure/tron/main__dialog_undelegation__result.j2",
+        undelegate_result=undelegate_result,
     )
 
 

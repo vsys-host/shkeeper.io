@@ -64,6 +64,16 @@
 
       {# Dialogs #}
       {% include "wallet/configure/tron/main__dialog_staking.j2" %}
+      <dialog id="dialog_undelegation" style="min-width: 300px">
+          <div id="dialog_undelegation_content"></div>
+      </dialog>
+      <script>
+          document.addEventListener('htmx:afterSwap', function(e) {
+              if (e.target.id === 'dialog_undelegation_content') {
+                  document.getElementById('dialog_undelegation').showModal();
+              }
+          });
+      </script>
     {% endif %}
   </div>
 {% endblock content %}

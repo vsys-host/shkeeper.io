@@ -210,3 +210,10 @@ class TronToken(Crypto):
             auth=self.get_auth_creds(),
         )
         return response.json(parse_float=Decimal)
+
+    def undelegate_trx(self, address, amount, resource):
+        response = requests.post(
+            f"http://{self.gethost()}/staking/undelegate/{address}/{amount}/{resource}",
+            auth=self.get_auth_creds(),
+        )
+        return response.json(parse_float=Decimal)

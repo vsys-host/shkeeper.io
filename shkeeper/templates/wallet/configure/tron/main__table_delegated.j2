@@ -18,7 +18,11 @@
                         <td>{{ r.frozen_balance_for_bandwidth / 1_000_000 }} TRX</td>
                         <td>{{ r.frozen_balance_for_energy / 1_000_000 }} TRX</td>
                         <td>
-                            {# <button class="btn btn-sm general-button">reclaim</button> #}
+                            <button class="btn common-text accent-text" style="padding: 0;"
+                                    hx-get="/parts/tron-staking-undelegate?to={{ r.to }}&bandwidth={{ r.frozen_balance_for_bandwidth }}&energy={{ r.frozen_balance_for_energy }}"
+                                    hx-trigger="click"
+                                    hx-target="#dialog_undelegation_content"
+                                    hx-swap="innerHTML">Reclaim</button>
                         </td>
                     </tr>
                 {% endfor %}
