@@ -24,7 +24,7 @@
       <td class="row-{{loop.index}} crypto">{{tx.crypto_label}}</td>
       <td class="row-{{loop.index}} amount">{{tx.amount_crypto|abs|format_decimal}}</td>
       <td class="row-{{loop.index}} amount-bucks">{{tx.invoice.fiat}} {{tx.amount_fiat|abs|format_decimal(2)}}</td>
-      <td class="row-{{loop.index}} status success-text">{{tx.invoice.status.name}}</td>
+      <td class="row-{{loop.index}} status success-text">{{tx.invoice.status.name}}{% if tx.invoice.status.name in ("PARTIAL", "UNPAID") %} <button class="btn btn-sm mark-paid-btn" data-invoice-id="{{tx.invoice.id}}" onclick="markAsPaid(this, {{tx.invoice.id}})" style="padding:0 2px;font-size:11px;line-height:1;margin-left:4px;background:#ffc107;border:none;border-radius:3px;" title="Mark as Paid">&#10003;</button>{% endif %}</td>
       <td class="row-{{loop.index}} date convertDate">{{tx.created_at.timestamp()}}</td>
       <td class="row-{{loop.index}} time">{{tx.created_at.strftime('%H:%M')}}</td>
       {% if tx.invoice.status.name == "OUTGOING" %}
