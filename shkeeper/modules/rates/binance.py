@@ -34,6 +34,14 @@ class Binance(RateSource):
         if crypto == "OP-TOKEN":
             crypto = "OP"
 
+        # MATIC (native currency in Polygon renamed to POL)
+        if crypto == "MATIC":
+            crypto = "POL"
+
+        # TON (native currency in TON renamed to GRAM)
+        if crypto == "TON":
+            crypto = "GRAM"
+
         if fiat == "USD":
             fiat = "USDT"
 
