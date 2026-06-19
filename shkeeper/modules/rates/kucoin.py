@@ -34,6 +34,14 @@ class KuCoin(RateSource):
         if crypto == "OP-TOKEN":
             crypto = "OP"
 
+        # MATIC (native currency in Polygon renamed to POL)
+        if crypto == "MATIC":
+            crypto = "POL"
+
+        # TON (native currency in TON renamed to GRAM) 
+        if crypto == "TON":
+            crypto = "GRAM"
+
         # https://www.kucoin.com/docs/beginners/introduction
         url = f"https://api.kucoin.com/api/v1/prices?base={fiat}&currencies={crypto}"
         answer = requests.get(url)
