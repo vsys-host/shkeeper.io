@@ -8,25 +8,22 @@ from flask import current_app as app
 from shkeeper.modules.classes.crypto import Crypto
 
 
-class Ethereum(Crypto):
+class UtxoHttpWallet(Crypto):
     can_set_tx_fee = False
-    host_env_prefix = "ETHEREUM"
-    creds_env_prefix = "ETH"
-    default_host = "ethereum-shkeeper"
-    network_currency = "ETH"
-    block_interval = 12
-    sync_lag_multiplier = 10
+    env_prefix = None
+    default_host = None
+    log_tx_response = False
 
     def gethost(self):
         host = environ.get(
-            f"{self.host_env_prefix}_API_SERVER_HOST", self.default_host
+            f"{self.env_prefix}_API_SERVER_HOST", self.default_host
         )
-        port = environ.get(f"{self.host_env_prefix}_SERVER_PORT", "6000")
+        port = environ.get(f"{self.env_prefix}_SERVER_PORT", "6000")
         return f"{host}:{port}"
 
     def get_auth_creds(self):
-        username = environ.get(f"{self.creds_env_prefix}_USERNAME", "shkeeper")
-        password = environ.get(f"{self.creds_env_prefix}_PASSWORD", "shkeeper")
+        username = environ.get(f"{self.env_prefix}_USERNAME", "shkeeper")
+        password = environ.get(f"{self.env_prefix}_PASSWORD", "shkeeper")
         return (username, password)
 
     def estimate_tx_fee(self, amount, **kwargs):
@@ -71,25 +68,17 @@ class Ethereum(Crypto):
         ).json(parse_float=Decimal)
         return response
 
-    def _status_block_timestamp(self, response):
-        return response["last_block_timestamp"]
-
     def getstatus(self):
         try:
             response = requests.post(
                 f"http://{self.gethost()}/{self.crypto}/status",
                 auth=self.get_auth_creds(),
             ).json(parse_float=Decimal)
-
-            block_ts = self._status_block_timestamp(response)
-            now_ts = int(datetime.datetime.now().timestamp())
-
-            delta = abs(now_ts - block_ts)
-            block_interval = self.block_interval
-            if delta < block_interval * self.sync_lag_multiplier:
+            delta_blocks = response["delta_blocks"]
+            if delta_blocks <= 12:
                 return "Synced"
             else:
-                return "Sync In Progress (%d blocks behind)" % (delta // block_interval)
+                return f"Sync In Progress ({delta_blocks} blocks behind)"
 
         except Exception as e:
             return "Offline"
@@ -106,8 +95,9 @@ class Ethereum(Crypto):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/transaction/{tx}",
             auth=self.get_auth_creds(),
-            timeout=60,
         ).json(parse_float=Decimal)
+        if self.log_tx_response:
+            app.logger.warning(f"Transaction {tx} response: {response}")
         result = []
         for address, amount, confirmations, category in response:
             result.append([address, Decimal(amount), confirmations, category])
@@ -117,7 +107,6 @@ class Ethereum(Crypto):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/dump",
             auth=self.get_auth_creds(),
-            timeout=60,
         ).json(parse_float=Decimal)
         now = datetime.datetime.now().strftime("%F_%T")
         filename = f"{now}_{self.crypto}_shkeeper_wallet.json"
@@ -127,21 +116,20 @@ class Ethereum(Crypto):
     def create_wallet(self, *args, **kwargs):
         return {"error": None}
 
-    def _subtract_payout_fee(self, amount, fee):
-        return amount - fee
-
     def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)["fee"])
             if fee >= amount:
-                return (
-                    f"Payout failed: not enought {self.network_currency} to pay for "
-                    f"transaction. Need {fee}, balance {amount}"
-                )
+                return f"Payout failed: not enought BTC to pay for transaction. Need {fee}, balance {amount}"
             else:
-                amount = self._subtract_payout_fee(amount, fee)
+                amount -= fee
+        current_fee = (
+            fee
+            if fee not in (None, 0, 0.0, "0", "")
+            else self.estimate_tx_fee(amount)["fee_satoshi"]
+        )
         response = requests.post(
-            f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
+            f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}/{current_fee}",
             auth=self.get_auth_creds(),
         ).json(parse_float=Decimal)
         return response
