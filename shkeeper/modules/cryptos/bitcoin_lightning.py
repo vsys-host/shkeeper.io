@@ -537,7 +537,7 @@ class BitcoinLightning(Crypto):
                 timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
             ).json()
 
-            app.logger.debug(f"Payout result: {result!r}")
+            app.logger.info(f"Payout result: {result!r}")
 
             if result.get("payment_error"):
                 return {"result": None, "error": {"message": result["payment_error"]}}
