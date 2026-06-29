@@ -539,7 +539,7 @@ class BitcoinLightning(Crypto):
 
             app.logger.debug(f"Payout result: {result!r}")
 
-            if result["payment_error"]:
+            if result.get("payment_error"):
                 return {"result": None, "error": {"message": result["payment_error"]}}
             else:
                 return {
