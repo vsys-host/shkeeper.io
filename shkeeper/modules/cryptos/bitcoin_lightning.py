@@ -547,11 +547,6 @@ class BitcoinLightning(Crypto):
             ).json()
 
             app.logger.info(f"Payout result: {result!r}")
-            if result.get("payment_hash"):
-                return {
-                    "result": self.to_hex_string(result["payment_hash"]),
-                    "error": None,
-                }
 
             if result.get("payment_error"):
                 return {
@@ -559,6 +554,12 @@ class BitcoinLightning(Crypto):
                     "error": {
                         "message": "Payment error: " + repr(result["payment_error"])
                     },
+                }
+
+            if result.get("payment_hash"):
+                return {
+                    "result": self.to_hex_string(result["payment_hash"]),
+                    "error": None,
                 }
             else:
                 return {
