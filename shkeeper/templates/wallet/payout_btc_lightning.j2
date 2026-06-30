@@ -211,11 +211,13 @@ document.querySelector(".send-payment").addEventListener("click", e => {
   let minAmount = parseFloat(amount_btc.min);
   let maxAmount = parseFloat(amount_btc.max);
 
+if (maxAmount > 0) {
   if (amount < minAmount || amount > maxAmount) {
     alert(`Amount must be between ${minAmount} and ${maxAmount} BTC`);
     amount_btc.focus();
     return;
   }
+}
 
   tx_progress_on();
 

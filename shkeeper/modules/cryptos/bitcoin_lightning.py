@@ -522,29 +522,48 @@ class BitcoinLightning(Crypto):
         fee: int,
         subtract_fee_from_amount: bool = False,
     ):
-        destination, lnurl_info = self.lnurl_to_pr(
-            destination, remove_exponent(self.btc_to_msat(amount))
-        )
-
         try:
+            destination, lnurl_info = self.lnurl_to_pr(
+                destination, remove_exponent(self.btc_to_msat(amount))
+            )
+
+            decoded_pay_req = self.session.get(
+                f"{self.LND_REST_URL}/v1/payreq/{destination}",
+                timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
+            ).json()
+            app.logger.debug(f"Decoded payment request: {decoded_pay_req!r}")
+
+            body = {
+                "payment_request": destination,
+            }
+            if int(decoded_pay_req["num_satoshis"]) == 0:
+                # add user provided amount to zero amount payment request
+                body["amt"] = remove_exponent(self.btc_to_msat(amount))
+
             result = self.session.post(
                 f"{self.LND_REST_URL}/v1/channels/transactions",
-                data=json.dumps(
-                    {
-                        "payment_request": destination,
-                    }
-                ),
+                data=json.dumps(body),
                 timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
             ).json()
 
             app.logger.info(f"Payout result: {result!r}")
-
-            if result.get("payment_error"):
-                return {"result": None, "error": {"message": result["payment_error"]}}
-            else:
+            if result.get("payment_hash"):
                 return {
                     "result": self.to_hex_string(result["payment_hash"]),
                     "error": None,
+                }
+
+            if result.get("payment_error"):
+                return {
+                    "result": None,
+                    "error": {
+                        "message": "Payment error: " + repr(result["payment_error"])
+                    },
+                }
+            else:
+                return {
+                    "result": None,
+                    "error": {"message": f"Unknown result: {result!r}"},
                 }
 
         except Exception as e:
