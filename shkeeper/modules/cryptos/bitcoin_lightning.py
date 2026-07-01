@@ -538,7 +538,7 @@ class BitcoinLightning(Crypto):
             }
             if int(decoded_pay_req["num_satoshis"]) == 0:
                 # add user provided amount to zero amount payment request
-                body["amt"] = remove_exponent(self.btc_to_msat(amount))
+                body["amt"] = remove_exponent(self.btc_to_sat(amount))
 
             result = self.session.post(
                 f"{self.LND_REST_URL}/v1/channels/transactions",
