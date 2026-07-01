@@ -67,12 +67,6 @@ def get_crypto_label(crypto_code: str) -> str:
 
     return crypto_code
 
-
-@bp_wallet.context_processor
-def inject_theme():
-    return {"theme": request.cookies.get("theme", "light")}
-
-
 @bp_wallet.route("/")
 def index():
     return redirect(url_for("wallet.wallets"))

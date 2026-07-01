@@ -10,37 +10,9 @@ class KuCoin(RateSource):
     name = "kucoin"
 
     def get_rate(self, fiat, crypto):
-        if crypto in self.USDT_CRYPTOS:
-            crypto = "USDT"
-
-        if crypto in self.USDC_CRYPTOS:
-            crypto = "USDC"
-
-        if crypto in self.USDT_CRYPTOS:
-            crypto = "USDT"
-
-        if crypto in self.BTC_CRYPTOS:
-            crypto = "BTC"
-
-        if crypto in self.FIRO_CRYPTOS:
-            crypto = "FIRO"
-
-        if crypto in self.ETH_CRYPTOS:
-            crypto = "ETH"
-        
-        if crypto == "ARB-TOKEN":
-            crypto = "ARB"
-
-        if crypto == "OP-TOKEN":
-            crypto = "OP"
-
-        # MATIC (native currency in Polygon renamed to POL)
-        if crypto == "MATIC":
-            crypto = "POL"
-
-        # TON (native currency in TON renamed to GRAM) 
-        if crypto == "TON":
-            crypto = "GRAM"
+        _, fiat, crypto = self.normalize_symbols(
+            fiat, crypto, usdt_usd_parity=False, usd_to_usdt=False, map_ton_to_gram=True
+        )
 
         # https://www.kucoin.com/docs/beginners/introduction
         url = f"https://api.kucoin.com/api/v1/prices?base={fiat}&currencies={crypto}"
