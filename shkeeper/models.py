@@ -188,6 +188,7 @@ class Wallet(db.Model):
 
         crypto = Crypto.instances[self.crypto]
         balance = crypto.balance()
+        payout_amount = balance
         if crypto.wallet.prespolicy == PayoutReservePolicy.DISABLE:
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
@@ -199,6 +200,7 @@ class Wallet(db.Model):
                     f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}"
                 )
             else:
+                payout_amount = should_payout
                 res = crypto.mkpayout(
                     self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
                 )
@@ -206,6 +208,7 @@ class Wallet(db.Model):
             should_payout = balance * (
                 1 - (Decimal(crypto.wallet.presamount) / 100)
             )  # presamount is stored as integer percent
+            payout_amount = should_payout
             res = crypto.mkpayout(
                 self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
             )
@@ -218,7 +221,7 @@ class Wallet(db.Model):
             )
         Payout.register_from_mkpayout(
             res,
-            {"dest": self.pdest, "amount": balance},
+            {"dest": self.pdest, "amount": payout_amount},
             self.crypto,
         )
         return res

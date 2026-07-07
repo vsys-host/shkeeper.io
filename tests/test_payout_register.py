@@ -203,5 +203,67 @@ class TestRegisterFromMkpayout(_AppContextTestCase):
         self.assertIsNone(payout_arg["callback_url"])
 
 
+class TestWalletDoPayout(_AppContextTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.db_patcher = mock.patch("shkeeper.models.db")
+        self.crypto_instances_patcher = mock.patch("shkeeper.models.Crypto.instances", {})
+        self.register_patcher = mock.patch.object(Payout, "register_from_mkpayout")
+        self.db = self.db_patcher.start()
+        self.crypto_instances = self.crypto_instances_patcher.start()
+        self.register = self.register_patcher.start()
+        self.addCleanup(self.db_patcher.stop)
+        self.addCleanup(self.crypto_instances_patcher.stop)
+        self.addCleanup(self.register_patcher.stop)
+
+    def _make_wallet(self) -> "Wallet":
+        from shkeeper.models import Wallet
+
+        wallet = Wallet()
+        wallet.crypto = "ETH"
+        wallet.payout = True
+        wallet.pdest = "0xdest"
+        wallet.pfee = "0.001"
+        return wallet
+
+    def test_amount_policy_records_should_payout_amount(self) -> None:
+        from shkeeper.models import PayoutReservePolicy
+
+        wallet = self._make_wallet()
+        crypto = mock.Mock()
+        crypto.balance.return_value = Decimal("10")
+        crypto.wallet = mock.Mock()
+        crypto.wallet.prespolicy = PayoutReservePolicy.AMOUNT
+        crypto.wallet.presamount = "3"
+        crypto.mkpayout.return_value = {"result": "0xtx"}
+        self.crypto_instances["ETH"] = crypto
+
+        wallet.do_payout()
+
+        crypto.mkpayout.assert_called_once_with(
+            "0xdest", Decimal("7"), "0.001", subtract_fee_from_amount=True
+        )
+        self.assertEqual(self.register.call_args.args[1]["amount"], Decimal("7"))
+
+    def test_percent_policy_records_should_payout_amount(self) -> None:
+        from shkeeper.models import PayoutReservePolicy
+
+        wallet = self._make_wallet()
+        crypto = mock.Mock()
+        crypto.balance.return_value = Decimal("10")
+        crypto.wallet = mock.Mock()
+        crypto.wallet.prespolicy = PayoutReservePolicy.PERCENT
+        crypto.wallet.presamount = "20"
+        crypto.mkpayout.return_value = {"result": "0xtx"}
+        self.crypto_instances["ETH"] = crypto
+
+        wallet.do_payout()
+
+        crypto.mkpayout.assert_called_once_with(
+            "0xdest", Decimal("8"), "0.001", subtract_fee_from_amount=True
+        )
+        self.assertEqual(self.register.call_args.args[1]["amount"], Decimal("8"))
+
+
 if __name__ == "__main__":
     unittest.main()
