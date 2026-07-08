@@ -135,11 +135,16 @@ class Ethereum(Crypto):
             fee = Decimal(self.estimate_tx_fee(amount)["fee"])
             if fee >= amount:
                 return (
-                    f"Payout failed: not enought {self.network_currency} to pay for "
+                    f"Payout failed: not enough {self.network_currency} to pay for "
                     f"transaction. Need {fee}, balance {amount}"
                 )
             else:
                 amount = self._subtract_payout_fee(amount, fee)
+                if amount <= 0:
+                    return (
+                        f"Payout failed: not enough {self.network_currency} to pay for "
+                        f"transaction after reserve deduction. Final amount {amount}"
+                    )
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
             auth=self.get_auth_creds(),

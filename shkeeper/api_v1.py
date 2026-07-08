@@ -96,6 +96,7 @@ def generate_address(crypto_name):
 @blp_v1.doc(**payment_request_doc)
 @api_key_required
 def payment_request(crypto_name):
+    req = None
     try:
         crypto, error = resolve_available_crypto(crypto_name)
         if error:
@@ -490,27 +491,22 @@ def walletnotify(crypto_name, txid):
 def decrypt_key(crypto_name):
     """Return wallet encryption state (used by backend services)."""
     try:
-        if "X-Shkeeper-Backend-Key" not in request.headers:
-            app.logger.warning("No backend key provided")
-            return {"status": "error", "message": "No backend key provided"}, 403
+        if error := verify_backend_key():
+            return error
 
         try:
             Crypto.instances[crypto_name]
-            bkey = environ.get("SHKEEPER_BTC_BACKEND_KEY", "shkeeper")
-            if request.headers["X-Shkeeper-Backend-Key"] != bkey:
-                app.logger.warning("Wrong backend key")
-                return {"status": "error", "message": "Wrong backend key"}, 403
         except KeyError:
             return {
                 "status": "success",
                 "message": f"Ignoring notification for {crypto_name}: crypto is not available for processing",
             }
 
-    except Exception:
+    except Exception as e:
         return api_error_response(
-            None,
-            f"Exception while processing transaction notification: {crypto_name}",
-            message="Exception while processing transaction notification",
+            e,
+            f"Decrypt key error: {crypto_name}",
+            message="Exception while processing decrypt key request",
             status_code=409,
             log=False,
         )
