@@ -86,27 +86,29 @@ class PayoutService:
             app.logger.error(f"[single_payout] mkpayout failed: {e}")
             raise
 
-        task_id = res.get("task_id")
-        txids = res.get("result", [])
-        app.logger.info(f"[single_payout] mkpayout response: task_id={task_id} txids={txids} full_response={res}")
-
-        if not task_id:
-            app.logger.warning(f"[single_payout] No task_id returned from mkpayout — payout will rely on txid-based confirmation only")
-
-        if not txids:
-            app.logger.warning(f"[single_payout] No txids in mkpayout result — PayoutTx will be empty until task resolves")
+        app.logger.info(f"[single_payout] mkpayout response: {res}")
 
         try:
-            payout = cls.create_payout_record(req, crypto_name, task_id=task_id, txids=txids)
-            app.logger.info(f"[single_payout] Payout record created: payout_id={payout.id} task_id={task_id} txids={txids}")
+            payout = Payout.register_from_mkpayout(
+                res,
+                {
+                    "dest": req["destination"],
+                    "amount": Decimal(req["amount"]),
+                    "callback_url": callback_url,
+                },
+                crypto_name,
+                external_id=req.get("external_id"),
+            )
         except Exception as e:
             app.logger.error(f"[single_payout] Failed to create payout record: {e}")
             raise
 
-        if req.get("external_id"):
+        if req.get("external_id") and isinstance(res, dict):
             res["external_id"] = req["external_id"]
 
-        app.logger.info(f"[single_payout] Completed successfully: payout_id={payout.id} external_id={res.get('external_id')} task_id={task_id}")
+        app.logger.info(
+            f"[single_payout] Completed: payout_id={payout.id if payout else None} res={res}"
+        )
         return res
 
     @classmethod

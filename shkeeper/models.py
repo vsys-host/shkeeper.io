@@ -188,6 +188,7 @@ class Wallet(db.Model):
 
         crypto = Crypto.instances[self.crypto]
         balance = crypto.balance()
+        payout_amount = balance
         if crypto.wallet.prespolicy == PayoutReservePolicy.DISABLE:
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
@@ -199,6 +200,7 @@ class Wallet(db.Model):
                     f"Unable to autopayout, reserved amount is bigger or equal to balance: {balance} < {crypto.wallet.presamount}"
                 )
             else:
+                payout_amount = should_payout
                 res = crypto.mkpayout(
                     self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
                 )
@@ -206,6 +208,7 @@ class Wallet(db.Model):
             should_payout = balance * (
                 1 - (Decimal(crypto.wallet.presamount) / 100)
             )  # presamount is stored as integer percent
+            payout_amount = should_payout
             res = crypto.mkpayout(
                 self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
             )
@@ -216,15 +219,10 @@ class Wallet(db.Model):
             res = crypto.mkpayout(
                 self.pdest, balance, self.pfee, subtract_fee_from_amount=True
             )
-        task_id = res.get("task_id")
-        app.logger.warning(f"payout do_payt create {res}")
-        Payout.add(
-            {
-                "dest": self.pdest,
-                "amount": balance,
-            },
+        Payout.register_from_mkpayout(
+            res,
+            {"dest": self.pdest, "amount": payout_amount},
             self.crypto,
-            task_id=task_id,
         )
         return res
 
@@ -785,6 +783,103 @@ class Payout(db.Model):
                 db.session.add(ptx)
             db.session.commit()
         return p
+
+    @staticmethod
+    def _format_mkpayout_error(error):
+        if error is None:
+            return None
+        if isinstance(error, str):
+            return error
+        if isinstance(error, dict):
+            return error.get("message") or str(error)
+        return str(error)
+
+    @classmethod
+    def add_failed(cls, dest, amount, crypto, error=None, callback_url=None, external_id=None):
+        formatted_error = cls._format_mkpayout_error(error)
+        app.logger.warning(
+            f"[Payout.add_failed] crypto={crypto} dest={dest} amount={amount} "
+            f"external_id={external_id} error={formatted_error}"
+        )
+        p = cls(
+            dest_addr=dest,
+            amount=amount,
+            crypto=crypto,
+            status=PayoutStatus.FAIL,
+            success="No",
+            error=formatted_error,
+            callback_url=callback_url,
+            external_id=external_id or None,
+        )
+        db.session.add(p)
+        db.session.commit()
+        return p
+
+    @classmethod
+    def register_from_mkpayout(cls, res, payout, crypto, external_id=None):
+        dest = payout["dest"]
+        amount = payout["amount"]
+        callback_url = payout.get("callback_url")
+
+        log_ctx = f"crypto={crypto} dest={dest} amount={amount} external_id={external_id}"
+        app.logger.info(
+            f"[register_from_mkpayout] start {log_ctx} res_type={type(res).__name__} res={res}"
+        )
+
+        if isinstance(res, dict):
+            if res.get("error"):
+                app.logger.warning(
+                    f"[register_from_mkpayout] dict with error -> add_failed {log_ctx} error={res['error']}"
+                )
+                return cls.add_failed(
+                    dest,
+                    amount,
+                    crypto,
+                    error=res["error"],
+                    callback_url=callback_url,
+                    external_id=external_id,
+                )
+            task_id = res.get("task_id")
+            result = res.get("result")
+            if task_id or result:
+                txids = []
+                if result:
+                    txids = result if isinstance(result, list) else [result]
+                app.logger.info(
+                    f"[register_from_mkpayout] dict success -> add {log_ctx} task_id={task_id} txids={txids}"
+                )
+                return cls.add(
+                    {
+                        "dest": dest,
+                        "amount": amount,
+                        "callback_url": callback_url,
+                        "txids": txids,
+                    },
+                    crypto,
+                    task_id=task_id,
+                    external_id=external_id,
+                )
+            app.logger.warning(
+                f"[register_from_mkpayout] dict without error/task_id/result -> no record {log_ctx} res={res}"
+            )
+            return None
+        elif isinstance(res, str):
+            app.logger.warning(
+                f"[register_from_mkpayout] str response -> add_failed {log_ctx} error={res}"
+            )
+            return cls.add_failed(
+                dest,
+                amount,
+                crypto,
+                error=res,
+                callback_url=callback_url,
+                external_id=external_id,
+            )
+
+        app.logger.error(
+            f"[register_from_mkpayout] unexpected response type -> no record {log_ctx} res_type={type(res).__name__} res={res}"
+        )
+        return None
 
 
 class Notification(db.Model):
