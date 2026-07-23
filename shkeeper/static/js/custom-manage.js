@@ -765,127 +765,344 @@ function paymentGatwey()
     function WebhookSecret()
     {
       const endpoint = "/api/v1/" + crypto + "/payment-gateway/webhook-secret";
+      const block = document.getElementById("webhook-secret-block");
       const secretInput = document.getElementById("webhook-secret-input");
       const setBtn = document.getElementById("setWebhookSecretBtn");
       const generateBtn = document.getElementById("generateWebhookSecretBtn");
       const copyBtn = document.getElementById("copyWebhookSecretBtn");
       const clearBtn = document.getElementById("clearWebhookSecretBtn");
       const status = document.getElementById("webhook-secret-status");
+      let configured = false;
+      let busy = false;
 
-      function setStatus(message, isError)
+      function setStatus(message, tone)
       {
         status.textContent = message;
-        status.classList.toggle("webhook-secret-status-error", Boolean(isError));
+        status.classList.remove(
+          "webhook-secret-status-success",
+          "webhook-secret-status-warning",
+          "webhook-secret-status-error"
+        );
+        if(tone)
+        {
+          status.classList.add("webhook-secret-status-" + tone);
+        }
+      }
+
+      function updateControls()
+      {
+        const hasValidCandidate = secretInput.value.length >= 32;
+        secretInput.disabled = busy;
+        setBtn.disabled = busy || !hasValidCandidate;
+        generateBtn.disabled = busy;
+        copyBtn.disabled = busy || secretInput.value.length === 0;
+        clearBtn.disabled = busy || !configured;
+        block.setAttribute("aria-busy", busy ? "true" : "false");
+      }
+
+      function setBusy(value)
+      {
+        busy = value;
+        updateControls();
+      }
+
+      function clearCandidate()
+      {
+        secretInput.value = "";
+        copyBtn.hidden = true;
+        updateControls();
+      }
+
+      function responseErrorMessage(response, data)
+      {
+        if(response.status === 401 || response.status === 403)
+        {
+          return "Your session has expired or you are not authorized. Reload the page and sign in again.";
+        }
+        if(data && typeof data.message === "string" && data.message)
+        {
+          return data.message;
+        }
+        if(data && typeof data.error === "string" && data.error)
+        {
+          return data.error;
+        }
+        return "Unable to update the webhook secret (HTTP " + response.status + ").";
       }
 
       async function request(method, payload)
       {
         const options = {
           method: method,
-          headers: {"Content-Type": "application/json"}
+          cache: "no-store",
+          headers: {"Accept": "application/json"}
         };
         if(payload !== undefined)
         {
+          options.headers["Content-Type"] = "application/json";
           options.body = JSON.stringify(payload);
         }
 
-        const response = await fetch(endpoint, options);
-        const data = await response.json();
+        let response;
+        try
+        {
+          response = await fetch(endpoint, options);
+        }
+        catch(error)
+        {
+          throw new Error("Could not reach SHKeeper. Check your connection and try again.");
+        }
+
+        if(response.redirected)
+        {
+          throw new Error("Your session may have expired. Reload the page and sign in again.");
+        }
+
+        const contentType = response.headers.get("Content-Type") || "";
+        let data = null;
+        if(contentType.toLowerCase().includes("json"))
+        {
+          try
+          {
+            data = await response.json();
+          }
+          catch(error)
+          {
+            throw new Error("SHKeeper returned an invalid JSON response. Reload the page and try again.");
+          }
+        }
+        else
+        {
+          // Consume the response without displaying server-generated HTML.
+          await response.text();
+          if(response.status === 401 || response.status === 403)
+          {
+            throw new Error(responseErrorMessage(response, null));
+          }
+          throw new Error("SHKeeper returned an unexpected response. Reload the page and try again.");
+        }
+
+        if(!data || typeof data !== "object" || Array.isArray(data))
+        {
+          throw new Error("SHKeeper returned an invalid JSON response. Reload the page and try again.");
+        }
         if(!response.ok || data.status !== "success")
         {
-          throw new Error(data.message || "Unable to update webhook secret");
+          throw new Error(responseErrorMessage(response, data));
         }
         return data;
       }
 
       async function loadStatus()
       {
+        if(busy)
+        {
+          return;
+        }
+        setBusy(true);
+        setStatus("Checking webhook signing configuration.");
         try
         {
           const data = await request("GET");
+          configured = Boolean(data.configured);
           setStatus(
-            data.configured
-              ? "A dedicated webhook secret is configured."
-              : "Using the API key for webhook signing."
+            configured
+              ? "A dedicated webhook HMAC secret is active. API requests still use the API key."
+              : "Compatibility mode is active: callbacks are signed with the API key.",
+            configured ? "success" : "warning"
           );
         }
         catch(error)
         {
-          setStatus(error.message, true);
+          setStatus(error.message, "error");
+        }
+        finally
+        {
+          setBusy(false);
         }
       }
 
       setBtn.addEventListener("click", async function()
       {
-        const secret = secretInput.value.trim();
-        if(secret.length < 32)
+        if(busy)
         {
-          setStatus("Enter a secret containing at least 32 characters.", true);
           return;
         }
 
+        // Leading and trailing characters are significant; preserve the exact value.
+        const secret = secretInput.value;
+        if(secret.length < 32)
+        {
+          setStatus("Enter a secret containing at least 32 characters.", "error");
+          return;
+        }
+
+        const prompt = configured
+          ? "Replace the active webhook secret? Configure your callback receiver with this exact value first. Existing receivers using the current secret will stop verifying callbacks immediately."
+          : "Activate this webhook secret? Configure your callback receiver with this exact value first. Callbacks will stop using the API key for signing, and invoice callbacks will stop sending it.";
+        if(!window.confirm(prompt))
+        {
+          return;
+        }
+
+        setBusy(true);
+        setStatus("Activating the dedicated webhook secret.");
         try
         {
           await request("POST", {action: "set", secret: secret});
-          secretInput.value = "";
-          copyBtn.hidden = true;
-          setStatus("Webhook secret saved. Update your callback receiver to use it.");
+          configured = true;
+          clearCandidate();
+          setStatus(
+            "Dedicated webhook secret activated. Callbacks now use it and omit the API key header.",
+            "success"
+          );
         }
         catch(error)
         {
-          setStatus(error.message, true);
+          setStatus(error.message, "error");
+        }
+        finally
+        {
+          setBusy(false);
         }
       });
 
       generateBtn.addEventListener("click", async function()
       {
+        if(busy)
+        {
+          return;
+        }
+        if(secretInput.value.length > 0 && !window.confirm(
+          "Replace the candidate currently in this field? It has not been activated."
+        ))
+        {
+          return;
+        }
+
+        setBusy(true);
+        setStatus("Generating a candidate secret.");
         try
         {
           const data = await request("POST", {action: "generate"});
+          if(typeof data.generated_secret !== "string" || data.generated_secret.length < 32)
+          {
+            throw new Error("SHKeeper did not return a valid candidate secret.");
+          }
+          if(typeof data.configured === "boolean")
+          {
+            configured = data.configured;
+          }
           secretInput.value = data.generated_secret;
           copyBtn.hidden = false;
-          setStatus("Generated and saved. Copy this secret now; it will not be shown again.");
+          setStatus(
+            "Candidate generated but not active. " +
+              (configured
+                ? "The existing dedicated secret remains active. "
+                : "API-key compatibility mode remains active. ") +
+              "Copy the candidate to your callback receiver, then select Activate.",
+            "warning"
+          );
         }
         catch(error)
         {
-          setStatus(error.message, true);
+          setStatus(error.message, "error");
+        }
+        finally
+        {
+          setBusy(false);
         }
       });
 
       copyBtn.addEventListener("click", async function()
       {
-        try
-        {
-          await navigator.clipboard.writeText(secretInput.value);
-          setStatus("Webhook secret copied to the clipboard.");
-        }
-        catch(error)
-        {
-          secretInput.select();
-          setStatus("Select and copy the secret from the field.", true);
-        }
-      });
-
-      clearBtn.addEventListener("click", async function()
-      {
-        if(!window.confirm("Use the API key for webhook signing instead?"))
+        if(busy || secretInput.value.length === 0)
         {
           return;
         }
 
         try
         {
-          await request("DELETE");
-          secretInput.value = "";
-          copyBtn.hidden = true;
-          setStatus("Dedicated secret removed. Webhooks now use the API key.");
+          if(!navigator.clipboard || !window.isSecureContext)
+          {
+            throw new Error("Clipboard access is unavailable.");
+          }
+          await navigator.clipboard.writeText(secretInput.value);
+          setStatus(
+            "Candidate copied. Configure your callback receiver, then select Activate.",
+            "warning"
+          );
         }
         catch(error)
         {
-          setStatus(error.message, true);
+          secretInput.focus();
+          secretInput.select();
+          setStatus("Press Ctrl+C (or Command+C) to copy the selected candidate.", "warning");
         }
       });
 
+      clearBtn.addEventListener("click", async function()
+      {
+        if(busy || !configured)
+        {
+          return;
+        }
+        if(!window.confirm(
+          "Remove the dedicated webhook secret? Configure your callback receiver to verify with the API key first. Callbacks will immediately fall back to API-key signing, and invoice callbacks will resume sending the legacy API key header."
+        ))
+        {
+          return;
+        }
+
+        setBusy(true);
+        setStatus("Removing the dedicated webhook secret.");
+        try
+        {
+          await request("DELETE");
+          configured = false;
+          clearCandidate();
+          setStatus(
+            "Dedicated secret removed. Callbacks now use API-key compatibility mode.",
+            "warning"
+          );
+        }
+        catch(error)
+        {
+          setStatus(error.message, "error");
+        }
+        finally
+        {
+          setBusy(false);
+        }
+      });
+
+      secretInput.addEventListener("input", function()
+      {
+        updateControls();
+        if(secretInput.value.length === 0)
+        {
+          copyBtn.hidden = true;
+          return;
+        }
+        setStatus(
+          "This candidate is not active. " +
+            (configured
+              ? "The existing dedicated secret remains active. "
+              : "API-key compatibility mode remains active. ") +
+            "Configure your callback receiver, then select Activate.",
+          "warning"
+        );
+      });
+
+      window.addEventListener("pagehide", clearCandidate);
+      window.addEventListener("pageshow", function(event)
+      {
+        if(event.persisted)
+        {
+          loadStatus();
+        }
+      });
+      updateControls();
       loadStatus();
     }
     WebhookSecret();

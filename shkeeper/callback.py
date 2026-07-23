@@ -9,11 +9,8 @@ from flask import current_app as app
 
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
-from shkeeper.services.webhook_hmac import (
-    compact_json_bytes,
-    resolve_webhook_signing_secret,
-    shkeeper_webhook_auth_headers,
-)
+from shkeeper.services.webhook_hmac import compact_json_bytes
+from shkeeper.services.webhook_secret import build_webhook_auth_headers
 from datetime import datetime, timedelta
 
 bp = Blueprint("callback", __name__)
@@ -33,14 +30,6 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
     invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
     crypto = Crypto.instances[utx.crypto]
     apikey = crypto.wallet.apikey
-    webhook_secret = resolve_webhook_signing_secret(
-        crypto.wallet.webhook_secret, apikey
-    )
-    if not webhook_secret:
-        app.logger.error(
-            f"[{utx.crypto}/{utx.txid}] Webhook signing secret is unavailable"
-        )
-        return False
 
     notification = {
         "status": "unconfirmed",
@@ -51,18 +40,28 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
         "amount": format_decimal(utx.amount_crypto, precision=crypto.precision),
     }
 
-    app.logger.warning(
-        f"[{utx.crypto}/{utx.txid}] Posting {notification} to {invoice.callback_url} with api key [REDACTED]"
-    )
     body = compact_json_bytes(notification)
+    auth_headers = build_webhook_auth_headers(
+        apikey,
+        body,
+        include_legacy_api_key=True,
+    )
+    if auth_headers is None:
+        app.logger.error(
+            f"[{utx.crypto}/{utx.txid}] Webhook signing secret is unavailable"
+        )
+        return False
+    app.logger.warning(
+        f"[{utx.crypto}/{utx.txid}] Posting signed notification "
+        f"to {invoice.callback_url}"
+    )
     try:
         r = requests.post(
             invoice.callback_url,
             data=body,
             headers={
                 "Content-Type": "application/json",
-                "X-Shkeeper-Api-Key": apikey,
-                **shkeeper_webhook_auth_headers(webhook_secret, body),
+                **auth_headers,
             },
             timeout=app.config.get("REQUESTS_NOTIFICATION_TIMEOUT"),
         )
@@ -134,26 +133,28 @@ def send_notification(tx):
 
     wallet = Crypto.instances[tx.crypto].wallet
     apikey = wallet.apikey
-    webhook_secret = resolve_webhook_signing_secret(
-        wallet.webhook_secret, apikey
+    body = compact_json_bytes(notification)
+    auth_headers = build_webhook_auth_headers(
+        apikey,
+        body,
+        include_legacy_api_key=True,
     )
-    if not webhook_secret:
+    if auth_headers is None:
         app.logger.error(
             f"[{tx.crypto}/{tx.txid}] Webhook signing secret is unavailable"
         )
         return False
     app.logger.warning(
-        f"[{tx.crypto}/{tx.txid}] Posting {json.dumps(notification)} to {tx.invoice.callback_url} with api key [REDACTED]"
+        f"[{tx.crypto}/{tx.txid}] Posting signed notification "
+        f"to {tx.invoice.callback_url}: {json.dumps(notification)}"
     )
-    body = compact_json_bytes(notification)
     try:
         r = requests.post(
             tx.invoice.callback_url,
             data=body,
             headers={
                 "Content-Type": "application/json",
-                "X-Shkeeper-Api-Key": apikey,
-                **shkeeper_webhook_auth_headers(webhook_secret, body),
+                **auth_headers,
             },
             timeout=app.config.get("REQUESTS_NOTIFICATION_TIMEOUT"),
         )
@@ -325,10 +326,6 @@ def send_payout_notification(notif: Notification):
     crypto = Crypto.instances.get(payout.crypto)
     wallet = crypto.wallet if crypto and crypto.wallet else None
     apikey = wallet.apikey if wallet else None
-    webhook_secret = resolve_webhook_signing_secret(
-        wallet.webhook_secret if wallet else None,
-        apikey,
-    )
 
     retries = getattr(notif, "retries", 0)
     wait = (retries + 1) ** 2
@@ -336,7 +333,8 @@ def send_payout_notification(notif: Notification):
 
     body = compact_json_bytes(payload)
     headers = {"Content-Type": "application/json"}
-    if not webhook_secret:
+    auth_headers = build_webhook_auth_headers(apikey, body)
+    if auth_headers is None:
         notif.message = "Webhook signing secret is unavailable"
         notif.retries = retries + 1
         db.session.commit()
@@ -344,7 +342,7 @@ def send_payout_notification(notif: Notification):
             f"[PAYOUT {payout.id}] Webhook signing secret is unavailable"
         )
         return False
-    headers.update(shkeeper_webhook_auth_headers(webhook_secret, body))
+    headers.update(auth_headers)
     try:
         r = requests.post(
             payout.callback_url,

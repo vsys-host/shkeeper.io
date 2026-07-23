@@ -155,7 +155,6 @@ class Wallet(db.Model):
     last_payout_attempt = db.Column(db.DateTime, default=datetime.min)
     enabled = db.Column(db.Boolean, default=True)
     apikey = db.Column(db.String)
-    webhook_secret = db.Column(db.String(255), nullable=True)
     llimit = db.Column(db.Numeric, default=95)
     ulimit = db.Column(db.Numeric, default=105)
     recalc = db.Column(db.Integer, default=0)

@@ -1089,25 +1089,92 @@ button#set-all {
 }
 
 .webhook-secret-block {
-  max-width: 520px;
+  width: 100%;
+  max-width: 560px;
+  white-space: normal;
 }
 
 .webhook-secret-controls {
+  display: grid;
+  grid-template-columns: 95px minmax(0, 1fr);
+  align-items: center;
   gap: 0.5rem;
 }
 
-.webhook-secret-controls input {
-  min-width: 260px;
+.webhook-secret-label {
+  margin: 0;
+}
+
+.webhook-secret-input {
+  width: 100%;
+  min-width: 0;
+  color: var(--main-text-color);
+  transform: none;
 }
 
 .webhook-secret-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-left: 75px;
+  margin-left: 103px;
   margin-top: 0.5rem;
 }
 
+.webhook-secret-actions .btn {
+  white-space: nowrap;
+}
+
+.webhook-secret-actions .btn-outline-primary__customization {
+  color: var(--accent-color);
+  background-color: transparent;
+  border-color: var(--accent-color);
+}
+
+.webhook-secret-actions .btn-outline-primary__customization:hover:not(:disabled),
+.webhook-secret-actions .btn-outline-primary__customization:active:not(:disabled) {
+  color: var(--background-color);
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.webhook-secret-actions .btn-outline-secondary__customization {
+  color: var(--main-text-color);
+  background-color: transparent;
+  border-color: var(--muted-color);
+}
+
+.webhook-secret-actions .btn-outline-secondary__customization:hover:not(:disabled),
+.webhook-secret-actions .btn-outline-secondary__customization:active:not(:disabled) {
+  color: var(--accent-color);
+  background-color: transparent;
+  border-color: var(--accent-color);
+}
+
+.webhook-secret-actions .btn:focus-visible {
+  outline: 2px solid var(--focus-btn-color);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.webhook-secret-actions .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .webhook-secret-status {
-  margin: 0.5rem 0 0 75px;
+  min-height: 1.2em;
+  margin: 0.75rem 0 0 103px;
+  line-height: 1.4;
+}
+
+.webhook-secret-status-success {
+  color: var(--success-color);
+}
+
+.webhook-secret-status-warning {
+  padding-left: 0.5rem;
+  border-left: 3px solid var(--warning-color);
 }
 
 .webhook-secret-status-error {
@@ -1115,8 +1182,25 @@ button#set-all {
 }
 
 .webhook-secret-help {
-  margin: 0.25rem 0 0 75px;
-  opacity: 0.75;
+  margin: 0.4rem 0 0 103px;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+@media (max-width: 570px) {
+  .webhook-secret-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .webhook-secret-actions,
+  .webhook-secret-status,
+  .webhook-secret-help {
+    margin-left: 0;
+  }
+
+  .webhook-secret-actions .btn {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
 }
 
 .server-input-width {

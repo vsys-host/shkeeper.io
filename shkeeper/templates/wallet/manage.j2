@@ -35,29 +35,76 @@
             </div>
           </div>
 
-          <div class="mb-3 webhook-secret-block">
-            <div class="d-flex align-items-center webhook-secret-controls">
-              <p class="common-text manage-gateway-label">HMAC Secret:</p>
+          <div
+            class="mb-3 webhook-secret-block"
+            id="webhook-secret-block"
+            role="group"
+            aria-labelledby="webhook-secret-label"
+          >
+            <div class="webhook-secret-controls">
+              <label
+                id="webhook-secret-label"
+                class="common-text webhook-secret-label"
+                for="webhook-secret-input"
+              >
+                HMAC Secret:
+              </label>
               <input
                 id="webhook-secret-input"
-                class="form-control common-text"
+                class="form-control common-text webhook-secret-input courier-font"
                 type="password"
                 minlength="32"
                 maxlength="255"
                 autocomplete="new-password"
                 placeholder="At least 32 characters"
-                aria-label="Webhook HMAC secret"
+                aria-describedby="webhook-secret-help webhook-secret-status"
+                autocapitalize="none"
+                spellcheck="false"
               />
             </div>
-            <div class="d-flex align-items-center flex-wrap webhook-secret-actions">
-              <button id="setWebhookSecretBtn" type="button" class="btn btn-outline-primary btn-sm">Set</button>
-              <button id="generateWebhookSecretBtn" type="button" class="btn btn-outline-primary btn-sm">Generate</button>
-              <button id="copyWebhookSecretBtn" type="button" class="btn btn-outline-primary btn-sm" hidden>Copy</button>
-              <button id="clearWebhookSecretBtn" type="button" class="btn btn-outline-secondary btn-sm">Use API key</button>
+            <div class="webhook-secret-actions">
+              <button
+                id="setWebhookSecretBtn"
+                type="button"
+                class="btn btn-outline-primary btn-outline-primary__customization btn-sm"
+                disabled
+              >
+                Activate
+              </button>
+              <button
+                id="generateWebhookSecretBtn"
+                type="button"
+                class="btn btn-outline-primary btn-outline-primary__customization btn-sm"
+              >
+                Generate
+              </button>
+              <button
+                id="copyWebhookSecretBtn"
+                type="button"
+                class="btn btn-outline-primary btn-outline-primary__customization btn-sm"
+                hidden
+              >
+                Copy
+              </button>
+              <button
+                id="clearWebhookSecretBtn"
+                type="button"
+                class="btn btn-outline-secondary btn-outline-secondary__customization btn-sm"
+              >
+                Use API key
+              </button>
             </div>
-            <p id="webhook-secret-status" class="common-text webhook-secret-status" role="status"></p>
-            <p class="common-text webhook-secret-help">
-              Shared by all wallets. The stored secret is never shown again.
+            <p
+              id="webhook-secret-status"
+              class="common-text webhook-secret-status"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+            <p id="webhook-secret-help" class="common-text webhook-secret-help">
+              Generate or enter a candidate, copy it to your callback receiver, then
+              activate it. The secret is shared by all wallets and is never shown
+              again after activation.
             </p>
           </div>
     </div>
