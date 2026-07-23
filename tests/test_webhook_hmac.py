@@ -53,6 +53,29 @@ class TestHmacV1(unittest.TestCase):
         self.assertEqual(len(expected), 64)
 
 
+class TestResolveWebhookSigningSecret(unittest.TestCase):
+    def test_prefers_dedicated_webhook_secret(self) -> None:
+        self.assertEqual(
+            wh.resolve_webhook_signing_secret("webhook-secret", "api-key"),
+            "webhook-secret",
+        )
+
+    def test_falls_back_to_api_key_for_existing_installations(self) -> None:
+        self.assertEqual(
+            wh.resolve_webhook_signing_secret(None, "api-key"),
+            "api-key",
+        )
+
+    def test_empty_webhook_secret_also_falls_back(self) -> None:
+        self.assertEqual(
+            wh.resolve_webhook_signing_secret("", "api-key"),
+            "api-key",
+        )
+
+    def test_returns_none_when_no_signing_secret_exists(self) -> None:
+        self.assertIsNone(wh.resolve_webhook_signing_secret(None, None))
+
+
 class TestShkeeperWebhookAuthHeaders(unittest.TestCase):
     def test_headers_match_hmac_and_timestamp(self) -> None:
         secret = "secret"

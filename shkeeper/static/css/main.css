@@ -1088,6 +1088,37 @@ button#set-all {
   padding-right: 1rem;
 }
 
+.webhook-secret-block {
+  max-width: 520px;
+}
+
+.webhook-secret-controls {
+  gap: 0.5rem;
+}
+
+.webhook-secret-controls input {
+  min-width: 260px;
+}
+
+.webhook-secret-actions {
+  gap: 0.5rem;
+  margin-left: 75px;
+  margin-top: 0.5rem;
+}
+
+.webhook-secret-status {
+  margin: 0.5rem 0 0 75px;
+}
+
+.webhook-secret-status-error {
+  color: var(--danger-color);
+}
+
+.webhook-secret-help {
+  margin: 0.25rem 0 0 75px;
+  opacity: 0.75;
+}
+
 .server-input-width {
   width: 63%;
 }

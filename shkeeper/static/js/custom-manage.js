@@ -762,6 +762,133 @@ function paymentGatwey()
       }
       generateBtn.addEventListener("click",sendAPIToken);
     }
+    function WebhookSecret()
+    {
+      const endpoint = "/api/v1/" + crypto + "/payment-gateway/webhook-secret";
+      const secretInput = document.getElementById("webhook-secret-input");
+      const setBtn = document.getElementById("setWebhookSecretBtn");
+      const generateBtn = document.getElementById("generateWebhookSecretBtn");
+      const copyBtn = document.getElementById("copyWebhookSecretBtn");
+      const clearBtn = document.getElementById("clearWebhookSecretBtn");
+      const status = document.getElementById("webhook-secret-status");
+
+      function setStatus(message, isError)
+      {
+        status.textContent = message;
+        status.classList.toggle("webhook-secret-status-error", Boolean(isError));
+      }
+
+      async function request(method, payload)
+      {
+        const options = {
+          method: method,
+          headers: {"Content-Type": "application/json"}
+        };
+        if(payload !== undefined)
+        {
+          options.body = JSON.stringify(payload);
+        }
+
+        const response = await fetch(endpoint, options);
+        const data = await response.json();
+        if(!response.ok || data.status !== "success")
+        {
+          throw new Error(data.message || "Unable to update webhook secret");
+        }
+        return data;
+      }
+
+      async function loadStatus()
+      {
+        try
+        {
+          const data = await request("GET");
+          setStatus(
+            data.configured
+              ? "A dedicated webhook secret is configured."
+              : "Using the API key for webhook signing."
+          );
+        }
+        catch(error)
+        {
+          setStatus(error.message, true);
+        }
+      }
+
+      setBtn.addEventListener("click", async function()
+      {
+        const secret = secretInput.value.trim();
+        if(secret.length < 32)
+        {
+          setStatus("Enter a secret containing at least 32 characters.", true);
+          return;
+        }
+
+        try
+        {
+          await request("POST", {action: "set", secret: secret});
+          secretInput.value = "";
+          copyBtn.hidden = true;
+          setStatus("Webhook secret saved. Update your callback receiver to use it.");
+        }
+        catch(error)
+        {
+          setStatus(error.message, true);
+        }
+      });
+
+      generateBtn.addEventListener("click", async function()
+      {
+        try
+        {
+          const data = await request("POST", {action: "generate"});
+          secretInput.value = data.generated_secret;
+          copyBtn.hidden = false;
+          setStatus("Generated and saved. Copy this secret now; it will not be shown again.");
+        }
+        catch(error)
+        {
+          setStatus(error.message, true);
+        }
+      });
+
+      copyBtn.addEventListener("click", async function()
+      {
+        try
+        {
+          await navigator.clipboard.writeText(secretInput.value);
+          setStatus("Webhook secret copied to the clipboard.");
+        }
+        catch(error)
+        {
+          secretInput.select();
+          setStatus("Select and copy the secret from the field.", true);
+        }
+      });
+
+      clearBtn.addEventListener("click", async function()
+      {
+        if(!window.confirm("Use the API key for webhook signing instead?"))
+        {
+          return;
+        }
+
+        try
+        {
+          await request("DELETE");
+          secretInput.value = "";
+          copyBtn.hidden = true;
+          setStatus("Dedicated secret removed. Webhooks now use the API key.");
+        }
+        catch(error)
+        {
+          setStatus(error.message, true);
+        }
+      });
+
+      loadStatus();
+    }
+    WebhookSecret();
     APIToken();
     APIStatus();
 }

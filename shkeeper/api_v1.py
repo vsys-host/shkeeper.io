@@ -1,4 +1,5 @@
 import traceback
+import secrets
 from os import environ
 from concurrent.futures import ThreadPoolExecutor
 from operator import itemgetter
@@ -237,6 +238,78 @@ def payment_gateway_set_token(crypto_name):
         crypto.wallet.apikey = req["token"]
     db.session.commit()
     return {"status": "success"}
+
+
+@blp_v1.get("/<string:crypto_name>/payment-gateway/webhook-secret")
+@login_required
+def payment_gateway_get_webhook_secret(crypto_name):
+    """Return webhook-secret status without exposing the stored secret."""
+    crypto = Crypto.instances[crypto_name]
+    return {
+        "status": "success",
+        "configured": bool(crypto.wallet.webhook_secret),
+        "fallback": None if crypto.wallet.webhook_secret else "api_key",
+    }
+
+
+@blp_v1.post("/<string:crypto_name>/payment-gateway/webhook-secret")
+@login_required
+def payment_gateway_set_webhook_secret(crypto_name):
+    """Set or securely generate the shared webhook signing secret."""
+    Crypto.instances[crypto_name]  # Validate that the requested wallet exists.
+    req = request.get_json(force=True)
+    action = req.get("action", "set")
+
+    if action == "generate":
+        webhook_secret = secrets.token_urlsafe(32)
+    elif action == "set":
+        webhook_secret = req.get("secret")
+        if not isinstance(webhook_secret, str):
+            return {
+                "status": "error",
+                "message": "secret must be a string",
+            }, 400
+        webhook_secret = webhook_secret.strip()
+    else:
+        return {
+            "status": "error",
+            "message": "action must be either 'set' or 'generate'",
+        }, 400
+
+    if not 32 <= len(webhook_secret) <= 255:
+        return {
+            "status": "error",
+            "message": "secret must be between 32 and 255 characters",
+        }, 400
+
+    for wallet in Wallet.query.all():
+        wallet.webhook_secret = webhook_secret
+    db.session.commit()
+
+    response = {
+        "status": "success",
+        "configured": True,
+    }
+    if action == "generate":
+        # This is the only response that reveals a secret, so the UI can show it once.
+        response["generated_secret"] = webhook_secret
+    return response
+
+
+@blp_v1.delete("/<string:crypto_name>/payment-gateway/webhook-secret")
+@login_required
+def payment_gateway_delete_webhook_secret(crypto_name):
+    """Clear the dedicated secret and restore API-key signing fallback."""
+    Crypto.instances[crypto_name]  # Validate that the requested wallet exists.
+    for wallet in Wallet.query.all():
+        wallet.webhook_secret = None
+    db.session.commit()
+    return {
+        "status": "success",
+        "configured": False,
+        "fallback": "api_key",
+    }
+
 
 @blp_v1.get("/settings/<string:key>")
 @login_required

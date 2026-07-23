@@ -10,6 +10,13 @@ WEBHOOK_SIGNATURE_HEADER = "X-Shkeeper-Signature"
 WEBHOOK_TIMESTAMP_HEADER = "X-Shkeeper-Timestamp"
 
 
+def resolve_webhook_signing_secret(
+    webhook_secret: str | None, api_key: str | None
+) -> str | None:
+    """Prefer a dedicated webhook secret while preserving API-key fallback."""
+    return webhook_secret or api_key
+
+
 def compact_json_bytes(payload: dict[str, Any]) -> bytes:
     return json.dumps(
         payload,
