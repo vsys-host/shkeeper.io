@@ -1,3 +1,14 @@
+{% macro flash_alerts(extra_class='mb-3') -%}
+  {% set text_map = {
+    'success': 'success-text',
+    'warning': 'warning-text',
+    'danger': 'danger-text',
+    'info': 'functional-text'
+  } %}
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+    <p class="common-text {{ text_map.get(category, 'functional-text') }} {{ extra_class }}">{{ message }}</p>
+  {% endfor %}
+{%- endmacro %}
 {% macro manage_block_row(left,right) -%}
   <div class="mb-3 d-flex align-items-center justify-content-start">
     <p class="common-text">{{ left }}</p>

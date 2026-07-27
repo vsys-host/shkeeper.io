@@ -146,7 +146,11 @@
             </div>
       </form>
       <div class="mt-5 d-flex justify-content-end">
+        {% if not rates_readonly|default(false) %}
         <button id="save-rates" class="btn btn-outline-primary btn-outline-primary__customization" type="submit" form="rates_form">Save changes</button>
+        {% else %}
+        <p class="common-text warning-text mb-0">Rates are managed by the administrator.</p>
+        {% endif %}
       </div>
     </div>
 </div>

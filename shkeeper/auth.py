@@ -19,8 +19,11 @@ from flask import current_app as app
 from werkzeug.security import check_password_hash
 from werkzeug.security import generate_password_hash
 
-from shkeeper.models import User, Wallet
+from shkeeper.models import User, Wallet, UserRole
 from shkeeper import db
+from shkeeper.services.store_service import resolve_store_by_api_key
+from shkeeper.services.tenancy import is_admin_user
+from shkeeper.wallet_encryption import ensure_wallet_unlocked
 
 
 bp = Blueprint("auth", __name__, url_prefix="/")
@@ -94,11 +97,19 @@ def api_key_required(view):
             return {"status": "error", "message": "No API key"}
 
         apikey = request.headers["X-Shkeeper-Api-Key"]
-        wallet = Wallet.query.filter_by(apikey=apikey).first()
-        if wallet:
+        store = resolve_store_by_api_key(apikey)
+        if store:
+            g.current_store = store
+            if not store.is_default and not ensure_wallet_unlocked():
+                return {
+                    "status": "error",
+                    "message": (
+                        "Wallet encryption is locked. Ask the administrator to open "
+                        "/unlock once. Until then stores cannot create addresses."
+                    ),
+                }, 503
             return view(**kwargs)
-        else:
-            return {"status": "error", "message": "Bad API key"}
+        return {"status": "error", "message": "Bad API key"}
 
     return wrapped_view
 
@@ -110,13 +121,25 @@ def load_logged_in_user():
 
     if user_id is None:
         g.user = None
+        g.current_store = None
     else:
         user = User.query.get(user_id)
         if user.passhash:
             g.user = user
+            if user.store_id:
+                from shkeeper.models import Store
+
+                g.current_store = Store.query.get(user.store_id)
+            elif is_admin_user(user):
+                from shkeeper.services.store_service import ensure_default_store
+
+                g.current_store = ensure_default_store()
+            else:
+                g.current_store = None
         else:
             session.clear()
             g.user = None
+            g.current_store = None
 
 
 # @bp.before_app_request

@@ -250,6 +250,10 @@ function sendAction()
 
   let sendButton = document.getElementById("sbutton");
 
+  if (!sendButton) {
+    return;
+  }
+
   sendButton.addEventListener("click",function(){
       sendData();
 
@@ -276,6 +280,9 @@ function sendAction()
   }
   function addAdd()
   {
+    if (!document.getElementById("paddress")) {
+      return;
+    }
     let data = composeAddData();
     let http = new XMLHttpRequest();
     http.onload = function(){
@@ -314,6 +321,50 @@ function sendAction()
   function composeData()
   {
     let check = true;
+
+    function validateNumValue(element)
+    {
+      element.value = element.value.trim();
+      if(element.value.match(/^\d+$/))
+      {
+        element.classList.remove("red-highlight");
+      }
+      else{
+        element.classList.add("red-highlight");
+        check = false;
+      }
+      return element.value;
+    }
+    function validateFloatValue(element)
+    {
+      element.value = element.value.trim();
+      if(element.value.match(/^\d+\.*\d*$/))
+      {
+        element.classList.remove("red-highlight");
+      }
+      else{
+        element.classList.add("red-highlight");
+        check = false;
+      }
+      return element.value;
+    }
+    function validateAddressValue(element)
+    {
+      element.value = element.value.trim();
+      return element.value;
+    }
+    function getRecalcTermHour()
+    {
+        let value = validateNumValue(document.getElementById('recalculate-val'));
+        let term = document.getElementById('recalculate-term').value;
+        return parseInt(value)*term;
+    }
+
+    let paymentPartiallyPaid = validateFloatValue(document.getElementById("llimit"));
+    let paymentAddedFee = validateFloatValue(document.getElementById("ulimit"));
+    let recalculateTerm = getRecalcTermHour();
+    let confirationNumber = validateNumValue(document.getElementById("confirmations"));
+
     let payoutAdd = validateAddressValue(document.getElementById("paddress"));
     let payoutFee = document.getElementById("pfee").value.trim();
     let policyStatus = document.getElementById('pstatus');
@@ -356,10 +407,6 @@ function sendAction()
         break;
     }
 
-    let paymentPartiallyPaid = validateFloatValue(document.getElementById("llimit"));
-    let paymentAddedFee = validateFloatValue(document.getElementById("ulimit"));
-    let recalculateTerm = getRecalcTermHour();
-    let confirationNumber = validateNumValue(document.getElementById("confirmations"));
     if(check == false)
     {
       return false;
@@ -378,19 +425,6 @@ function sendAction()
       confirationNum: confirationNumber,
       recalc: recalculateTerm //int
     });
-    function validateNumValue(element)
-    {
-      element.value = element.value.trim();
-      if(element.value.match(/^\d+$/))
-      {
-        element.classList.remove("red-highlight");
-      }
-      else{
-        element.classList.add("red-highlight");
-        check = false;
-      }
-      return element.value;
-    }
     function validatePercentNumValue(element)
     {
       element.value = element.value.trim();

@@ -9,7 +9,11 @@
             </div>
             <div class="mb-3 d-flex align-items-center justify-content-start">
                 <p class="common-text">Blockchain key:</p>
+                {% if is_admin %}
                 <a href="{{url_for('api_v1.backup', crypto_name=crypto.crypto)}}" class="common-text accent-text">Download</a>
+                {% else %}
+                <span class="common-text">Managed by administrator</span>
+                {% endif %}
             </div>
             <div class="mb-3 d-flex align-items-center justify-content-start">
                 <p class="common-text">WEB interface:</p>

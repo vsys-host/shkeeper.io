@@ -23,13 +23,16 @@
         <div><p>Destination:</p></div>
         <div class="dropdown ms-0">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <input class="dropdown__current" value="{% if payout_locked_destination %}{{ payout_locked_destination }}{% else %}{{ crypto.wallet.pdest}}{% endif %}" id="paddress" {% if payout_locked_destination %}readonly{% endif %}>
+            {% if not payout_locked_destination %}
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
               </svg>
             </div>
+            {% endif %}
           </div>
+          {% if not payout_locked_destination %}
           <div class="dropdown__body">
             {% for pd in pdest %}
             <div class="dropdown__item">
@@ -54,6 +57,12 @@
               </button>
             </div>
           </div>
+          {% endif %}
+          {% if payout_locked_destination %}
+          <p class="common-text warning-text mt-2 mb-0">Payouts are locked to your cold wallet.</p>
+          {% elif not cold_wallet_address and is_store_owner %}
+          <p class="common-text danger-text mt-2 mb-0">Cold wallet is not configured. Ask the admin to set it before payout.</p>
+          {% endif %}
         </div>
 
         <div><p>Amount:</p></div>

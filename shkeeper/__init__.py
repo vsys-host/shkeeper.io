@@ -197,7 +197,6 @@ def create_app(test_config=None):
 
         db.create_all()
 
-        # Create default user
         default_user = "admin"
         if (
             not User.query.with_entities(User.id)
@@ -207,7 +206,6 @@ def create_app(test_config=None):
             admin = User(username=default_user)
             db.session.add(admin)
             db.session.commit()
-
             flask_migrate.stamp(revision="head")
         else:
             flask_migrate.upgrade()
@@ -223,6 +221,10 @@ def create_app(test_config=None):
             Wallet.register_currency(crypto)
             crypto._wallet = Wallet
             ExchangeRate.register_currency(crypto)
+
+        from shkeeper.services.store_service import ensure_default_store
+
+        ensure_default_store()
 
         from .wallet_encryption import WalletEncryptionPersistentStatus
 

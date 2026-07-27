@@ -31,8 +31,8 @@ def task_send_payout_callback_notifier():
 
 @scheduler.task("interval", id="payout", seconds=60)
 def task_payout():
-    scheduler.app.logger.info(f"[Autopayout] Task started")
     with scheduler.app.app_context():
+        scheduler.app.logger.info(f"[Autopayout] Task started")
         for crypto in Crypto.instances.values():
             if crypto.wallet.ppolicy == PayoutPolicy.LIMIT:
                 scheduler.app.logger.info(

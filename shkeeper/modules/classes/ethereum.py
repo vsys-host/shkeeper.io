@@ -30,21 +30,49 @@ class Ethereum(Crypto):
         ).json(parse_float=Decimal)
         return response
 
+    def _fda_payload(self, account=None, fda_key=None, sweep_target=None):
+        payload = {}
+        if account:
+            payload["from_account"] = account
+        if fda_key:
+            payload["fda_key"] = fda_key
+        if sweep_target:
+            payload["sweep_target"] = sweep_target
+        return payload or None
+
     @property
     def fee_deposit_account(self):
+        return self.fee_deposit_account_for()
+
+    def fee_deposit_account_for(self, account=None, fda_key=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/fee-deposit-account",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(account=account, fda_key=fda_key),
         ).json(parse_float=Decimal)
 
         FeeDepositAccount = namedtuple("FeeDepositAccount", "addr balance")
         return FeeDepositAccount(response["account"], Decimal(response["balance"]))
 
-    def balance(self):
+    def create_fee_deposit_account(self, fda_key=None):
+        response = requests.post(
+            f"http://{self.gethost()}/{self.crypto}/create-fee-deposit-account",
+            auth=self.get_auth_creds(),
+            json={"fda_key": fda_key} if fda_key else {},
+        ).json(parse_float=Decimal)
+        if response.get("status") == "error":
+            raise Exception(response.get("msg", "Failed to create fee-deposit account"))
+        return response["account"]
+
+    def balance(self, account=None, fda_key=None):
+        return self.balance_for_account(account=account, fda_key=fda_key)
+
+    def balance_for_account(self, account=None, fda_key=None):
         try:
             response = requests.post(
                 f"http://{self.gethost()}/{self.crypto}/balance",
                 auth=self.get_auth_creds(),
+                json=self._fda_payload(account=account, fda_key=fda_key),
             ).json(parse_float=Decimal)
             balance = response["balance"]
         except Exception as e:
@@ -86,12 +114,28 @@ class Ethereum(Crypto):
             return "Offline"
 
     def mkaddr(self, **kwargs):
+        fee_deposit_account = kwargs.get("fee_deposit_account")
+        fda_key = kwargs.get("fda_key")
+        if not fee_deposit_account:
+            fda = self.fee_deposit_account_for(fda_key=fda_key)
+            fee_deposit_account = fda.addr
+        payload = {"fee_deposit_account": fee_deposit_account}
+        if fda_key:
+            payload["fda_key"] = fda_key
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/generate-address",
             auth=self.get_auth_creds(),
+            json=payload,
         ).json(parse_float=Decimal)
-        addr = response["address"]
-        return addr
+        if response.get("status") == "error" or "address" not in response:
+            msg = response.get("msg") or response.get("message") or str(response)
+            if "password" in msg.lower() or "shkeeper" in msg.lower():
+                raise RuntimeError(
+                    "Wallet encryption is locked. Ask the admin to unlock it at /unlock "
+                    "or via POST /api/v1/decryption-key before creating payment addresses."
+                )
+            raise RuntimeError(f"Failed to generate address: {msg}")
+        return response["address"]
 
     def getaddrbytx(self, tx):
         response = requests.post(
@@ -104,10 +148,11 @@ class Ethereum(Crypto):
             result.append([address, Decimal(amount), confirmations, category])
         return result
 
-    def dump_wallet(self):
+    def dump_wallet(self, fda_key=None, sweep_target=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/dump",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(fda_key=fda_key, sweep_target=sweep_target),
             timeout=60,
         ).json(parse_float=Decimal)
         now = datetime.datetime.now().strftime("%F_%T")
@@ -119,24 +164,39 @@ class Ethereum(Crypto):
     def create_wallet(self, *args, **kwargs):
         return {"error": None}
 
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
+    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False, fda_key=None):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)["fee"])
             if fee >= amount:
                 return f"Payout failed: not enought ETH to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
+        payload = {}
+        if fda_key:
+            payload["fda_key"] = fda_key
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
             auth=self.get_auth_creds(),
+            json=payload or None,
         ).json(parse_float=Decimal)
         return response
 
-    def multipayout(self, payout_list):
+    def multipayout(self, payout_list, from_account=None, fda_key=None):
+        serializable_payouts = []
+        for item in payout_list:
+            entry = dict(item)
+            if "amount" in entry and isinstance(entry["amount"], Decimal):
+                entry["amount"] = str(entry["amount"])
+            serializable_payouts.append(entry)
+        payload = {"payouts": serializable_payouts}
+        if from_account:
+            payload["from_account"] = from_account
+        if fda_key:
+            payload["fda_key"] = fda_key
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/multipayout",
             auth=self.get_auth_creds(),
-            json=payout_list,
+            json=payload,
         ).json(parse_float=Decimal)
         return response
 
@@ -156,9 +216,10 @@ class Ethereum(Crypto):
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
 
-    def get_all_addresses(self):
+    def get_all_addresses(self, fda_key=None, sweep_target=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/get_all_addresses",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(fda_key=fda_key, sweep_target=sweep_target),
         ).json(parse_float=Decimal)
         return response

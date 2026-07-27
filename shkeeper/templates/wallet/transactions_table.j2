@@ -1,6 +1,9 @@
 <table class="transactions-data-table w-100 common-text text-nowrap">
   <thead>
     <tr>
+      {% if show_store %}
+      <th class="store table-subtitle">Store</th>
+      {% endif %}
       <th class="transactions">Transaction ID</th>
       <th class="address table-subtitle">Adress</th>
       <th class="crypto table-subtitle">Crypto</th>
@@ -19,6 +22,9 @@
   <tbody>
 {% for tx in txs %}
     <tr>
+      {% if show_store %}
+      <td class="row-{{loop.index}} store">{{ tx.store_name }}</td>
+      {% endif %}
       <td value="{{tx.txid}}" class="row-{{loop.index}} transactions transactions-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.txid}}" data-bs-custom-class="custom-tooltips">{{tx.txid}}</td>
       <td value="{{tx.addr}}" class="row-{{loop.index}} address address-val functional-text" data-bs-toggle="tooltip" data-bs-placement="top" title="{{tx.addr}}" data-bs-custom-class="custom-tooltips">{{tx.addr}}</td>
       <td class="row-{{loop.index}} crypto">{{tx.crypto_label}}</td>

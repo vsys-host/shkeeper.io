@@ -23,16 +23,27 @@ class Polygon(Ethereum):
         password = environ.get(f"POLYGON_PASSWORD", "shkeeper")
         return (username, password)
 
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
+    def mkpayout(
+        self,
+        destination,
+        amount,
+        fee,
+        subtract_fee_from_amount=False,
+        fda_key=None,
+    ):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
             fee = Decimal(self.estimate_tx_fee(amount)["fee"])
             if fee >= amount:
                 return f"Payout failed: not enought MATIC to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
+        payload = {}
+        if fda_key:
+            payload["fda_key"] = fda_key
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
             auth=self.get_auth_creds(),
+            json=payload or None,
         ).json(parse_float=Decimal)
         return response
 
