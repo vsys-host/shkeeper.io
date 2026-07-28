@@ -190,9 +190,7 @@ class Wallet(db.Model):
         balance = crypto.balance()
         payout_amount = balance
         if crypto.wallet.prespolicy == PayoutReservePolicy.DISABLE:
-            res = crypto.mkpayout(
-                self.pdest, balance, self.pfee, subtract_fee_from_amount=True
-            )
+            payout_amount = balance
         elif crypto.wallet.prespolicy == PayoutReservePolicy.AMOUNT:
             should_payout = balance - Decimal(crypto.wallet.presamount)
             if should_payout <= 0:
@@ -201,24 +199,33 @@ class Wallet(db.Model):
                 )
             else:
                 payout_amount = should_payout
-                res = crypto.mkpayout(
-                    self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
-                )
         elif crypto.wallet.prespolicy == PayoutReservePolicy.PERCENT:
             should_payout = balance * (
                 1 - (Decimal(crypto.wallet.presamount) / 100)
             )  # presamount is stored as integer percent
             payout_amount = should_payout
-            res = crypto.mkpayout(
-                self.pdest, should_payout, self.pfee, subtract_fee_from_amount=True
-            )
         else:
             app.logger.info(
                 f"Unexpected Autopayout Reservation Policy : {crypto.wallet.prespolicy}, possibly after upgrading, running without reservation"
             )
-            res = crypto.mkpayout(
-                self.pdest, balance, self.pfee, subtract_fee_from_amount=True
+            payout_amount = balance
+
+        if self.crypto == "BTC-LIGHTNING":
+            app.logger.debug(
+                f"do_payout: BTC-LIGHTNING autopayout, discovering sendable amount "
+                f"via QueryRoutes with ceiling={payout_amount}"
             )
+            payout_amount = crypto.find_sendable_amount(self.pdest, payout_amount)
+            if payout_amount <= 0:
+                app.logger.warning(
+                    f"do_payout: BTC-LIGHTNING autopayout skipped, no sendable amount found "
+                    f"for dest={self.pdest}"
+                )
+                return False
+
+        res = crypto.mkpayout(
+            self.pdest, payout_amount, self.pfee, subtract_fee_from_amount=True
+        )
         Payout.register_from_mkpayout(
             res,
             {"dest": self.pdest, "amount": payout_amount},
@@ -795,7 +802,9 @@ class Payout(db.Model):
         return str(error)
 
     @classmethod
-    def add_failed(cls, dest, amount, crypto, error=None, callback_url=None, external_id=None):
+    def add_failed(
+        cls, dest, amount, crypto, error=None, callback_url=None, external_id=None
+    ):
         formatted_error = cls._format_mkpayout_error(error)
         app.logger.warning(
             f"[Payout.add_failed] crypto={crypto} dest={dest} amount={amount} "
@@ -821,7 +830,9 @@ class Payout(db.Model):
         amount = payout["amount"]
         callback_url = payout.get("callback_url")
 
-        log_ctx = f"crypto={crypto} dest={dest} amount={amount} external_id={external_id}"
+        log_ctx = (
+            f"crypto={crypto} dest={dest} amount={amount} external_id={external_id}"
+        )
         app.logger.info(
             f"[register_from_mkpayout] start {log_ctx} res_type={type(res).__name__} res={res}"
         )
