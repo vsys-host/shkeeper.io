@@ -110,6 +110,50 @@ def upgrade():
                 batch_op.create_foreign_key(
                     "fk_user_store_id", "store", ["store_id"], ["id"]
                 )
+        if _column_exists("user", "role"):
+            # Keep exactly one admin among existing users.
+            op.execute(
+                sa.text(
+                    """
+                    UPDATE "user"
+                    SET role = :admin_role
+                    WHERE id = (
+                        SELECT id
+                        FROM "user"
+                        ORDER BY id
+                        LIMIT 1
+                    )
+                    AND NOT EXISTS (
+                        SELECT 1 FROM "user" WHERE role = :admin_role
+                    )
+                    """
+                ).bindparams(admin_role="ADMIN")
+            )
+            op.execute(
+                sa.text(
+                    """
+                    UPDATE "user"
+                    SET role = :owner_role
+                    WHERE role = :admin_role
+                    AND id <> (
+                        SELECT id
+                        FROM "user"
+                        WHERE role = :admin_role
+                        ORDER BY id
+                        LIMIT 1
+                    )
+                    """
+                ).bindparams(admin_role="ADMIN", owner_role="STORE_OWNER")
+            )
+            op.execute(
+                sa.text(
+                    """
+                    UPDATE "user"
+                    SET role = :owner_role
+                    WHERE role IS NULL
+                    """
+                ).bindparams(owner_role="STORE_OWNER")
+            )
 
     if _table_exists("invoice"):
         with op.batch_alter_table("invoice", schema=None) as batch_op:

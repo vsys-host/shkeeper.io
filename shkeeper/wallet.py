@@ -62,13 +62,13 @@ from shkeeper.services.store_service import (
     get_global_fee_collection_address,
     get_store_users,
     get_store_wallet,
+    ensure_store_wallets_provisioned,
     provision_store_wallets,
     retry_provisioning,
     set_global_fee_collection_address,
     set_store_status,
     store_balances_map,
     store_wallet_balance,
-    reconcile_store_fda_addresses,
     update_store,
     validate_fee_collection_address,
 )
@@ -916,11 +916,16 @@ def stores():
 def stores_create():
     require_admin()
     name = request.form.get("name", "").strip()
-    fee = request.form.get("platform_fee_percent") or "0"
+    fee_raw = (request.form.get("platform_fee_percent") or "0").strip()
     if not name:
         flash("Store name is required", "warning")
         return redirect(url_for("wallet.stores"))
-    create_store(name, platform_fee_percent=Decimal(fee))
+    try:
+        fee = Decimal(fee_raw)
+    except (InvalidOperation, TypeError):
+        flash("Invalid store commission value", "warning")
+        return redirect(url_for("wallet.stores"))
+    create_store(name, platform_fee_percent=fee)
     flash(f"Store {name} created", "success")
     return redirect(url_for("wallet.stores"))
 
@@ -969,9 +974,12 @@ def stores_global_fee_collection():
 def store_detail(store_id):
     require_admin()
     store = Store.query.get_or_404(store_id)
-    if not store.is_default:
-        reconcile_store_fda_addresses(store)
-    store_wallets = StoreWallet.query.filter_by(store_id=store.id).all()
+    ensure_store_wallets_provisioned(store)
+    store_wallets = [
+        sw
+        for sw in StoreWallet.query.filter_by(store_id=store.id).all()
+        if sw.crypto in Crypto.instances and Crypto.instances[sw.crypto].wallet.enabled
+    ]
     crypto_names = [sw.crypto for sw in store_wallets]
     balances = store_balances_map([store], crypto_names).get(store.id, {})
     return render_template(
@@ -1042,7 +1050,7 @@ def store_create_owner(store_id):
     except ValueError as exc:
         flash(str(exc), "warning")
         return redirect(url_for("wallet.store_detail", store_id=store.id))
-    flash(f"Store owner created: {username} / {password}", "success")
+    flash(f"Store owner created: {username}", "success")
     return redirect(url_for("wallet.store_detail", store_id=store.id))
 
 
@@ -1059,8 +1067,15 @@ def store_wallet_update(store_id, wallet_id):
     except ValueError as exc:
         flash(str(exc), "warning")
         return redirect(url_for("wallet.store_detail", store_id=store_id))
-    override = request.form.get("fee_percent_override")
-    sw.fee_percent_override = Decimal(override) if override else None
+    override = (request.form.get("fee_percent_override") or "").strip()
+    if override:
+        try:
+            sw.fee_percent_override = Decimal(override)
+        except (InvalidOperation, TypeError):
+            flash("Invalid fee % override", "warning")
+            return redirect(url_for("wallet.store_detail", store_id=store_id))
+    else:
+        sw.fee_percent_override = None
     db.session.commit()
     flash("Wallet settings saved", "success")
     return redirect(url_for("wallet.store_detail", store_id=store_id))

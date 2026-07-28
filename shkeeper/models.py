@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import bcrypt
 import pyotp
+from sqlalchemy import text
 from flask import current_app as app, has_app_context
 
 from shkeeper import db
@@ -154,6 +155,41 @@ class User(db.Model):
     @classmethod
     def get_api_key(cls):
         return cls.query.first().api_key
+
+
+def _role_as_str(role_value):
+    if isinstance(role_value, UserRole):
+        return role_value.name
+    return str(role_value) if role_value is not None else None
+
+
+def _ensure_single_admin(connection, user_id=None):
+    extra_admin = connection.execute(
+        text(
+            """
+            SELECT id
+            FROM "user"
+            WHERE role = :admin_role
+            AND (:user_id IS NULL OR id != :user_id)
+            LIMIT 1
+            """
+        ),
+        {"admin_role": "ADMIN", "user_id": user_id},
+    ).scalar()
+    if extra_admin is not None:
+        raise ValueError("Only one admin user is allowed")
+
+
+@db.event.listens_for(User, "before_insert")
+def _user_before_insert(mapper, connection, target):
+    if _role_as_str(target.role) == "ADMIN":
+        _ensure_single_admin(connection)
+
+
+@db.event.listens_for(User, "before_update")
+def _user_before_update(mapper, connection, target):
+    if _role_as_str(target.role) == "ADMIN":
+        _ensure_single_admin(connection, user_id=target.id)
 
 
 class PayoutDestination(db.Model):

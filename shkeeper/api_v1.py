@@ -235,8 +235,13 @@ def payment_gateway_set_status(crypto_name):
     require_admin()
     req = request.get_json(force=True)
     crypto = Crypto.instances[crypto_name]
-    crypto.wallet.enabled = req["enabled"]
+    enabled = bool(req["enabled"])
+    crypto.wallet.enabled = enabled
     db.session.commit()
+    if enabled:
+        from shkeeper.services.store_service import provision_crypto_for_all_stores
+
+        provision_crypto_for_all_stores(crypto_name)
     return {"status": "success"}
 
 
@@ -823,12 +828,15 @@ def list_transactions(crypto, addr):
                 .filter(Transaction.crypto == crypto)
                 .filter((Invoice.addr == addr) | (InvoiceAddress.addr == addr))
             )
+            unconfirmed = UnconfirmedTransaction.query.filter_by(
+                crypto=crypto, addr=addr
+            )
             if store:
                 confirmed = confirmed.filter(Invoice.store_id == store.id)
-            transactions = (
-                *confirmed,
-                *UnconfirmedTransaction.query.filter_by(crypto=crypto, addr=addr),
-            )
+                unconfirmed = unconfirmed.join(Invoice).filter(
+                    Invoice.store_id == store.id
+                )
+            transactions = (*confirmed.all(), *unconfirmed.all())
         return jsonify(
             status="success", transactions=[tx.to_json() for tx in transactions]
         )

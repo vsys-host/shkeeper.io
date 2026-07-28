@@ -1,6 +1,6 @@
 import secrets
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from flask import current_app as app
 
@@ -139,7 +139,10 @@ def update_store(store: Store, *, name=None, platform_fee_percent=None):
             raise ValueError("Store name is required")
         store.name = name
     if platform_fee_percent is not None:
-        store.platform_fee_percent = Decimal(platform_fee_percent)
+        try:
+            store.platform_fee_percent = Decimal(platform_fee_percent)
+        except (InvalidOperation, TypeError) as exc:
+            raise ValueError("Invalid platform fee percent") from exc
     db.session.commit()
     return store
 
@@ -155,12 +158,14 @@ def set_store_status(store: Store, status: StoreStatus):
 
 def provision_store_wallets(store: Store, cryptos=None):
     cryptos = cryptos or filter_multistore_cryptos(Crypto.instances.keys())
+    target_networks = set()
     for crypto_name in cryptos:
         if not crypto_supports_multistore(crypto_name):
             continue
         crypto = Crypto.instances.get(crypto_name)
         if not crypto or not isinstance(crypto, Ethereum):
             continue
+        target_networks.add(crypto.network_currency)
         sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first()
         shared_key = _fda_key(store.id, crypto.network_currency)
         if not sw:
@@ -181,6 +186,8 @@ def provision_store_wallets(store: Store, cryptos=None):
         crypto = Crypto.instances.get(sw.crypto)
         if not crypto or not isinstance(crypto, Ethereum):
             continue
+        if crypto.network_currency not in target_networks:
+            continue
         by_network.setdefault(crypto.network_currency, []).append((sw, crypto))
 
     for network, items in by_network.items():
@@ -200,6 +207,66 @@ def provision_store_wallets(store: Store, cryptos=None):
             db.session.commit()
 
     _reconcile_store_fda_addresses(store)
+
+
+def provision_crypto_for_all_stores(crypto_name: str):
+    """Backfill StoreWallet + FDA for an already-created store when a crypto is enabled later."""
+    if not crypto_supports_multistore(crypto_name):
+        return
+    crypto = Crypto.instances.get(crypto_name)
+    if not crypto or not isinstance(crypto, Ethereum):
+        return
+
+    # Default store uses the shared legacy FDA ("default"), not store-<id>-<network>.
+    default = Store.query.filter_by(is_default=True).first()
+    if default:
+        _link_default_store_wallets(default)
+        db.session.commit()
+
+    stores = Store.query.filter(
+        Store.is_default.is_(False),
+        Store.status == StoreStatus.ACTIVE,
+    ).all()
+    # Provision the whole network group (e.g. OPETH + OP-USDC), not only the toggled crypto.
+    related = [
+        name
+        for name in filter_multistore_cryptos(Crypto.instances.keys())
+        if Crypto.instances.get(name)
+        and isinstance(Crypto.instances[name], Ethereum)
+        and Crypto.instances[name].network_currency == crypto.network_currency
+    ]
+    for store in stores:
+        try:
+            provision_store_wallets(store, cryptos=related)
+        except Exception:
+            app.logger.exception(
+                "Failed to provision %s for store id=%s", crypto_name, store.id
+            )
+
+
+def ensure_store_wallets_provisioned(store: Store):
+    """Create missing StoreWallet/FDA rows for currently available multistore cryptos."""
+    if store.is_default:
+        if _link_default_store_wallets(store):
+            db.session.commit()
+        return
+
+    available = filter_multistore_cryptos(Crypto.instances.keys())
+    wallets = StoreWallet.query.filter_by(store_id=store.id).all()
+    existing = {sw.crypto for sw in wallets}
+    missing = [name for name in available if name not in existing]
+    incomplete = [
+        sw.crypto
+        for sw in wallets
+        if sw.crypto in available
+        and (sw.status != StoreWalletStatus.READY or not sw.fda_address)
+    ]
+    to_provision = list(dict.fromkeys([*missing, *incomplete]))
+    if not to_provision:
+        # Still reconcile so token FDAs on a network stay aligned.
+        _reconcile_store_fda_addresses(store)
+        return
+    provision_store_wallets(store, cryptos=to_provision)
 
 def retry_provisioning(store: Store, crypto_name: str):
     """Retry FDA provisioning for one crypto — uses network key store-<id>-<network>."""
@@ -224,11 +291,26 @@ def retry_provisioning(store: Store, crypto_name: str):
             and other_crypto.network_currency == crypto.network_currency
         ):
             other.fda_key = shared_key
+            other.status = StoreWalletStatus.PENDING
             items.append((other, other_crypto))
     db.session.commit()
 
-    _provision_network(store, crypto.network_currency, items)
-    _reconcile_store_fda_addresses(store)
+    try:
+        _provision_network(store, crypto.network_currency, items)
+        _reconcile_store_fda_addresses(store)
+    except Exception as exc:
+        app.logger.exception(
+            "Retry provisioning failed store=%s crypto=%s: %s",
+            store.id,
+            crypto_name,
+            exc,
+        )
+        for other, _ in items:
+            if other.status != StoreWalletStatus.READY or not other.fda_address:
+                other.status = StoreWalletStatus.FAILED
+                other.last_error = str(exc)
+        db.session.commit()
+        raise
 
 def _provision_network(store: Store, network: str, items):
     """Ensure a single FDA for store+network and assign it to all wallets in items."""

@@ -55,14 +55,29 @@ class Ethereum(Crypto):
         return FeeDepositAccount(response["account"], Decimal(response["balance"]))
 
     def create_fee_deposit_account(self, fda_key=None):
-        response = requests.post(
-            f"http://{self.gethost()}/{self.crypto}/create-fee-deposit-account",
-            auth=self.get_auth_creds(),
-            json={"fda_key": fda_key} if fda_key else {},
-        ).json(parse_float=Decimal)
+        try:
+            response = requests.post(
+                f"http://{self.gethost()}/{self.crypto}/create-fee-deposit-account",
+                auth=self.get_auth_creds(),
+                json={"fda_key": fda_key} if fda_key else {},
+                timeout=60,
+            ).json(parse_float=Decimal)
+        except Exception as exc:
+            raise Exception(
+                f"create-fee-deposit-account failed for {self.crypto}: {exc}"
+            ) from exc
         if response.get("status") == "error":
-            raise Exception(response.get("msg", "Failed to create fee-deposit account"))
-        return response["account"]
+            raise Exception(
+                response.get("msg")
+                or response.get("message")
+                or f"Failed to create fee-deposit account for {self.crypto}"
+            )
+        account = response.get("account")
+        if not account:
+            raise Exception(
+                f"create-fee-deposit-account bad response for {self.crypto}: {response}"
+            )
+        return account
 
     def balance(self, account=None, fda_key=None):
         return self.balance_for_account(account=account, fda_key=fda_key)
