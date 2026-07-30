@@ -76,6 +76,14 @@ class BitcoinLightning(Crypto):
             environ.get("LIGHTNING_GENERATE_ONCHAIN_ADDRESS", False)
         )
 
+        self.LIGHTNING_AUTOPAYOUT_MAX_ATTEMPTS = int(
+            environ.get("LIGHTNING_AUTOPAYOUT_MAX_ATTEMPTS", "50")
+        )
+
+        self.LIGHTNING_AUTOPAYOUT_SEND_PERCENT = Decimal(
+            environ.get("LIGHTNING_AUTOPAYOUT_SEND_PERCENT", "100")
+        )
+
         self._lnurl = None
         self._threads_started = False
 
@@ -217,6 +225,156 @@ class BitcoinLightning(Crypto):
         except Exception as e:
             app.logger.exception(f"Can't get balance: {e}")
             return Decimal(0)
+
+    def query_routes(self, pub_key: str, amt_sat: int) -> bool:
+        """Ask LND (QueryRoutes) whether a route exists to pub_key for amt_sat satoshis."""
+        app.logger.debug(
+            f"query_routes: checking route to pub_key={pub_key} for amt_sat={amt_sat}"
+        )
+        try:
+            resp = self.session.get(
+                f"{self.LND_REST_URL}/v1/graph/routes/{pub_key}/{amt_sat}",
+                timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
+            )
+            r = resp.json()
+            app.logger.debug(
+                f"query_routes: response status_code={resp.status_code} body={r!r}"
+            )
+            if resp.status_code != 200:
+                app.logger.debug(
+                    f"query_routes: no route for amt_sat={amt_sat}: {r.get('message', r)!r}"
+                )
+                return False
+            routes = r.get("routes") or []
+            found = len(routes) > 0
+            app.logger.debug(
+                f"query_routes: {'found' if found else 'no'} route(s) for amt_sat={amt_sat} ({len(routes)} routes)"
+            )
+            return found
+        except Exception as e:
+            app.logger.exception(
+                f"query_routes: request failed for pub_key={pub_key} amt_sat={amt_sat}: {e}"
+            )
+            return False
+
+    def find_max_payable_amount(
+        self, pub_key: str, high_sat: int, floor_sat: int = 1000
+    ) -> int:
+        """Binary search the max amount (in sats) payable to pub_key, between floor_sat and high_sat."""
+        max_attempts = self.LIGHTNING_AUTOPAYOUT_MAX_ATTEMPTS
+        app.logger.debug(
+            f"find_max_payable_amount: searching pub_key={pub_key} between "
+            f"floor_sat={floor_sat} and high_sat={high_sat}, max_attempts={max_attempts}"
+        )
+        if high_sat < floor_sat:
+            app.logger.debug(
+                f"find_max_payable_amount: high_sat={high_sat} is below floor_sat={floor_sat}, nothing payable"
+            )
+            return 0
+
+        attempts = 1
+        if self.query_routes(pub_key, high_sat):
+            app.logger.debug(
+                f"find_max_payable_amount: full high_sat={high_sat} is payable"
+            )
+            return high_sat
+
+        low, high, best = floor_sat, high_sat - 1, 0
+        while low <= high:
+            if attempts >= max_attempts:
+                app.logger.warning(
+                    f"find_max_payable_amount: reached max_attempts={max_attempts}, stopping search early, best so far={best} sats"
+                )
+                break
+            attempts += 1
+            mid = (low + high) // 2
+            if self.query_routes(pub_key, mid):
+                app.logger.debug(
+                    f"find_max_payable_amount: mid={mid} sats payable, trying higher (low={low}, high={high})"
+                )
+                best = mid
+                low = mid + 1
+            else:
+                app.logger.debug(
+                    f"find_max_payable_amount: mid={mid} sats not payable, trying lower (low={low}, high={high})"
+                )
+                high = mid - 1
+
+        app.logger.debug(
+            f"find_max_payable_amount: best payable amount={best} sats after {attempts} attempt(s)"
+        )
+        return best
+
+    def _lookup_dest_pubkey(self, destination: str, hint_amount: Decimal) -> str:
+        """Resolve a Lightning destination (LNURL/lightning-address/payment request) to the receiver's node pubkey."""
+        app.logger.debug(
+            f"_lookup_dest_pubkey: resolving destination={destination} hint_amount={hint_amount}"
+        )
+        pay_req, lnurl_info = self.lnurl_to_pr(
+            destination, remove_exponent(self.btc_to_msat(hint_amount))
+        )
+        app.logger.debug(f"_lookup_dest_pubkey: resolved pay_req={pay_req}")
+
+        decoded_pay_req = self.session.get(
+            f"{self.LND_REST_URL}/v1/payreq/{pay_req}",
+            timeout=self.LIGHTNING_REQUESTS_TIMEOUT,
+        ).json()
+        app.logger.debug(f"_lookup_dest_pubkey: decoded payreq={decoded_pay_req!r}")
+
+        if "destination" not in decoded_pay_req:
+            raise Exception(
+                decoded_pay_req.get(
+                    "message", f"Unable to decode payment request: {decoded_pay_req!r}"
+                )
+            )
+
+        pub_key = decoded_pay_req["destination"]
+        app.logger.debug(f"_lookup_dest_pubkey: resolved pub_key={pub_key}")
+        return pub_key
+
+    def find_sendable_amount(
+        self, destination: str, high_amount: Decimal, floor_sat: int = 1000
+    ) -> Decimal:
+        """
+        Discover the actual sendable amount (in BTC) to destination using LND QueryRoutes.
+
+        Binary searches for the maximum amount (up to high_amount) for which a route
+        exists, then returns LIGHTNING_AUTOPAYOUT_SEND_PERCENT% of that discovered
+        maximum as a safety margin. Returns Decimal(0) if no route can be found or
+        destination resolution fails.
+        """
+        send_percent = self.LIGHTNING_AUTOPAYOUT_SEND_PERCENT
+        app.logger.info(
+            f"find_sendable_amount: destination={destination} high_amount={high_amount} "
+            f"floor_sat={floor_sat} send_percent={send_percent}"
+        )
+        try:
+            pub_key = self._lookup_dest_pubkey(destination, high_amount)
+        except Exception as e:
+            app.logger.exception(
+                f"find_sendable_amount: failed to resolve destination pubkey for {destination}: {e}"
+            )
+            return Decimal(0)
+
+        high_sat = int(self.btc_to_sat(high_amount))
+        app.logger.debug(
+            f"find_sendable_amount: searching for max payable amount up to high_sat={high_sat} to pub_key={pub_key}"
+        )
+
+        max_payable_sat = self.find_max_payable_amount(pub_key, high_sat, floor_sat)
+        if max_payable_sat <= 0:
+            app.logger.warning(
+                f"find_sendable_amount: no route found to pub_key={pub_key} up to high_sat={high_sat}"
+            )
+            return Decimal(0)
+
+        sendable_sat = Decimal(max_payable_sat) * (send_percent / Decimal(100))
+        sendable_btc = self.sat_to_btc(sendable_sat)
+        app.logger.info(
+            f"find_sendable_amount: max_payable_sat={max_payable_sat}, "
+            f"sending {send_percent}% = sendable_sat={sendable_sat} ({sendable_btc} BTC)"
+        )
+        return sendable_btc
 
     @staticmethod
     def to_hex_string(b64_string):
