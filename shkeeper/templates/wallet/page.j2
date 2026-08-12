@@ -23,7 +23,7 @@
               </svg>
             </button>
           </div>
-          
+
           <button class="menu-close" data-menu-button aria-label="Close menu">
             ✕
           </button>
@@ -71,6 +71,13 @@
                 <span class="nav-label">Settings</span>
               </a>
             </li>
+            {% if config.DEV_MODE %}
+            <li class="nav-item">
+              <a id="admin-test-payment-request-link" href="{{ url_for('wallet.admin_test_payment_request') }}" class="nav-link">
+                <span class="nav-label">[dev] Gen Invoice</span>
+              </a>
+            </li>
+            {% endif %}
             <li class="nav-item">
               <a href="{{ url_for('auth.logout') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
@@ -81,7 +88,7 @@
             </li>
           </ul>
         </nav>
-        
+
         <div class="logo-thumb">
           <img
             class="menu-logo-big menu-logo"
@@ -104,7 +111,7 @@
             alt=""
           />
 
-        <button class="bottom-bar__burger" data-menu-button aria-label="Open menu" > 
+        <button class="bottom-bar__burger" data-menu-button aria-label="Open menu" >
           ☰
         </button>
       </div>

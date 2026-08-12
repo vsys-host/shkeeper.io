@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 import inspect
 from io import StringIO
 import itertools
+import uuid
 import segno
 
 from flask_smorest import Blueprint as SmorestBlueprint
@@ -31,6 +32,7 @@ from .modules.classes.tron_token import TronToken
 from .modules.classes.ethereum import Ethereum
 from shkeeper.modules.classes.rate_source import RateSource
 from shkeeper.modules.classes.crypto import Crypto
+from shkeeper.services.crypto_cache import get_available_cryptos
 from shkeeper.models import (
     FeeCalculationPolicy,
     Fiat,
@@ -262,6 +264,38 @@ def settings():
     """User settings page including 2FA management"""
     user = g.user
     return render_template("wallet/settings.j2", user=user)
+
+
+@bp_wallet.route("/admin/test-payment-request", methods=("GET", "POST"))
+@login_required
+def admin_test_payment_request():
+    """Hidden dev-only tool for manually creating a payment request against the test callback receiver."""
+    cryptos = get_available_cryptos()["crypto_list"]
+    result = None
+    error = None
+
+    if request.method == "POST":
+        crypto_name = request.form.get("crypto")
+        amount = request.form.get("amount")
+        try:
+            crypto = Crypto.instances[crypto_name]
+            req = {
+                "external_id": f"admin-test-{uuid.uuid4().hex[:12]}",
+                "fiat": "USD",
+                "amount": amount,
+                "callback_url": url_for("api_v1.test_callback_receiver", _external=True),
+            }
+            invoice = Invoice.add(crypto=crypto, request=req)
+            result = {**invoice.for_response(), "callback_url": req["callback_url"]}
+        except Exception as e:
+            error = str(e)
+
+    return render_template(
+        "wallet/admin_test_payment.j2",
+        cryptos=cryptos,
+        result=result,
+        error=error,
+    )
 
 
 @bp_wallet.get("/parts/transactions")

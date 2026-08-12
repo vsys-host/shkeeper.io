@@ -1,0 +1,39 @@
+{% extends 'wallet/page.j2' %}
+
+{% block content %}
+<div class="content-container">
+  <div class="row">
+    <h1 class="title-text">Test Payment Request</h1>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-danger" role="alert">{{ error }}</div>
+  {% endif %}
+
+  {% if result %}
+  <div class="alert alert-success" role="alert">
+    <p>Invoice #{{ result.id }} created.</p>
+    <p>Address: {{ result.wallet }}</p>
+    <p>Amount: {{ result.amount }} ({{ result.display_name }})</p>
+    <p>Exchange rate: {{ result.exchange_rate }}</p>
+    <p>Callback URL: {{ result.callback_url }}</p>
+  </div>
+  {% endif %}
+
+  <form method="post" class="common-text">
+    <div class="mb-3">
+      <label for="crypto" class="form-label">Crypto</label>
+      <select name="crypto" id="crypto" class="form-select common-text" required style="width: 300px">
+        {% for c in cryptos %}
+        <option value="{{ c.name }}">{{ c.display_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label for="amount" class="form-label">Amount (USD)</label>
+      <input type="number" step="any" min="0" name="amount" id="amount" class="form-control" required style="width: 300px">
+    </div>
+    <button type="submit" class="btn btn-primary">Create payment request</button>
+  </form>
+</div>
+{% endblock %}

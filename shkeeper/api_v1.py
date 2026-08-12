@@ -843,6 +843,6 @@ def decryption_key():
 @api_key_required
 def test_callback_receiver():
     callback = request.get_json(force=True)
-    app.logger.info("=============== Test callback received ===================")
-    app.logger.info(callback)
+    app.logger.warning("=============== Test callback received ===================")
+    app.logger.warning(callback)
     return {"status": "success", "message": "callback logged"}, 202
