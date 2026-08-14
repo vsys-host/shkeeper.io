@@ -335,19 +335,6 @@ function sendAction()
       }
       return element.value;
     }
-    function validateFloatValue(element)
-    {
-      element.value = element.value.trim();
-      if(element.value.match(/^\d+\.*\d*$/))
-      {
-        element.classList.remove("red-highlight");
-      }
-      else{
-        element.classList.add("red-highlight");
-        check = false;
-      }
-      return element.value;
-    }
     function validateAddressValue(element)
     {
       element.value = element.value.trim();

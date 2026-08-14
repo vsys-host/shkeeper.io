@@ -23,15 +23,30 @@ from shkeeper.services.multistore import (
     filter_multistore_cryptos,
 )
 
+DEFAULT_ADMIN_STORE_ID = 1
+
 
 def ensure_default_store():
     store = Store.query.filter_by(is_default=True).first()
     if store:
+        if store.id != DEFAULT_ADMIN_STORE_ID:
+            raise RuntimeError(
+                "Default store must have id=1. "
+                f"Found default store id={store.id}."
+            )
         if _link_default_store_wallets(store):
             db.session.commit()
         return store
 
+    existing_id_one = Store.query.get(DEFAULT_ADMIN_STORE_ID)
+    if existing_id_one and not existing_id_one.is_default:
+        raise RuntimeError(
+            "Cannot create default store with id=1 because this id is already "
+            "occupied by a non-default store."
+        )
+
     store = Store(
+        id=DEFAULT_ADMIN_STORE_ID,
         name=DEFAULT_STORE_NAME,
         api_key=_legacy_api_key(),
         platform_fee_percent=Decimal("0"),
@@ -67,26 +82,19 @@ def _link_default_store_wallets(store: Store) -> bool:
         if not crypto or not isinstance(crypto, Ethereum):
             continue
         sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first()
-        if (
-            sw
-            and sw.status == StoreWalletStatus.READY
-            and sw.fda_address
-            and sw.fda_key == "default"
-        ):
+        if sw and sw.status == StoreWalletStatus.READY and sw.fda_address:
             continue
         if not sw:
             sw = StoreWallet(
                 store_id=store.id,
                 crypto=crypto_name,
-                fda_key="default",
                 status=StoreWalletStatus.PENDING,
             )
             db.session.add(sw)
             changed = True
         try:
-            fda = crypto.fee_deposit_account_for(fda_key="default")
+            fda = crypto.fee_deposit_account_for(store_id=store.id)
             sw.fda_address = fda.addr
-            sw.fda_key = "default"
             sw.status = StoreWalletStatus.READY
             sw.last_error = None
             changed = True
@@ -114,14 +122,18 @@ def resolve_store_by_api_key(api_key: str):
         return default
     return None
 
-def _fda_key(store_id: int, network: str) -> str:
-    return f"store-{store_id}-{network}"
-
 def create_store(name: str, platform_fee_percent=Decimal("0")):
+    name = (name or "").strip()
+    if not name:
+        raise ValueError("Store name is required")
+    try:
+        platform_fee_percent = Decimal(platform_fee_percent)
+    except (InvalidOperation, TypeError) as exc:
+        raise ValueError("Invalid platform fee percent") from exc
     store = Store(
-        name=name.strip(),
+        name=name,
         api_key=secrets.token_urlsafe(24),
-        platform_fee_percent=Decimal(platform_fee_percent),
+        platform_fee_percent=platform_fee_percent,
         status=StoreStatus.ACTIVE,
         is_default=False,
     )
@@ -167,17 +179,13 @@ def provision_store_wallets(store: Store, cryptos=None):
             continue
         target_networks.add(crypto.network_currency)
         sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first()
-        shared_key = _fda_key(store.id, crypto.network_currency)
         if not sw:
             sw = StoreWallet(
                 store_id=store.id,
                 crypto=crypto_name,
-                fda_key=shared_key,
                 status=StoreWalletStatus.PENDING,
             )
             db.session.add(sw)
-        else:
-            sw.fda_key = shared_key
     db.session.commit()
 
     # One FDA create per network (ETH/BNB/...), then attach all tokens on that network.
@@ -217,7 +225,7 @@ def provision_crypto_for_all_stores(crypto_name: str):
     if not crypto or not isinstance(crypto, Ethereum):
         return
 
-    # Default store uses the shared legacy FDA ("default"), not store-<id>-<network>.
+    # Default store FDA uses store_id=1 (same as Store.id).
     default = Store.query.filter_by(is_default=True).first()
     if default:
         _link_default_store_wallets(default)
@@ -269,14 +277,12 @@ def ensure_store_wallets_provisioned(store: Store):
     provision_store_wallets(store, cryptos=to_provision)
 
 def retry_provisioning(store: Store, crypto_name: str):
-    """Retry FDA provisioning for one crypto — uses network key store-<id>-<network>."""
+    """Retry FDA provisioning for one crypto — one FDA per store per network."""
     sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first_or_404()
     crypto = Crypto.instances.get(crypto_name)
     if not crypto or not isinstance(crypto, Ethereum):
         raise ValueError(f"{crypto_name} is not an ethereum-like crypto")
 
-    shared_key = _fda_key(store.id, crypto.network_currency)
-    sw.fda_key = shared_key
     sw.status = StoreWalletStatus.PENDING
     sw.last_error = None
     db.session.commit()
@@ -290,7 +296,6 @@ def retry_provisioning(store: Store, crypto_name: str):
             and isinstance(other_crypto, Ethereum)
             and other_crypto.network_currency == crypto.network_currency
         ):
-            other.fda_key = shared_key
             other.status = StoreWalletStatus.PENDING
             items.append((other, other_crypto))
     db.session.commit()
@@ -317,7 +322,6 @@ def _provision_network(store: Store, network: str, items):
     if not items:
         return
 
-    shared_key = _fda_key(store.id, network)
     crypto = items[0][1]
 
     existing_addr = next(
@@ -325,39 +329,27 @@ def _provision_network(store: Store, network: str, items):
         None,
     )
     if not existing_addr:
-        sibling = (
-            StoreWallet.query.filter(
-                StoreWallet.store_id == store.id,
-                StoreWallet.fda_key == shared_key,
-                StoreWallet.fda_address.isnot(None),
-            ).first()
-        )
-        if sibling:
-            existing_addr = sibling.fda_address
+        for other in StoreWallet.query.filter_by(store_id=store.id).all():
+            other_crypto = Crypto.instances.get(other.crypto)
+            if (
+                other.fda_address
+                and other_crypto
+                and isinstance(other_crypto, Ethereum)
+                and other_crypto.network_currency == network
+            ):
+                existing_addr = other.fda_address
+                break
 
     if existing_addr:
         address = existing_addr
-        # Ensure sidecar still has this key registered (idempotent).
-        try:
-            address = crypto.create_fee_deposit_account(fda_key=shared_key)
-        except Exception:
-            address = existing_addr
     else:
-        address = crypto.create_fee_deposit_account(fda_key=shared_key)
+        address = crypto.create_fee_deposit_account(store_id=store.id)
 
     for sw, _ in items:
-        sw.fda_key = shared_key
         sw.fda_address = address
         sw.status = StoreWalletStatus.READY
         sw.last_error = None
     db.session.commit()
-
-
-def _provision_single_wallet(store: Store, sw: StoreWallet):
-    crypto = Crypto.instances.get(sw.crypto)
-    if not crypto or not isinstance(crypto, Ethereum):
-        raise ValueError(f"{sw.crypto} is not an ethereum-like crypto")
-    _provision_network(store, crypto.network_currency, [(sw, crypto)])
 
 
 def _reconcile_store_fda_addresses(store: Store):
@@ -368,30 +360,21 @@ def _reconcile_store_fda_addresses(store: Store):
         if not crypto or not isinstance(crypto, Ethereum):
             continue
         network = crypto.network_currency
-        shared_key = _fda_key(store.id, network)
-        sw.fda_key = shared_key
         by_network.setdefault(network, []).append((sw, crypto))
 
     changed = False
     for network, items in by_network.items():
-        shared_key = _fda_key(store.id, network)
         canonical = next(
             (sw for sw, _ in items if sw.fda_address and sw.status == StoreWalletStatus.READY),
             None,
         )
         if not canonical:
             continue
-        # Prefer address already registered under the shared network key (idempotent).
-        try:
-            crypto = items[0][1]
-            canonical_addr = crypto.create_fee_deposit_account(fda_key=shared_key)
-        except Exception:
-            canonical_addr = canonical.fda_address
+        canonical_addr = canonical.fda_address
 
         for sw, _ in items:
-            if sw.fda_address != canonical_addr or sw.fda_key != shared_key:
+            if sw.fda_address != canonical_addr:
                 sw.fda_address = canonical_addr
-                sw.fda_key = shared_key
                 if sw.status != StoreWalletStatus.FAILED:
                     sw.status = StoreWalletStatus.READY
                     sw.last_error = None
@@ -399,10 +382,6 @@ def _reconcile_store_fda_addresses(store: Store):
 
     if changed:
         db.session.commit()
-
-
-reconcile_store_fda_addresses = _reconcile_store_fda_addresses
-
 
 def get_store_wallet(store: Store, crypto_name: str):
     return StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first()
@@ -415,11 +394,11 @@ def store_wallet_balance(store: Store, crypto_name: str, sw: StoreWallet = None)
 
     sw = sw or get_store_wallet(store, crypto_name)
     if sw and sw.fda_address:
-        return crypto.balance_for_account(account=sw.fda_address)
+        return crypto.balance_for_account(store_id=store.id)
 
-    # Default store native coin uses the legacy global wallet when FDA is not linked yet.
+    # Default store native coin: fall back to store_id=1 FDA when not linked yet.
     if store.is_default and crypto.crypto == crypto.network_currency:
-        return crypto.balance()
+        return crypto.balance(store_id=store.id)
 
     return None
 
@@ -446,10 +425,10 @@ def store_balances_map(stores, crypto_names):
             crypto = Crypto.instances.get(crypto_name)
             if not crypto or not isinstance(crypto, Ethereum):
                 continue
-            if sw and sw.fda_address:
-                jobs.append((store.id, crypto_name, sw.fda_address, False))
-            elif store.is_default and crypto.crypto == crypto.network_currency:
-                jobs.append((store.id, crypto_name, None, True))
+            if (sw and sw.fda_address) or (
+                store.is_default and crypto.crypto == crypto.network_currency
+            ):
+                jobs.append((store.id, crypto_name))
 
     if not jobs:
         return result
@@ -457,14 +436,11 @@ def store_balances_map(stores, crypto_names):
     app_obj = app._get_current_object()
 
     def _fetch(job):
-        store_id, crypto_name, account, use_global = job
+        store_id, crypto_name = job
         crypto = Crypto.instances[crypto_name]
         with app_obj.app_context():
             try:
-                if use_global:
-                    balance = crypto.balance()
-                else:
-                    balance = crypto.balance_for_account(account=account)
+                balance = crypto.balance(store_id=store_id)
             except Exception as exc:
                 app_obj.logger.warning(
                     "Balance fetch failed store=%s crypto=%s: %s",
@@ -547,7 +523,7 @@ def _known_fda_addresses(crypto_name: str) -> set[str]:
     crypto = Crypto.instances.get(crypto_name)
     if crypto and isinstance(crypto, Ethereum):
         try:
-            fda = crypto.fee_deposit_account_for(fda_key="default")
+            fda = crypto.fee_deposit_account_for(store_id=1)
             if fda and fda.addr:
                 addrs.add(fda.addr.lower())
         except Exception as exc:
@@ -564,15 +540,24 @@ def _sidecar_managed_addresses(crypto_name: str) -> set[str]:
     crypto = Crypto.instances.get(crypto_name)
     if not crypto or not isinstance(crypto, Ethereum):
         return set()
-    response = crypto.get_all_addresses()
-    if isinstance(response, dict) and response.get("status") == "error":
-        raise ValueError(
-            response.get("msg")
-            or f"Cannot list addresses for {crypto_name}"
-        )
-    if not isinstance(response, list):
-        raise ValueError(f"Unexpected address list for {crypto_name}")
-    return {addr.lower() for addr in response if addr}
+    store_ids = {1}
+    store_ids.update(
+        sw.store_id
+        for sw in StoreWallet.query.filter_by(crypto=crypto_name).all()
+        if sw.store_id
+    )
+    addrs: set[str] = set()
+    for store_id in store_ids:
+        response = crypto.get_all_addresses(store_id=store_id)
+        if isinstance(response, dict) and response.get("status") == "error":
+            raise ValueError(
+                response.get("msg")
+                or f"Cannot list addresses for {crypto_name}"
+            )
+        if not isinstance(response, list):
+            raise ValueError(f"Unexpected address list for {crypto_name}")
+        addrs.update(addr.lower() for addr in response if addr)
+    return addrs
 
 
 def validate_fee_collection_address(crypto_name: str, address: str | None) -> str | None:
@@ -669,9 +654,11 @@ def get_store_users(store: Store):
 
 
 def create_store_owner(store: Store, username: str, password: str):
-    username = username.strip()
+    username = (username or "").strip()
     if not username:
         raise ValueError("Username is required")
+    if not password:
+        raise ValueError("Password is required")
     if store.is_default:
         raise ValueError(
             "Cannot add store owners to the Default store. Create a separate store for the merchant."

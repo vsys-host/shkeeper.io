@@ -19,7 +19,7 @@ from flask import current_app as app
 from werkzeug.security import check_password_hash
 from werkzeug.security import generate_password_hash
 
-from shkeeper.models import User, Wallet, UserRole
+from shkeeper.models import User, Wallet, UserRole, Store, StoreStatus
 from shkeeper import db
 from shkeeper.services.store_service import resolve_store_by_api_key
 from shkeeper.services.tenancy import is_admin_user
@@ -51,6 +51,27 @@ def metrics_basic_auth(view):
     return wrapped_view
 
 
+def bind_user_store(user) -> bool:
+    """Set g.user and g.current_store. False if the user's store is not ACTIVE."""
+    if user.store_id:
+        store = Store.query.get(user.store_id)
+        if not store or store.status != StoreStatus.ACTIVE:
+            g.user = None
+            g.current_store = None
+            return False
+        g.user = user
+        g.current_store = store
+        return True
+    g.user = user
+    if is_admin_user(user):
+        from shkeeper.services.store_service import ensure_default_store
+
+        g.current_store = ensure_default_store()
+    else:
+        g.current_store = None
+    return True
+
+
 def basic_auth_optional(view):
     """View decorator that allow to authenticate using HTTP Basic Auth."""
 
@@ -61,7 +82,11 @@ def basic_auth_optional(view):
             if auth:
                 user = User.query.filter_by(username=auth.username).first()
                 if user and user.verify_password(auth.password):
-                    g.user = user
+                    if not bind_user_store(user):
+                        return {
+                            "status": "error",
+                            "message": "Store is not active",
+                        }, 403
                 else:
                     return {
                         "status": "error",
@@ -125,17 +150,9 @@ def load_logged_in_user():
     else:
         user = User.query.get(user_id)
         if user.passhash:
-            g.user = user
-            if user.store_id:
-                from shkeeper.models import Store
-
-                g.current_store = Store.query.get(user.store_id)
-            elif is_admin_user(user):
-                from shkeeper.services.store_service import ensure_default_store
-
-                g.current_store = ensure_default_store()
-            else:
-                g.current_store = None
+            if not bind_user_store(user):
+                session.clear()
+                return
         else:
             session.clear()
             g.user = None
@@ -175,6 +192,10 @@ def login():
             error = "No password provided."
         elif not user.verify_password(password):
             error = "Incorrect password."
+        elif user.store_id:
+            store = Store.query.get(user.store_id)
+            if not store or store.status != StoreStatus.ACTIVE:
+                error = "Store is not active."
 
         if error is None:
             # Check if 2FA is enabled

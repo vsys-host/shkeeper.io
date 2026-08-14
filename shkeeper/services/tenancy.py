@@ -1,17 +1,6 @@
-from flask import g, has_request_context
+from flask import g
 
-from shkeeper.models import Store, UserRole, StoreWalletStatus
-
-
-def get_current_store():
-    if has_request_context() and getattr(g, "current_store", None):
-        return g.current_store
-    return None
-
-
-def get_current_store_id():
-    store = get_current_store()
-    return store.id if store else None
+from shkeeper.models import UserRole, StoreWalletStatus
 
 
 def is_admin_user(user=None):
@@ -19,19 +8,6 @@ def is_admin_user(user=None):
     if not user:
         return False
     return user.role == UserRole.ADMIN
-
-
-def invoice_query_for_user(query, user=None):
-    user = user or getattr(g, "user", None)
-    if not user:
-        return query.filter(False)
-    if user.role == UserRole.ADMIN:
-        return query
-    return query.filter_by(store_id=user.store_id)
-
-
-def payout_query_for_user(query, user=None):
-    return invoice_query_for_user(query, user=user)
 
 
 def require_admin(user=None):
@@ -45,6 +21,11 @@ def store_owner_wallet(crypto_name):
     user = getattr(g, "user", None)
     if not user or user.role != UserRole.STORE_OWNER:
         return None
+    return current_store_wallet(crypto_name)
+
+
+def current_store_wallet(crypto_name):
+    """READY StoreWallet for g.current_store (session or API-key auth)."""
     store = getattr(g, "current_store", None)
     if not store:
         return None
@@ -54,6 +35,14 @@ def store_owner_wallet(crypto_name):
     if not sw or sw.status != StoreWalletStatus.READY:
         return None
     return sw
+
+
+def require_default_store(store=None):
+    store = store or getattr(g, "current_store", None)
+    if not store or not store.is_default:
+        from werkzeug.exceptions import abort
+
+        abort(403)
 
 
 def api_key_for_session(crypto=None):

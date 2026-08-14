@@ -32,7 +32,6 @@ MULTISTORE_SUPPORTED = frozenset(
 )
 
 DEFAULT_STORE_NAME = "Default"
-DEFAULT_FDA_KEY = "default"
 
 
 def crypto_supports_multistore(crypto_name: str) -> bool:

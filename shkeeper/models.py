@@ -63,7 +63,6 @@ class StoreWallet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     store_id = db.Column(db.Integer, db.ForeignKey("store.id"), nullable=False)
     crypto = db.Column(db.String, nullable=False)
-    fda_key = db.Column(db.String(200), index=True)
     fda_address = db.Column(db.String, index=True)
     fee_percent_override = db.Column(db.Numeric)
     fee_collection_address = db.Column(db.String)
@@ -279,18 +278,9 @@ class Wallet(db.Model):
         db.session.commit()
 
         crypto = Crypto.instances[self.crypto]
-        # Multistore ETH*: pay only from admin/default FDA, never merchant FDAs.
+        # Multistore ETH*: pay only from admin/default FDA (store_id=1), never merchant FDAs.
         payout_kwargs = {}
         balance_kwargs = {}
-        from shkeeper.modules.classes.ethereum import Ethereum
-        from shkeeper.services.multistore import (
-            DEFAULT_FDA_KEY,
-            crypto_supports_multistore,
-        )
-
-        if isinstance(crypto, Ethereum) and crypto_supports_multistore(self.crypto):
-            balance_kwargs["fda_key"] = DEFAULT_FDA_KEY
-            payout_kwargs["fda_key"] = DEFAULT_FDA_KEY
 
         balance = crypto.balance(**balance_kwargs)
         payout_amount = balance
@@ -632,16 +622,13 @@ class Invoice(db.Model):
     def _mkaddr_for_store(crypto, store, amount_crypto):
         mkaddr_kwargs = {"details": {"value": amount_crypto}}
         if store:
-            from shkeeper.services.multistore import crypto_supports_multistore
             from shkeeper.services.store_service import get_store_wallet
             from shkeeper.models import StoreWalletStatus
 
             sw = get_store_wallet(store, crypto.crypto)
             if sw and sw.status == StoreWalletStatus.READY and sw.fda_address:
-                mkaddr_kwargs["fee_deposit_account"] = sw.fda_address
-                if sw.fda_key:
-                    mkaddr_kwargs["fda_key"] = sw.fda_key
-            elif crypto_supports_multistore(crypto.crypto) and not store.is_default:
+                mkaddr_kwargs["store_id"] = store.id
+            elif not store.is_default:
                 raise RuntimeError(
                     f"Store {store.id} has no ready fee-deposit account for "
                     f"{crypto.crypto}. Provision or retry it before creating invoices."
@@ -777,14 +764,74 @@ class Transaction(db.Model):
         else:
             return self.invoice.addr
 
+    @staticmethod
+    def resolve_outgoing_store_id(crypto_name, txid, addr=None):
+        """Resolution order:
+        1. PayoutTx.txid → Payout.store_id (registered payouts)
+        2. StoreWallet.fda_address matching addr (ETH-like send reports from/FDA)
+        3. Invoice / InvoiceAddress matching addr (token-drain send-from-invoice)
+        """
+        ptx = (
+            PayoutTx.query.filter_by(txid=txid)
+            .order_by(PayoutTx.id.desc())
+            .first()
+        )
+        if ptx and ptx.payout and ptx.payout.store_id:
+            return ptx.payout.store_id
+
+        if addr:
+            addr_l = addr.lower()
+            wallets = StoreWallet.query.filter(
+                StoreWallet.fda_address.isnot(None),
+            ).all()
+            for sw in wallets:
+                if not sw.fda_address or sw.fda_address.lower() != addr_l:
+                    continue
+                if sw.crypto == crypto_name:
+                    return sw.store_id
+            for sw in wallets:
+                if sw.fda_address and sw.fda_address.lower() == addr_l:
+                    return sw.store_id
+
+            # Token drains / 0-value contract calls report the invoice address as from.
+            inv_addr = (
+                InvoiceAddress.query.filter(
+                    db.func.lower(InvoiceAddress.addr) == addr_l
+                )
+                .order_by(InvoiceAddress.id.desc())
+                .first()
+            )
+            if inv_addr:
+                inv = Invoice.query.get(inv_addr.invoice_id)
+                if inv and inv.store_id:
+                    return inv.store_id
+
+            inv = (
+                Invoice.query.filter(
+                    db.func.lower(Invoice.addr) == addr_l,
+                    Invoice.status != InvoiceStatus.OUTGOING,
+                    Invoice.store_id.isnot(None),
+                )
+                .order_by(Invoice.id.desc())
+                .first()
+            )
+            if inv:
+                return inv.store_id
+
+        return None
+
     @classmethod
     def add_outgoing(cls, crypto, txid):
         for addr, amount, _, _ in crypto.getaddrbytx(txid):
             existed_tx = Transaction.query.filter_by(txid=txid).first()
 
             if not existed_tx:
+                store_id = cls.resolve_outgoing_store_id(crypto.crypto, txid, addr)
                 payout_invoice = Invoice(
-                    addr=addr, fiat="USD", status=InvoiceStatus.OUTGOING
+                    addr=addr,
+                    fiat="USD",
+                    status=InvoiceStatus.OUTGOING,
+                    store_id=store_id,
                 )
                 db.session.add(payout_invoice)
                 db.session.commit()

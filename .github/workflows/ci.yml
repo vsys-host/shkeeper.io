@@ -98,8 +98,47 @@ jobs:
 
       - name: Trigger docs build
         run: |
-          curl -X POST https://api.github.com/repos/vsys-host/shkeeper-docs/dispatches \
+          set -euo pipefail
+          HTTP_CODE=$(curl -sS -o /tmp/dispatch-response.txt -w "%{http_code}" \
+            -X POST "https://api.github.com/repos/vsys-host/shkeeper-docs/dispatches" \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
             -H "Content-Type: application/json" \
-            -d "{\"event_type\":\"build-docs\",\"client_payload\":{\"tag\":\"${GITHUB_REF_NAME}\"}}"
+            -d "{\"event_type\":\"build-docs\",\"client_payload\":{\"tag\":\"${GITHUB_REF_NAME}\"}}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/dispatch-response.txt || true
+          if [ "$HTTP_CODE" != "204" ]; then
+            echo "repository_dispatch failed" >&2
+            exit 1
+          fi
+          echo "Dispatched build-docs for tag ${GITHUB_REF_NAME}"
+
+  trigger-plugin-multishkeeper:
+    runs-on: ubuntu-latest
+    needs: docker
+
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: vsys-host
+
+      - name: Trigger plugin-multishkeeper build
+        run: |
+          set -euo pipefail
+          HTTP_CODE=$(curl -sS -o /tmp/dispatch-response.txt -w "%{http_code}" \
+            -X POST "https://api.github.com/repos/vsys-host/plugin-multishkeeper/dispatches" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"event_type\":\"build-multishkeeper\",\"client_payload\":{\"tag\":\"${GITHUB_REF_NAME}\"}}")
+          echo "HTTP ${HTTP_CODE}"
+          cat /tmp/dispatch-response.txt || true
+          if [ "$HTTP_CODE" != "204" ]; then
+            echo "repository_dispatch failed" >&2
+            exit 1
+          fi
+          echo "Dispatched build-multishkeeper for tag ${GITHUB_REF_NAME}"

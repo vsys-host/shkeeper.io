@@ -5,6 +5,7 @@ from operator import itemgetter
 
 
 from werkzeug.datastructures import Headers
+from werkzeug.exceptions import HTTPException, abort
 from flask import g, jsonify
 from flask import request
 from flask import Response
@@ -30,7 +31,9 @@ from shkeeper.modules.cryptos.monero import Monero
 from shkeeper.models import *
 from shkeeper.services.tenancy import (
     api_key_for_session,
+    current_store_wallet,
     require_admin,
+    require_default_store,
     store_owner_wallet,
 )
 from shkeeper.services.store_service import get_store_wallet
@@ -257,6 +260,9 @@ def payment_gateway_set_token(crypto_name):
     require_admin()
     for crypto in Crypto.instances.values():
         crypto.wallet.apikey = req["token"]
+    from shkeeper.services.store_service import ensure_default_store
+
+    ensure_default_store().api_key = req["token"]
     db.session.commit()
     return {"status": "success"}
 
@@ -298,6 +304,7 @@ def set_setting(key):
 @login_required
 def add_transaction(crypto_name):
     """Add a transaction manually."""
+    require_admin()
     try:
         tx = request.get_json(force=True)
         crypto = Crypto.instances[crypto_name]
@@ -402,10 +409,10 @@ def get_fee_deposit_address(crypto_name):
     if store and isinstance(crypto, Ethereum):
         sw = get_store_wallet(store, crypto_name)
         if sw and sw.fda_address:
-            fda = crypto.fee_deposit_account_for(account=sw.fda_address)
+            fda = crypto.fee_deposit_account_for(store_id=store.id)
             fee_deposit_address = fda.addr
         elif store.is_default:
-            fee_deposit_address = crypto.fee_deposit_account.addr
+            fee_deposit_address = crypto.fee_deposit_account_for(store_id=1).addr
         else:
             return {
                 "status": "error",
@@ -453,7 +460,7 @@ def balance(crypto_name):
     if store and isinstance(crypto, Ethereum):
         sw = get_store_wallet(store, crypto_name)
         if sw and sw.fda_address:
-            balance = crypto.balance_for_account(account=sw.fda_address)
+            balance = crypto.balance_for_account(store_id=store.id)
         elif not store.is_default:
             return {
                 "status": "error",
@@ -663,6 +670,7 @@ def decrypt_key(crypto_name):
 @login_required
 def get_server_details(crypto_name):
     """Return RPC server credentials and host."""
+    require_admin()
     crypto = Crypto.instances[crypto_name]
     usr, pwd = crypto.get_rpc_credentials()
     host = crypto.gethost()
@@ -673,6 +681,7 @@ def get_server_details(crypto_name):
 @login_required
 def set_server_key(crypto_name):
     """Not implemented yet (placeholder)."""
+    require_admin()
     # TODO: implement
     return {"status": "error", "message": "not implemented yet"}
 
@@ -681,6 +690,7 @@ def set_server_key(crypto_name):
 @login_required
 def set_server_host(crypto_name):
     """Not implemented yet (placeholder)."""
+    require_admin()
     # TODO: implement
     return {"status": "error", "message": "not implemented yet"}
 
@@ -738,7 +748,13 @@ def set_exchange_rate(crypto_name):
 def estimate_tx_fee(crypto_name, amount):
     """Estimate transaction fee for a given amount (optionally address via query)."""
     crypto = Crypto.instances[crypto_name]
-    return crypto.estimate_tx_fee(amount, address=request.args.get("address"))
+    kwargs = {"address": request.args.get("address")}
+    store = getattr(g, "current_store", None)
+    if store and isinstance(crypto, Ethereum):
+        sw = get_store_wallet(store, crypto_name)
+        if (sw and sw.fda_address) or store.is_default:
+            kwargs["store_id"] = store.id
+    return crypto.estimate_tx_fee(amount, **kwargs)
 
 
 @blp_v1.get("/<string:crypto_name>/task/<string:id>")
@@ -766,19 +782,25 @@ def multipayout(crypto_name):
 def list_addresses(crypto_name):
     """List all known wallet addresses for a crypto."""
     try:
-        sw = store_owner_wallet(crypto_name)
+        store = getattr(g, "current_store", None)
         crypto_inst = Crypto.instances[crypto_name]
-        if sw:
+        sw = current_store_wallet(crypto_name)
+        if store and not store.is_default:
             if not isinstance(crypto_inst, Ethereum):
-                from werkzeug.exceptions import abort
-
                 abort(403)
-            addresses = crypto_inst.get_all_addresses(
-                fda_key=sw.fda_key, sweep_target=sw.fda_address
-            )
+            if not sw:
+                return {
+                    "status": "error",
+                    "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+                }, 400
+            addresses = crypto_inst.get_all_addresses(store_id=store.id)
+        elif isinstance(crypto_inst, Ethereum) and store:
+            addresses = crypto_inst.get_all_addresses(store_id=store.id)
         else:
             addresses = crypto_inst.get_all_addresses()
         return {"status": "success", "addresses": addresses}
+    except HTTPException:
+        raise
     except Exception as e:
         app.logger.exception(f"Failed to list addresses for {crypto_name}")
         return {
@@ -883,7 +905,11 @@ def list_payouts(crypto_name):
         if not amount:
             raise Exception("No amount provided.")
 
-        if Payout.query.filter_by(amount=amount).all():
+        store = getattr(g, "current_store", None)
+        query = Payout.query.filter_by(amount=amount, crypto=crypto_name)
+        if store:
+            query = query.filter_by(store_id=store.id)
+        if query.all():
             return {"status": "success"}
         else:
             return {
@@ -906,11 +932,13 @@ def get_txid_info(txid, external_id):
     """Return lightweight info for a txid bound to an external invoice id."""
     try:
         info = {}
-        if (
-            tx := Transaction.query.join(Invoice)
-            .filter(Transaction.txid == txid, Invoice.external_id == external_id)
-            .first()
-        ):
+        query = Transaction.query.join(Invoice).filter(
+            Transaction.txid == txid, Invoice.external_id == external_id
+        )
+        store = getattr(g, "current_store", None)
+        if store:
+            query = query.filter(Invoice.store_id == store.id)
+        if (tx := query.first()):
             info = {
                 "crypto": tx.crypto,
                 "amount": format_decimal(tx.amount_fiat),
@@ -931,6 +959,7 @@ def get_txid_info(txid, external_id):
 @api_key_required
 def decryption_key():
     """Submit the decryption key when wallet encryption is enabled."""
+    require_default_store()
     if not (key := request.form.get("key")):
         return {"status": "error", "message": "Decryption key is required"}
     if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.success:

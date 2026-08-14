@@ -59,7 +59,6 @@ def upgrade():
             sa.Column("id", sa.Integer(), nullable=False),
             sa.Column("store_id", sa.Integer(), nullable=False),
             sa.Column("crypto", sa.String(), nullable=False),
-            sa.Column("fda_key", sa.String(length=200), nullable=True),
             sa.Column("fda_address", sa.String(), nullable=True),
             sa.Column("fee_percent_override", sa.Numeric(), nullable=True),
             sa.Column("fee_collection_address", sa.String(), nullable=True),

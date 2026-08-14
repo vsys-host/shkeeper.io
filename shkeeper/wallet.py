@@ -41,9 +41,6 @@ from shkeeper.models import (
     PayoutStatus,
     PayoutTx,
     PayoutTxStatus,
-    Store,
-    StoreStatus,
-    StoreWallet,
     StoreWalletStatus,
     UserRole,
     Wallet,
@@ -53,24 +50,10 @@ from shkeeper.models import (
     InvoiceStatus,
     Transaction,
 )
-from shkeeper.services.crypto_cache import get_available_cryptos
-from shkeeper.services.multistore import filter_multistore_cryptos, autopayout_allowed
+from shkeeper.services.multistore import autopayout_allowed
 from shkeeper.services.store_service import (
-    create_store,
-    create_store_owner,
     cryptos_for_store,
-    get_global_fee_collection_address,
-    get_store_users,
     get_store_wallet,
-    ensure_store_wallets_provisioned,
-    provision_store_wallets,
-    retry_provisioning,
-    set_global_fee_collection_address,
-    set_store_status,
-    store_balances_map,
-    store_wallet_balance,
-    update_store,
-    validate_fee_collection_address,
 )
 from shkeeper.services.tenancy import is_admin_user, require_admin, api_key_for_session
 from shkeeper.api.schemas.api_docs import metrics_doc
@@ -120,9 +103,7 @@ def _fee_deposit_for_ui(crypto, crypto_name):
     if store and isinstance(crypto, Ethereum):
         sw = get_store_wallet(store, crypto_name)
         if sw and sw.fda_address:
-            return crypto.fee_deposit_account_for(
-                account=sw.fda_address, fda_key=sw.fda_key
-            )
+            return crypto.fee_deposit_account_for(store_id=store.id)
     return crypto.fee_deposit_account
 
 
@@ -137,8 +118,9 @@ class CryptoUIView:
 
     def balance(self):
         if isinstance(self._crypto, Ethereum):
+            store = getattr(g, "current_store", None)
             return self._crypto.balance_for_account(
-                account=self.fee_deposit_account.addr
+                store_id=store.id if store else None,
             )
         return self._crypto.balance()
 
@@ -380,9 +362,9 @@ def settings():
 @login_required
 def parts_transactions():
     show_store = is_admin_user()
-    query = Transaction.query.join(Invoice)
+    query = Transaction.query
     if not show_store:
-        query = query.filter(Invoice.store_id == g.user.store_id)
+        query = query.filter(Transaction.invoice.has(store_id=g.user.store_id))
 
     # app.logger.info(dir(query))
 
@@ -439,7 +421,7 @@ def parts_transactions():
                 header.extend(
                     [
                         "Transaction ID",
-                        "Adress",
+                        "Address",
                         "Crypto",
                         "Amount",
                         "Amount $",
@@ -886,206 +868,3 @@ def process_unlock():
         else:
             wallet_encryption.set_runtime_status(WalletEncryptionRuntimeStatus.fail)
         return redirect(url_for("wallet.show_unlock"))
-
-
-@bp_wallet.route("/stores")
-@login_required
-def stores():
-    require_admin()
-    stores_list = Store.query.filter(Store.status != StoreStatus.DELETED).order_by(
-        Store.id
-    ).all()
-    enabled_cryptos = get_available_cryptos().get("filtered", [])
-    multistore_cryptos = filter_multistore_cryptos(enabled_cryptos)
-    store_balances = store_balances_map(stores_list, multistore_cryptos)
-    global_fee_collection = {
-        crypto: get_global_fee_collection_address(crypto)
-        for crypto in multistore_cryptos
-    }
-    return render_template(
-        "wallet/stores.j2",
-        stores=stores_list,
-        store_balances=store_balances,
-        multistore_cryptos=multistore_cryptos,
-        global_fee_collection=global_fee_collection,
-    )
-
-
-@bp_wallet.post("/stores/create")
-@login_required
-def stores_create():
-    require_admin()
-    name = request.form.get("name", "").strip()
-    fee_raw = (request.form.get("platform_fee_percent") or "0").strip()
-    if not name:
-        flash("Store name is required", "warning")
-        return redirect(url_for("wallet.stores"))
-    try:
-        fee = Decimal(fee_raw)
-    except (InvalidOperation, TypeError):
-        flash("Invalid store commission value", "warning")
-        return redirect(url_for("wallet.stores"))
-    create_store(name, platform_fee_percent=fee)
-    flash(f"Store {name} created", "success")
-    return redirect(url_for("wallet.stores"))
-
-
-@bp_wallet.post("/stores/global-fee-collection")
-@login_required
-def stores_global_fee_collection():
-    require_admin()
-    enabled_cryptos = get_available_cryptos().get("filtered", [])
-    cryptos = filter_multistore_cryptos(enabled_cryptos)
-
-    validated = {}
-    invoice_cryptos = []
-    other_errors = []
-    for crypto in cryptos:
-        try:
-            validated[crypto] = validate_fee_collection_address(
-                crypto, request.form.get(f"fee_collection_{crypto}")
-            )
-        except ValueError as exc:
-            msg = str(exc)
-            if "not a generated invoice/hot address" in msg:
-                invoice_cryptos.append(crypto)
-            else:
-                other_errors.append(f"{crypto}: {msg}")
-
-    if invoice_cryptos or other_errors:
-        if invoice_cryptos:
-            flash(
-                f"{', '.join(invoice_cryptos)}: fee collection must be an external "
-                f"address or a fee-deposit (FDA) address, not a generated invoice/hot address",
-                "warning",
-            )
-        for err in other_errors:
-            flash(err, "warning")
-        return redirect(url_for("wallet.stores"))
-
-    for crypto, address in validated.items():
-        set_global_fee_collection_address(crypto, address, skip_validation=True)
-    flash("Global fee collection addresses saved", "success")
-    return redirect(url_for("wallet.stores"))
-
-
-@bp_wallet.route("/stores/<int:store_id>")
-@login_required
-def store_detail(store_id):
-    require_admin()
-    store = Store.query.get_or_404(store_id)
-    ensure_store_wallets_provisioned(store)
-    store_wallets = [
-        sw
-        for sw in StoreWallet.query.filter_by(store_id=store.id).all()
-        if sw.crypto in Crypto.instances and Crypto.instances[sw.crypto].wallet.enabled
-    ]
-    crypto_names = [sw.crypto for sw in store_wallets]
-    balances = store_balances_map([store], crypto_names).get(store.id, {})
-    return render_template(
-        "wallet/store_detail.j2",
-        store=store,
-        store_wallets=store_wallets,
-        balances=balances,
-        store_users=get_store_users(store),
-    )
-
-
-@bp_wallet.post("/stores/<int:store_id>/update")
-@login_required
-def store_update(store_id):
-    require_admin()
-    store = Store.query.get_or_404(store_id)
-    try:
-        update_store(
-            store,
-            name=request.form.get("name"),
-            platform_fee_percent=request.form.get("platform_fee_percent"),
-        )
-    except ValueError as exc:
-        flash(str(exc), "warning")
-        return redirect(url_for("wallet.store_detail", store_id=store.id))
-    flash("Store settings saved", "success")
-    return redirect(url_for("wallet.store_detail", store_id=store.id))
-
-
-@bp_wallet.post("/stores/<int:store_id>/status")
-@login_required
-def store_set_status(store_id):
-    require_admin()
-    store = Store.query.get_or_404(store_id)
-    action = (request.form.get("action") or "").strip().lower()
-    mapping = {
-        "suspend": StoreStatus.SUSPENDED,
-        "activate": StoreStatus.ACTIVE,
-        "delete": StoreStatus.DELETED,
-    }
-    if action not in mapping:
-        flash("Unknown store action", "warning")
-        return redirect(url_for("wallet.store_detail", store_id=store.id))
-    try:
-        set_store_status(store, mapping[action])
-    except ValueError as exc:
-        flash(str(exc), "warning")
-        return redirect(url_for("wallet.store_detail", store_id=store.id))
-    if action == "delete":
-        flash(f"Store {store.name} deleted", "success")
-        return redirect(url_for("wallet.stores"))
-    flash(f"Store {store.name} is now {mapping[action].name}", "success")
-    return redirect(url_for("wallet.store_detail", store_id=store.id))
-
-
-@bp_wallet.post("/stores/<int:store_id>/owner")
-@login_required
-def store_create_owner(store_id):
-    require_admin()
-    store = Store.query.get_or_404(store_id)
-    username = request.form.get("username", "").strip()
-    password = request.form.get("password", "")
-    if not username or not password:
-        flash("Username and password required", "warning")
-        return redirect(url_for("wallet.store_detail", store_id=store.id))
-    try:
-        create_store_owner(store, username, password)
-    except ValueError as exc:
-        flash(str(exc), "warning")
-        return redirect(url_for("wallet.store_detail", store_id=store.id))
-    flash(f"Store owner created: {username}", "success")
-    return redirect(url_for("wallet.store_detail", store_id=store.id))
-
-
-@bp_wallet.post("/stores/<int:store_id>/wallets/<int:wallet_id>")
-@login_required
-def store_wallet_update(store_id, wallet_id):
-    require_admin()
-    sw = StoreWallet.query.filter_by(id=wallet_id, store_id=store_id).first_or_404()
-    sw.cold_wallet_address = request.form.get("cold_wallet_address") or None
-    try:
-        sw.fee_collection_address = validate_fee_collection_address(
-            sw.crypto, request.form.get("fee_collection_address")
-        )
-    except ValueError as exc:
-        flash(str(exc), "warning")
-        return redirect(url_for("wallet.store_detail", store_id=store_id))
-    override = (request.form.get("fee_percent_override") or "").strip()
-    if override:
-        try:
-            sw.fee_percent_override = Decimal(override)
-        except (InvalidOperation, TypeError):
-            flash("Invalid fee % override", "warning")
-            return redirect(url_for("wallet.store_detail", store_id=store_id))
-    else:
-        sw.fee_percent_override = None
-    db.session.commit()
-    flash("Wallet settings saved", "success")
-    return redirect(url_for("wallet.store_detail", store_id=store_id))
-
-
-@bp_wallet.post("/stores/<int:store_id>/wallets/<crypto>/retry")
-@login_required
-def store_wallet_retry(store_id, crypto):
-    require_admin()
-    store = Store.query.get_or_404(store_id)
-    retry_provisioning(store, crypto)
-    flash(f"Provisioning retried for {crypto}", "success")
-    return redirect(url_for("wallet.store_detail", store_id=store_id))

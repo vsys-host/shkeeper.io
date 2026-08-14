@@ -7,7 +7,7 @@ from flask import current_app as app, g
 from shkeeper import db
 from shkeeper.models import Payout, UserRole
 from shkeeper.modules.classes.crypto import Crypto
-from shkeeper.modules.classes.ethereum import Ethereum
+from shkeeper.services.multistore import crypto_supports_multistore
 from shkeeper.services.store_service import (
     effective_fee_percent,
     fee_collection_address,
@@ -67,15 +67,12 @@ class PayoutService:
     @classmethod
     def _store_context(cls, crypto_name, store=None):
         store = store or getattr(g, "current_store", None)
-        if not store:
+        if not store or not crypto_supports_multistore(crypto_name):
             return store, {}
         sw = get_store_wallet(store, crypto_name)
         if not sw or not sw.fda_address:
             return store, {}
-        crypto = cls.get_crypto(crypto_name)
-        if isinstance(crypto, Ethereum):
-            return store, {"from_account": sw.fda_address, "fda_key": sw.fda_key}
-        return store, {}
+        return store, {"store_id": store.id}
 
     @classmethod
     def _normalize_addr(cls, addr: str) -> str:
@@ -133,6 +130,50 @@ class PayoutService:
         return [{"dest": destination, "amount": gross_amount}]
 
     @classmethod
+    def _expand_with_platform_fees(cls, store, crypto_name, payout_list):
+        """Split each merchant payout into internal fee + externally visible net."""
+        expanded = []
+        for req in payout_list:
+            dest = req.get("destination") or req.get("dest")
+            transfers = cls.build_platform_fee_transfers(
+                store, crypto_name, Decimal(req["amount"]), dest
+            )
+            for i, transfer in enumerate(transfers):
+                item = {**req, **transfer, "destination": transfer["dest"]}
+                if i < len(transfers) - 1:
+                    item.pop("external_id", None)
+                    item.pop("callback_url", None)
+                expanded.append(item)
+        return expanded
+
+    @classmethod
+    def _payout_via_crypto(cls, crypto, crypto_name, destination, amount, fee, store, source, store_id):
+        if crypto_supports_multistore(crypto_name):
+            if source:
+                return crypto.multipayout(
+                    [{"dest": destination, "amount": amount}],
+                    **source,
+                )
+            if store and not store.is_default:
+                raise ValueError(
+                    f"Fee-deposit account is not provisioned for {crypto_name}"
+                )
+            return crypto.mkpayout(destination, amount, fee, store_id=store_id)
+        return crypto.mkpayout(destination, amount, fee)
+
+    @classmethod
+    def _multipayout_via_crypto(cls, crypto, crypto_name, payout_list, store, source, store_id):
+        if crypto_supports_multistore(crypto_name):
+            if source:
+                return crypto.multipayout(payout_list, **source)
+            if store and not store.is_default:
+                raise ValueError(
+                    f"Fee-deposit account is not provisioned for {crypto_name}"
+                )
+            return crypto.multipayout(payout_list, store_id=store_id)
+        return crypto.multipayout(payout_list)
+
+    @classmethod
     def single_payout(cls, crypto_name, req, apply_platform_fee=False):
         app.logger.info(
             f"[single_payout] Started for crypto={crypto_name} destination={req.get('destination')} amount={req.get('amount')} external_id={req.get('external_id')}"
@@ -163,38 +204,45 @@ class PayoutService:
         amount = Decimal(req["amount"])
 
         if apply_platform_fee and store:
-            transfers = cls.build_platform_fee_transfers(
-                store, crypto_name, amount, destination
+            expanded = cls._expand_with_platform_fees(
+                store,
+                crypto_name,
+                [
+                    {
+                        "dest": destination,
+                        "destination": destination,
+                        "amount": amount,
+                        "external_id": req.get("external_id"),
+                        "callback_url": callback_url,
+                    }
+                ],
             )
-            if len(transfers) > 1:
+            if len(expanded) > 1:
                 # ETH has no Bitcoin-style atomic sendmany; sidecar sends one tx per
                 # destination from the same FDA in a single multipayout task.
                 return cls.multiple_payout(
                     crypto_name,
-                    [
-                        {
-                            **transfer,
-                            "external_id": req.get("external_id"),
-                            "callback_url": callback_url,
-                        }
-                        for transfer in transfers
-                    ],
+                    expanded,
                     store=store,
                     source=source,
                     enforce_destination=False,
+                    apply_platform_fee=False,
                 )
 
         app.logger.info(
             f"[single_payout] Calling mkpayout: destination={destination} amount={amount} fee={req['fee']}"
         )
         try:
-            if source and isinstance(crypto, Ethereum):
-                res = crypto.multipayout(
-                    [{"dest": destination, "amount": amount}],
-                    **source,
-                )
-            else:
-                res = crypto.mkpayout(destination, amount, req["fee"])
+            res = cls._payout_via_crypto(
+                crypto,
+                crypto_name,
+                destination,
+                amount,
+                req["fee"],
+                store,
+                source,
+                store_id,
+            )
         except Exception as e:
             app.logger.error(f"[single_payout] payout failed: {e}")
             raise
@@ -226,7 +274,13 @@ class PayoutService:
 
     @classmethod
     def multiple_payout(
-        cls, crypto_name, payout_list, store=None, source=None, enforce_destination=True
+        cls,
+        crypto_name,
+        payout_list,
+        store=None,
+        source=None,
+        enforce_destination=True,
+        apply_platform_fee=None,
     ):
         if not isinstance(payout_list, list):
             raise ValueError("Expected an array of payouts")
@@ -246,21 +300,31 @@ class PayoutService:
                 req["destination"] = destination
                 req["dest"] = destination
 
-        # Validate before calling the sidecar. Same external_id may appear more than
-        # once in this batch (platform fee split: fee + net share one merchant id).
+        if apply_platform_fee is None:
+            apply_platform_fee = bool(store and not store.is_default)
+        if apply_platform_fee:
+            payout_list = cls._expand_with_platform_fees(
+                store, crypto_name, payout_list
+            )
+
+        # Validate before calling the sidecar. Fee expansion strips external_id
+        # from internal fee rows, so a repeated non-null ID is two merchant payouts.
         seen_external_ids = set()
         for req in payout_list:
             cls.validate_callback_url(req.get("callback_url"))
             external_id = req.get("external_id")
-            if external_id and external_id not in seen_external_ids:
+            if external_id:
+                if external_id in seen_external_ids:
+                    raise ValueError(
+                        f"Duplicate external_id in payout batch: {external_id}"
+                    )
                 cls.check_external_id_unique(req, crypto_name, store_id=store_id)
                 seen_external_ids.add(external_id)
 
         crypto = cls.get_crypto(crypto_name)
-        if source and isinstance(crypto, Ethereum):
-            res = crypto.multipayout(payout_list, **source)
-        else:
-            res = crypto.multipayout(payout_list)
+        res = cls._multipayout_via_crypto(
+            crypto, crypto_name, payout_list, store, source, store_id
+        )
         task_id = res.get("task_id")
 
         created_ids = []

@@ -63,9 +63,9 @@
                 <span class="nav-label">Payouts</span>
               </a>
             </li>
-            {% if is_admin %}
+            {% if is_admin and has_multishkeeper|default(false) %}
             <li class="nav-item">
-              <a id="stores-link" href="{{ url_for('wallet.stores') }}" class="nav-link">
+              <a id="stores-link" href="{{ url_for('multishkeeper.stores') }}" class="nav-link">
                 <svg height="32" width="32" class="nav-icon">
                   <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#menu-stores"></use>
                 </svg>
