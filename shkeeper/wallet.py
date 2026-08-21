@@ -43,6 +43,8 @@ from shkeeper.models import (
     PayoutStatus,
     PayoutTx,
     PayoutTxStatus,
+    StoreWalletStatus,
+    UserRole,
     Wallet,
     PayoutPolicy,
     PayoutReservePolicy,
@@ -50,6 +52,12 @@ from shkeeper.models import (
     InvoiceStatus,
     Transaction,
 )
+from shkeeper.services.multistore import autopayout_allowed
+from shkeeper.services.store_service import (
+    cryptos_for_store,
+    get_store_wallet,
+)
+from shkeeper.services.tenancy import is_admin_user, require_admin, api_key_for_session
 from shkeeper.api.schemas.api_docs import metrics_doc
 
 prometheus_client.REGISTRY.unregister(prometheus_client.GC_COLLECTOR)
@@ -70,9 +78,53 @@ def get_crypto_label(crypto_code: str) -> str:
     return crypto_code
 
 
+def store_display_name(store) -> str:
+    if not store:
+        return "—"
+    if store.is_default:
+        return f"{store.name} (default)"
+    return store.name
+
+
 @bp_wallet.context_processor
 def inject_theme():
-    return {"theme": request.cookies.get("theme", "light")}
+    user = getattr(g, "user", None)
+    return {
+        "theme": request.cookies.get("theme", "light"),
+        "is_admin": is_admin_user(user),
+        "is_store_owner": bool(user and user.role == UserRole.STORE_OWNER),
+        # Autopayout is admin-only; store owners never see/configure it.
+        "autopayout_disabled": not autopayout_allowed(user),
+    }
+
+
+def _fee_deposit_for_ui(crypto, crypto_name):
+    from shkeeper.services.store_service import get_store_wallet
+
+    store = getattr(g, "current_store", None)
+    if store and isinstance(crypto, Ethereum):
+        sw = get_store_wallet(store, crypto_name)
+        if sw and sw.fda_address:
+            return crypto.fee_deposit_account_for(store_id=store.id)
+    return crypto.fee_deposit_account
+
+
+class CryptoUIView:
+    def __init__(self, crypto, crypto_name):
+        self._crypto = crypto
+        self._crypto_name = crypto_name
+        self.fee_deposit_account = _fee_deposit_for_ui(crypto, crypto_name)
+
+    def __getattr__(self, item):
+        return getattr(self._crypto, item)
+
+    def balance(self):
+        if isinstance(self._crypto, Ethereum):
+            store = getattr(g, "current_store", None)
+            return self._crypto.balance_for_account(
+                store_id=store.id if store else None,
+            )
+        return self._crypto.balance()
 
 
 @bp_wallet.route("/")
@@ -83,7 +135,13 @@ def index():
 @bp_wallet.route("/wallets")
 @login_required
 def wallets():
-    cryptos = dict(sorted(Crypto.instances.items())).values()
+    if is_admin_user():
+        cryptos = dict(sorted(Crypto.instances.items())).values()
+    else:
+        store = getattr(g, "current_store", None)
+        if not store:
+            abort(403)
+        cryptos = cryptos_for_store(store)
     return render_template("wallet/wallets.j2", cryptos=cryptos)
 
 
@@ -100,7 +158,19 @@ def get_source_rate(crypto_name, fiat):
 @bp_wallet.route("/payout/<crypto_name>")
 @login_required
 def payout(crypto_name):
-    crypto = Crypto.instances[crypto_name]
+    if not is_admin_user():
+        store = getattr(g, "current_store", None)
+        sw = get_store_wallet(store, crypto_name) if store else None
+        if not sw or sw.status != StoreWalletStatus.READY:
+            abort(404)
+    else:
+        sw = None
+        store = getattr(g, "current_store", None)
+        if store:
+            sw = get_store_wallet(store, crypto_name)
+
+    crypto_inst = Crypto.instances[crypto_name]
+    crypto = CryptoUIView(crypto_inst, crypto_name)
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name)
 
     try:
@@ -110,10 +180,10 @@ def payout(crypto_name):
 
     tmpl = "wallet/payout.j2"
     enable_payout_callback = app.config.get("ENABLE_PAYOUT_CALLBACK")
-    if isinstance(crypto, TronToken):
+    if isinstance(crypto_inst, TronToken):
         tmpl = "wallet/payout_tron.j2"
 
-    if isinstance(crypto, Ethereum) and crypto_name != "ETH":
+    if isinstance(crypto_inst, Ethereum) and crypto_name != "ETH":
         tmpl = "wallet/payout_eth.j2"
 
     if crypto_name in [
@@ -135,25 +205,40 @@ def payout(crypto_name):
     if "BTC-LIGHTNING" == crypto_name:
         tmpl = "wallet/payout_btc_lightning.j2"
 
+    cold_wallet_address = sw.cold_wallet_address if sw else None
+    payout_locked_destination = None
+    if not is_admin_user():
+        payout_locked_destination = cold_wallet_address
+
     return render_template(
         tmpl,
         crypto=crypto,
         pdest=pdest,
         enable_payout_callback=enable_payout_callback,
         fee_deposit_qrcode=fee_deposit_qrcode,
+        cold_wallet_address=cold_wallet_address,
+        payout_locked_destination=payout_locked_destination,
     )
 
 
 @bp_wallet.route("/wallet/<crypto_name>")
 @login_required
 def manage(crypto_name):
-    crypto = Crypto.instances[crypto_name]
+    crypto_inst = Crypto.instances[crypto_name]
+    if not is_admin_user():
+        store = getattr(g, "current_store", None)
+        sw = get_store_wallet(store, crypto_name) if store else None
+        if not sw or sw.status != StoreWalletStatus.READY:
+            abort(404)
+        crypto = CryptoUIView(crypto_inst, crypto_name)
+    else:
+        crypto = crypto_inst
     pdest = PayoutDestination.query.filter_by(crypto=crypto_name).all()
     wallet = Wallet.query.filter_by(crypto=crypto_name).first()
 
     server_templates = [
         f"wallet/manage_server_{cls.__name__.lower()}.j2"
-        for cls in crypto.__class__.mro()
+        for cls in crypto_inst.__class__.mro()
     ][:-2]
 
     def f(h):
@@ -175,6 +260,7 @@ def manage(crypto_name):
     return render_template(
         "wallet/manage.j2",
         crypto=crypto,
+        api_key=api_key_for_session(crypto),
         pdest=pdest,
         ppolicy=[i.value for i in PayoutPolicy],
         prespolicy=[i.value for i in PayoutReservePolicy],
@@ -208,6 +294,7 @@ def list_rates(fiat):
         rate_providers=RateSource.instances.keys(),
         invoice_statuses=[status.name for status in InvoiceStatus],
         fee_calculation_policy=FeeCalculationPolicy,
+        rates_readonly=not is_admin_user(),
     )
 
 
@@ -215,6 +302,7 @@ def list_rates(fiat):
 @bp_wallet.post("/rates/<fiat>")
 @login_required
 def save_rates(fiat):
+    require_admin()
     if fiat not in Fiat.list():
         abort(404)
 
@@ -244,15 +332,21 @@ def save_rates(fiat):
 @bp_wallet.get("/transactions")
 @login_required
 def transactions():
+    if is_admin_user():
+        cryptos = Crypto.instances.values()
+    else:
+        store = getattr(g, "current_store", None)
+        if not store:
+            abort(403)
+        cryptos = cryptos_for_store(store)
     return render_template(
         "wallet/transactions.j2",
-        # cryptos=Crypto.instances.keys(),
         cryptos=[
             {
                 "value": crypto.crypto,
                 "label": crypto.display_name,
             }
-            for crypto in Crypto.instances.values()
+            for crypto in cryptos
         ],
         invoice_statuses=[status.name for status in InvoiceStatus],
     )
@@ -301,7 +395,10 @@ def admin_test_payment_request():
 @bp_wallet.get("/parts/transactions")
 @login_required
 def parts_transactions():
+    show_store = is_admin_user()
     query = Transaction.query
+    if not show_store:
+        query = query.filter(Transaction.invoice.has(store_id=g.user.store_id))
 
     # app.logger.info(dir(query))
 
@@ -352,10 +449,13 @@ def parts_transactions():
             def generate():
                 data = StringIO()
                 w = csv.writer(data)
-                w.writerow(
+                header = []
+                if show_store:
+                    header.append("Store")
+                header.extend(
                     [
                         "Transaction ID",
-                        "Adress",
+                        "Address",
                         "Crypto",
                         "Amount",
                         "Amount $",
@@ -367,40 +467,43 @@ def parts_transactions():
                         "Invoice Date",
                     ]
                 )
+                w.writerow(header)
                 records = query.order_by(Transaction.id.desc()).all()
                 for r in records:
+                    store_name = store_display_name(
+                        r.invoice.store if r.invoice else None
+                    )
                     if r.invoice.status.name == "OUTGOING":
-                        w.writerow(
-                            [
-                                r.txid,
-                                r.invoice.addr,
-                                r.crypto,
-                                r.amount_crypto,
-                                r.amount_fiat,
-                                r.invoice.status.name,
-                                r.created_at,
-                                "",
-                                "",
-                                "",
-                                "",
-                            ]
-                        )
+                        row = [
+                            r.txid,
+                            r.invoice.addr,
+                            r.crypto,
+                            r.amount_crypto,
+                            r.amount_fiat,
+                            r.invoice.status.name,
+                            r.created_at,
+                            "",
+                            "",
+                            "",
+                            "",
+                        ]
                     else:
-                        w.writerow(
-                            [
-                                r.txid,
-                                r.invoice.addr,
-                                r.crypto,
-                                r.amount_crypto,
-                                r.amount_fiat,
-                                r.invoice.status.name,
-                                r.created_at,
-                                r.invoice.external_id,
-                                r.invoice.amount_crypto,
-                                r.invoice.amount_fiat,
-                                r.invoice.created_at,
-                            ]
-                        )
+                        row = [
+                            r.txid,
+                            r.invoice.addr,
+                            r.crypto,
+                            r.amount_crypto,
+                            r.amount_fiat,
+                            r.invoice.status.name,
+                            r.created_at,
+                            r.invoice.external_id,
+                            r.invoice.amount_crypto,
+                            r.invoice.amount_fiat,
+                            r.invoice.created_at,
+                        ]
+                    if show_store:
+                        row.insert(0, store_name)
+                    w.writerow(row)
                     yield data.getvalue()
                     data.seek(0)
                     data.truncate(0)
@@ -417,6 +520,7 @@ def parts_transactions():
     txs = pagination.items
     for tx in txs:
         tx.crypto_label = get_crypto_label(tx.crypto)
+        tx.store_name = store_display_name(tx.invoice.store if tx.invoice else None)
 
     return render_template(
         "wallet/transactions_table.j2",
@@ -424,21 +528,28 @@ def parts_transactions():
         invoice_statuses=[status.name for status in InvoiceStatus],
         txs=txs,
         pagination=pagination,
+        show_store=show_store,
     )
 
 
 @bp_wallet.route("/payouts")
 @login_required
 def payouts():
+    if is_admin_user():
+        cryptos = Crypto.instances.values()
+    else:
+        store = getattr(g, "current_store", None)
+        if not store:
+            abort(403)
+        cryptos = cryptos_for_store(store)
     return render_template(
         "wallet/payouts.j2",
-        # cryptos=Crypto.instances.keys(),
         cryptos=[
             {
                 "value": crypto.crypto,
                 "label": crypto.display_name,
             }
-            for crypto in Crypto.instances.values()
+            for crypto in cryptos
         ],
         payout_statuses=[status.name for status in PayoutStatus],
         payout_tx_statuses=[status.name for status in PayoutTxStatus],
@@ -448,7 +559,10 @@ def payouts():
 @bp_wallet.get("/parts/payouts")
 @login_required
 def parts_payouts():
+    show_store = is_admin_user()
     query = Payout.query
+    if not show_store:
+        query = query.filter_by(store_id=g.user.store_id)
 
     for arg in request.args:
         if hasattr(Payout, arg):
@@ -472,18 +586,22 @@ def parts_payouts():
             def generate():
                 data = StringIO()
                 w = csv.writer(data)
-                w.writerow(["Date", "Destination", "Amount", "Crypto", "Tx ID"])
+                header = ["Date", "Destination", "Amount", "Crypto", "Tx ID"]
+                if show_store:
+                    header.insert(0, "Store")
+                w.writerow(header)
                 records = query.order_by(Payout.id.desc()).all()
                 for r in records:
-                    w.writerow(
-                        [
-                            r.created_at,
-                            r.dest_addr,
-                            r.amount,
-                            r.crypto,
-                            " ".join([tx.txid for tx in r.transactions]),
-                        ]
-                    )
+                    row = [
+                        r.created_at,
+                        r.dest_addr,
+                        r.amount,
+                        r.crypto,
+                        " ".join([tx.txid for tx in r.transactions]),
+                    ]
+                    if show_store:
+                        row.insert(0, store_display_name(r.store))
+                    w.writerow(row)
                     yield data.getvalue()
                     data.seek(0)
                     data.truncate(0)
@@ -500,17 +618,20 @@ def parts_payouts():
     payouts = pagination.items
     for p in payouts:
         p.crypto_label = get_crypto_label(p.crypto)
+        p.store_name = store_display_name(p.store)
 
     return render_template(
         "wallet/payouts_table.j2",
         payouts=payouts,
         pagination=pagination,
+        show_store=show_store,
     )
 
 
 @bp_wallet.route("/parts/tron-multiserver", methods=("GET", "POST"))
 @login_required
 def parts_tron_multiserver():
+    require_admin()
     if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
         any_tron_crypto = next(cryptos)
     else:
@@ -529,6 +650,7 @@ def parts_tron_multiserver():
 @bp_wallet.route("/configure/tron", methods=("GET", "POST"))
 @login_required
 def configure_tron():
+    require_admin()
     if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
         any_tron_crypto: TronToken = next(cryptos)
     else:
@@ -570,6 +692,7 @@ def configure_tron():
 @bp_wallet.get("/parts/tron-staking-stake")
 @login_required
 def get_parts_tron_staking_stake():
+    require_admin()
     # if cryptos := filter(lambda x: isinstance(x, TronToken), Crypto.instances.values()):
     #     any_tron_crypto: TronToken = next(cryptos)
     # else:
@@ -584,6 +707,7 @@ def get_parts_tron_staking_stake():
 @bp_wallet.post("/parts/tron-staking-stake")
 @login_required
 def post_parts_tron_staking_stake():
+    require_admin()
     tron: TronToken = next(
         filter(lambda x: isinstance(x, TronToken), Crypto.instances.values())
     )
@@ -599,6 +723,7 @@ def post_parts_tron_staking_stake():
 @bp_wallet.get("/parts/tron-staking-undelegate")
 @login_required
 def get_parts_tron_staking_undelegate():
+    require_admin()
     recipient_address = request.values.get("to")
     bandwidth_amount = int(request.values.get("bandwidth", 0))
     energy_amount = int(request.values.get("energy", 0))
@@ -614,6 +739,7 @@ def get_parts_tron_staking_undelegate():
 @bp_wallet.post("/parts/tron-staking-undelegate")
 @login_required
 def post_parts_tron_staking_undelegate():
+    require_admin()
     tron: TronToken = next(
         filter(lambda x: isinstance(x, TronToken), Crypto.instances.values())
     )
@@ -686,6 +812,8 @@ def _filter_metrics(text: str) -> str:
 @bp_wallet.get("/unlock")
 @login_required
 def show_unlock():
+    if not is_admin_user():
+        return redirect(url_for("wallet.wallets"))
     if (
         wallet_encryption.persistent_status()
         is WalletEncryptionPersistentStatus.pending
@@ -727,6 +855,7 @@ def show_unlock():
 @bp_wallet.post("/unlock")
 @login_required
 def process_unlock():
+    require_admin()
     if (
         wallet_encryption.persistent_status()
         is WalletEncryptionPersistentStatus.pending

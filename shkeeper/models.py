@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import bcrypt
 import pyotp
+from sqlalchemy import text
 from flask import current_app as app, has_app_context
 
 from shkeeper import db
@@ -17,11 +18,78 @@ from .utils import format_decimal, remove_exponent
 from .exceptions import NotRelatedToAnyInvoice
 
 
+class UserRole(enum.Enum):
+    ADMIN = enum.auto()
+    STORE_OWNER = enum.auto()
+
+
+class StoreStatus(enum.Enum):
+    ACTIVE = enum.auto()
+    SUSPENDED = enum.auto()
+    DELETED = enum.auto()
+
+
+class StoreWalletStatus(enum.Enum):
+    PENDING = enum.auto()
+    READY = enum.auto()
+    FAILED = enum.auto()
+
+
+class PayoutPolicy(enum.Enum):
+    MANUAL = "manual"
+    SCHEDULED = "scheduled"
+    LIMIT = "limit"
+
+
+class PayoutReservePolicy(enum.Enum):
+    DISABLE = "disable"
+    AMOUNT = "amount"
+    PERCENT = "percent"
+
+
+class Store(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    api_key = db.Column(db.String, unique=True, nullable=False)
+    platform_fee_percent = db.Column(db.Numeric, default=0)
+    status = db.Column(db.Enum(StoreStatus), default=StoreStatus.ACTIVE)
+    is_default = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    wallets = db.relationship("StoreWallet", backref="store", lazy=True)
+    users = db.relationship("User", backref="store", lazy=True)
+
+
+class StoreWallet(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(db.Integer, db.ForeignKey("store.id"), nullable=False)
+    crypto = db.Column(db.String, nullable=False)
+    fda_address = db.Column(db.String, index=True)
+    fee_percent_override = db.Column(db.Numeric)
+    fee_collection_address = db.Column(db.String)
+    cold_wallet_address = db.Column(db.String)
+    # Per-store autopayout (reserved for future use; mirrors Wallet autopayout fields).
+    pdest = db.Column(db.String)
+    pfee = db.Column(db.String)
+    payout = db.Column(db.Boolean, default=False)
+    ppolicy = db.Column(db.Enum(PayoutPolicy), default=PayoutPolicy.MANUAL)
+    pcond = db.Column(db.String)
+    last_payout_attempt = db.Column(db.DateTime, default=datetime.min)
+    prespolicy = db.Column(
+        db.Enum(PayoutReservePolicy), default=PayoutReservePolicy.DISABLE
+    )
+    presamount = db.Column(db.String)
+    status = db.Column(db.Enum(StoreWalletStatus), default=StoreWalletStatus.PENDING)
+    last_error = db.Column(db.String)
+    __table_args__ = (db.UniqueConstraint("store_id", "crypto"),)
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     passhash = db.Column(db.String(120))
     api_key = db.Column(db.String)
+    store_id = db.Column(db.Integer, db.ForeignKey("store.id"))
+    role = db.Column(db.Enum(UserRole), default=UserRole.ADMIN)
     totp_secret = db.Column(db.String(64))  # Base32 encoded TOTP secret
     totp_enabled = db.Column(db.Boolean, default=False)
     backup_codes = db.Column(db.Text)  # JSON array of hashed backup codes
@@ -88,6 +156,41 @@ class User(db.Model):
         return cls.query.first().api_key
 
 
+def _role_as_str(role_value):
+    if isinstance(role_value, UserRole):
+        return role_value.name
+    return str(role_value) if role_value is not None else None
+
+
+def _ensure_single_admin(connection, user_id=None):
+    extra_admin = connection.execute(
+        text(
+            """
+            SELECT id
+            FROM "user"
+            WHERE role = :admin_role
+            AND (:user_id IS NULL OR id != :user_id)
+            LIMIT 1
+            """
+        ),
+        {"admin_role": "ADMIN", "user_id": user_id},
+    ).scalar()
+    if extra_admin is not None:
+        raise ValueError("Only one admin user is allowed")
+
+
+@db.event.listens_for(User, "before_insert")
+def _user_before_insert(mapper, connection, target):
+    if _role_as_str(target.role) == "ADMIN":
+        _ensure_single_admin(connection)
+
+
+@db.event.listens_for(User, "before_update")
+def _user_before_update(mapper, connection, target):
+    if _role_as_str(target.role) == "ADMIN":
+        _ensure_single_admin(connection, user_id=target.id)
+
+
 class PayoutDestination(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     crypto = db.Column(db.String)
@@ -95,18 +198,6 @@ class PayoutDestination(db.Model):
     comment = db.Column(db.String, default="")
 
     __table_args__ = (db.UniqueConstraint("crypto", "addr"),)
-
-
-class PayoutPolicy(enum.Enum):
-    MANUAL = "manual"
-    SCHEDULED = "scheduled"
-    LIMIT = "limit"
-
-
-class PayoutReservePolicy(enum.Enum):
-    DISABLE = "disable"
-    AMOUNT = "amount"
-    PERCENT = "percent"
 
 
 class Fiat:
@@ -187,7 +278,11 @@ class Wallet(db.Model):
         db.session.commit()
 
         crypto = Crypto.instances[self.crypto]
-        balance = crypto.balance()
+        # Multistore ETH*: pay only from admin/default FDA (store_id=1), never merchant FDAs.
+        payout_kwargs = {}
+        balance_kwargs = {}
+
+        balance = crypto.balance(**balance_kwargs)
         payout_amount = balance
         if crypto.wallet.prespolicy == PayoutReservePolicy.DISABLE:
             payout_amount = balance
@@ -224,7 +319,11 @@ class Wallet(db.Model):
                 return False
 
         res = crypto.mkpayout(
-            self.pdest, payout_amount, self.pfee, subtract_fee_from_amount=True
+            self.pdest,
+            payout_amount,
+            self.pfee,
+            subtract_fee_from_amount=True,
+            **payout_kwargs,
         )
         Payout.register_from_mkpayout(
             res,
@@ -337,6 +436,8 @@ class InvoiceStatus(enum.Enum):
 
 class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(db.Integer, db.ForeignKey("store.id"))
+    store = db.relationship("Store", backref="invoices", lazy=True)
     transactions = db.relationship("Transaction", backref="invoice", lazy=True)
     unconfirmed_transactions = db.relationship(
         "UnconfirmedTransaction", backref="invoice", lazy=True
@@ -417,14 +518,20 @@ class Invoice(db.Model):
         return self
 
     @classmethod
-    def add(cls, crypto, request):
+    def add(cls, crypto, request, store=None):
         # {"external_id": "1234",  "fiat": "USD", "amount": 100.90, "callback_url": "https://blabla/callback.php"}
+        from flask import g
+
+        store = store or getattr(g, "current_store", None)
         crypto_is_lightning = "BTC-LIGHTNING" == crypto.crypto
-        invoice = cls.query.filter_by(
+        invoice_query = cls.query.filter_by(
             external_id=request["external_id"],
             callback_url=request["callback_url"],
             fiat=request["fiat"],
-        ).first()
+        )
+        if store:
+            invoice_query = invoice_query.filter_by(store_id=store.id)
+        invoice = invoice_query.first()
         if invoice:
             # updating existing invoice
             invoice.fiat = request["fiat"]
@@ -453,9 +560,7 @@ class Invoice(db.Model):
                 if invoice_address and not crypto_is_lightning:
                     invoice.addr = invoice_address.addr
                 else:
-                    invoice.addr = crypto.mkaddr(
-                        details={"value": invoice.amount_crypto}
-                    )
+                    invoice.addr = cls._mkaddr_for_store(crypto, store, invoice.amount_crypto)
                     db.session.commit()
                     invoice_address = InvoiceAddress()
                     invoice_address.invoice_id = invoice.id
@@ -475,7 +580,9 @@ class Invoice(db.Model):
             invoice.amount_crypto, invoice.exchange_rate = rate.convert(
                 invoice.amount_fiat
             )
-            invoice.addr = crypto.mkaddr(details={"value": invoice.amount_crypto})
+            if store:
+                invoice.store_id = store.id
+            invoice.addr = cls._mkaddr_for_store(crypto, store, invoice.amount_crypto)
             db.session.add(invoice)
             db.session.commit()
 
@@ -510,6 +617,23 @@ class Invoice(db.Model):
 
         db.session.commit()
         return invoice
+
+    @staticmethod
+    def _mkaddr_for_store(crypto, store, amount_crypto):
+        mkaddr_kwargs = {"details": {"value": amount_crypto}}
+        if store:
+            from shkeeper.services.store_service import get_store_wallet
+            from shkeeper.models import StoreWalletStatus
+
+            sw = get_store_wallet(store, crypto.crypto)
+            if sw and sw.status == StoreWalletStatus.READY and sw.fda_address:
+                mkaddr_kwargs["store_id"] = store.id
+            elif not store.is_default:
+                raise RuntimeError(
+                    f"Store {store.id} has no ready fee-deposit account for "
+                    f"{crypto.crypto}. Provision or retry it before creating invoices."
+                )
+        return crypto.mkaddr(**mkaddr_kwargs)
 
     def for_response(self):
         res = {
@@ -640,14 +764,74 @@ class Transaction(db.Model):
         else:
             return self.invoice.addr
 
+    @staticmethod
+    def resolve_outgoing_store_id(crypto_name, txid, addr=None):
+        """Resolution order:
+        1. PayoutTx.txid → Payout.store_id (registered payouts)
+        2. StoreWallet.fda_address matching addr (ETH-like send reports from/FDA)
+        3. Invoice / InvoiceAddress matching addr (token-drain send-from-invoice)
+        """
+        ptx = (
+            PayoutTx.query.filter_by(txid=txid)
+            .order_by(PayoutTx.id.desc())
+            .first()
+        )
+        if ptx and ptx.payout and ptx.payout.store_id:
+            return ptx.payout.store_id
+
+        if addr:
+            addr_l = addr.lower()
+            wallets = StoreWallet.query.filter(
+                StoreWallet.fda_address.isnot(None),
+            ).all()
+            for sw in wallets:
+                if not sw.fda_address or sw.fda_address.lower() != addr_l:
+                    continue
+                if sw.crypto == crypto_name:
+                    return sw.store_id
+            for sw in wallets:
+                if sw.fda_address and sw.fda_address.lower() == addr_l:
+                    return sw.store_id
+
+            # Token drains / 0-value contract calls report the invoice address as from.
+            inv_addr = (
+                InvoiceAddress.query.filter(
+                    db.func.lower(InvoiceAddress.addr) == addr_l
+                )
+                .order_by(InvoiceAddress.id.desc())
+                .first()
+            )
+            if inv_addr:
+                inv = Invoice.query.get(inv_addr.invoice_id)
+                if inv and inv.store_id:
+                    return inv.store_id
+
+            inv = (
+                Invoice.query.filter(
+                    db.func.lower(Invoice.addr) == addr_l,
+                    Invoice.status != InvoiceStatus.OUTGOING,
+                    Invoice.store_id.isnot(None),
+                )
+                .order_by(Invoice.id.desc())
+                .first()
+            )
+            if inv:
+                return inv.store_id
+
+        return None
+
     @classmethod
     def add_outgoing(cls, crypto, txid):
         for addr, amount, _, _ in crypto.getaddrbytx(txid):
             existed_tx = Transaction.query.filter_by(txid=txid).first()
 
             if not existed_tx:
+                store_id = cls.resolve_outgoing_store_id(crypto.crypto, txid, addr)
                 payout_invoice = Invoice(
-                    addr=addr, fiat="USD", status=InvoiceStatus.OUTGOING
+                    addr=addr,
+                    fiat="USD",
+                    status=InvoiceStatus.OUTGOING,
+                    store_id=store_id,
                 )
                 db.session.add(payout_invoice)
                 db.session.commit()
@@ -719,6 +903,8 @@ class PayoutStatus(enum.Enum):
 
 class Payout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    store_id = db.Column(db.Integer, db.ForeignKey("store.id"))
+    store = db.relationship("Store", backref="payouts", lazy=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), index=True)
     updated_at = db.Column(
         db.DateTime,
@@ -767,9 +953,14 @@ class Payout(db.Model):
         db.session.commit()
 
     @classmethod
-    def add(cls, payout, crypto, task_id=None, external_id=None):
+    def add(cls, payout, crypto, task_id=None, external_id=None, store_id=None):
         app.logger.warning(f"payouts add {payout}")
         external_id = external_id or None
+        if store_id is None:
+            from flask import g
+
+            store = getattr(g, "current_store", None)
+            store_id = store.id if store else None
         p = cls(
             dest_addr=payout["dest"],
             amount=payout["amount"],
@@ -778,6 +969,7 @@ class Payout(db.Model):
             task_id=task_id,
             status=PayoutStatus.IN_PROGRESS,
             external_id=external_id,
+            store_id=store_id,
         )
         db.session.add(p)
         db.session.commit()

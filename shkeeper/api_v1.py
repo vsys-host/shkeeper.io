@@ -5,7 +5,8 @@ from operator import itemgetter
 
 
 from werkzeug.datastructures import Headers
-from flask import jsonify
+from werkzeug.exceptions import HTTPException, abort
+from flask import g, jsonify
 from flask import request
 from flask import Response
 from flask import stream_with_context
@@ -28,12 +29,21 @@ from shkeeper.modules.classes.ethereum import Ethereum
 from shkeeper.modules.cryptos.bitcoin_lightning import BitcoinLightning
 from shkeeper.modules.cryptos.monero import Monero
 from shkeeper.models import *
+from shkeeper.services.tenancy import (
+    api_key_for_session,
+    current_store_wallet,
+    require_admin,
+    require_default_store,
+    store_owner_wallet,
+)
+from shkeeper.services.store_service import get_store_wallet
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import (
     wallet_encryption,
     WalletEncryptionPersistentStatus,
     WalletEncryptionRuntimeStatus,
+    ensure_wallet_unlocked,
 )
 from shkeeper.exceptions import NotRelatedToAnyInvoice
 from shkeeper.services.crypto_cache import get_available_cryptos
@@ -90,7 +100,8 @@ def get_all_balances():
         includes = includes.split(",")
     else:
         includes = None
-    balances, error = get_balances(includes)
+    store = getattr(g, "current_store", None)
+    balances, error = get_balances(includes, store=store)
     if error:
         return {"status": "error", "message": error}, 400
     return balances
@@ -99,7 +110,10 @@ def get_all_balances():
 @login_required
 def generate_address(crypto_name):
     crypto = Crypto.instances[crypto_name]
-    addr = crypto.mkaddr()
+    from shkeeper.models import Invoice
+
+    store = getattr(g, "current_store", None)
+    addr = Invoice._mkaddr_for_store(crypto, store, Decimal(0))
     return {"status": "success", "addr": addr}
 
 
@@ -213,7 +227,7 @@ def payment_gateway_get_status(crypto_name):
     return {
         "status": "success",
         "enabled": crypto.wallet.enabled,
-        "token": crypto.wallet.apikey,
+        "token": api_key_for_session(crypto),
     }
 
 
@@ -221,10 +235,16 @@ def payment_gateway_get_status(crypto_name):
 @login_required
 def payment_gateway_set_status(crypto_name):
     """Enable/disable payment gateway."""
+    require_admin()
     req = request.get_json(force=True)
     crypto = Crypto.instances[crypto_name]
-    crypto.wallet.enabled = req["enabled"]
+    enabled = bool(req["enabled"])
+    crypto.wallet.enabled = enabled
     db.session.commit()
+    if enabled:
+        from shkeeper.services.store_service import provision_crypto_for_all_stores
+
+        provision_crypto_for_all_stores(crypto_name)
     return {"status": "success"}
 
 
@@ -233,8 +253,16 @@ def payment_gateway_set_status(crypto_name):
 def payment_gateway_set_token(crypto_name):
     """Set shared API token for all cryptos."""
     req = request.get_json(force=True)
+    if store_owner_wallet(crypto_name):
+        g.current_store.api_key = req["token"]
+        db.session.commit()
+        return {"status": "success"}
+    require_admin()
     for crypto in Crypto.instances.values():
         crypto.wallet.apikey = req["token"]
+    from shkeeper.services.store_service import ensure_default_store
+
+    ensure_default_store().api_key = req["token"]
     db.session.commit()
     return {"status": "success"}
 
@@ -256,6 +284,7 @@ def get_setting(key):
 @blp_v1.post("/settings/<string:key>")
 @login_required
 def set_setting(key):
+    require_admin()
     if key not in PUBLIC_SETTINGS:
         return {"status": "error", "message": "forbidden"}, 403
     data = request.json or {}
@@ -275,6 +304,7 @@ def set_setting(key):
 @login_required
 def add_transaction(crypto_name):
     """Add a transaction manually."""
+    require_admin()
     try:
         tx = request.get_json(force=True)
         crypto = Crypto.instances[crypto_name]
@@ -303,6 +333,7 @@ def payout_destinations(crypto_name):
     req = request.get_json(force=True)
 
     if req["action"] == "add":
+        require_admin()
         if not PayoutDestination.query.filter_by(
             crypto=crypto_name, addr=req["daddress"]
         ).all():
@@ -313,6 +344,7 @@ def payout_destinations(crypto_name):
             db.session.commit()
         return {"status": "success"}
     elif req["action"] == "delete":
+        require_admin()
         PayoutDestination.query.filter_by(addr=req["daddress"]).delete()
         db.session.commit()
         return {"status": "success"}
@@ -329,15 +361,16 @@ def payout_destinations(crypto_name):
 @blp_v1.post("/<string:crypto_name>/autopayout")
 @login_required
 def autopayout(crypto_name):
-    """Configure auto payout policy for a crypto wallet."""
+    """Configure auto payout policy for a crypto wallet (admin / default FDA only)."""
+    require_admin()
     req = request.get_json(force=True)
+    w = Wallet.query.filter_by(crypto=crypto_name).first()
 
     if req["policy"] not in [i.value for i in PayoutPolicy]:
         return {"status": "error", "message": f"Unknown payout policy: {req['policy']}"}
 
     if req["prespolicyOption"] not in [i.value for i in PayoutReservePolicy]:
         return {"status": "error", "message": f"Unknown payout reserve policy: {req['prespolicyOption']}"}
-    w = Wallet.query.filter_by(crypto=crypto_name).first()
     if autopayout_destination := req.get("add"):
         w.pdest = autopayout_destination
     if autopayout_fee := req.get("fee"):
@@ -369,8 +402,24 @@ def get_fee_deposit_address(crypto_name):
             "message": f"Crypto {crypto_name} is not enabled",
         }, 400
 
+    from shkeeper.modules.classes.ethereum import Ethereum
+
     crypto = Crypto.instances[crypto_name]
-    fee_deposit_address = crypto.fee_deposit_account.addr
+    store = getattr(g, "current_store", None)
+    if store and isinstance(crypto, Ethereum):
+        sw = get_store_wallet(store, crypto_name)
+        if sw and sw.fda_address:
+            fda = crypto.fee_deposit_account_for(store_id=store.id)
+            fee_deposit_address = fda.addr
+        elif store.is_default:
+            fee_deposit_address = crypto.fee_deposit_account_for(store_id=1).addr
+        else:
+            return {
+                "status": "error",
+                "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+            }, 400
+    else:
+        fee_deposit_address = crypto.fee_deposit_account.addr
 
     return {
         "status": "success",
@@ -382,10 +431,13 @@ def get_fee_deposit_address(crypto_name):
 @login_required
 def status(crypto_name):
     """Return wallet status and on-chain sync state."""
+    from shkeeper.services.store_service import crypto_balance_for_session
+
     crypto = Crypto.instances[crypto_name]
+    balance = crypto_balance_for_session(crypto_name)
     return {
         "name": crypto.crypto,
-        "amount": format_decimal(crypto.balance()) if crypto.balance() else 0,
+        "amount": format_decimal(balance) if balance else 0,
         "server": crypto.getstatus(),
     }
 
@@ -396,11 +448,27 @@ def status(crypto_name):
 def balance(crypto_name):
     if crypto_name not in Crypto.instances.keys():
         return {"status": "error", "message": f"Crypto {crypto_name} is not enabled"}
+    from shkeeper.modules.classes.ethereum import Ethereum
+    from shkeeper.services.store_service import get_store_wallet
+
     crypto = Crypto.instances[crypto_name]
     fiat = "USD"
     rate = ExchangeRate.get(fiat, crypto_name)
     current_rate = rate.get_rate()
-    crypto_amount = format_decimal(crypto.balance()) if crypto.balance() else 0
+    store = getattr(g, "current_store", None)
+    balance = None
+    if store and isinstance(crypto, Ethereum):
+        sw = get_store_wallet(store, crypto_name)
+        if sw and sw.fda_address:
+            balance = crypto.balance_for_account(store_id=store.id)
+        elif not store.is_default:
+            return {
+                "status": "error",
+                "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+            }, 400
+    if balance is None:
+        balance = crypto.balance()
+    crypto_amount = format_decimal(balance) if balance else 0
 
     return {
         "name": crypto.crypto,
@@ -420,7 +488,11 @@ def payout_status(crypto_name):
     external_id = request.args.get("external_id")
     if not external_id:
         return {"error": "external_id is required"}, 400
-    payout = Payout.query.filter_by(external_id=external_id, crypto=crypto_name).first()
+    store = getattr(g, "current_store", None)
+    query = Payout.query.filter_by(external_id=external_id, crypto=crypto_name)
+    if store:
+        query = query.filter_by(store_id=store.id)
+    payout = query.first()
 
     if not payout:
         return {"error": "Payout not found"}, 404
@@ -446,7 +518,7 @@ def payout_status(crypto_name):
 def payout(crypto_name):
     """Make a single payout."""
     req = request.get_json(force=True)
-    return PayoutService.single_payout(crypto_name, req)
+    return PayoutService.single_payout(crypto_name, req, apply_platform_fee=True)
 
 @blp_v1.post("/payoutnotify/<string:crypto_name>")
 @blp_v1.doc(**payout_callback_doc)
@@ -585,6 +657,8 @@ def decrypt_key(crypto_name):
             "traceback": traceback.format_exc(),
         }, 409
 
+    ensure_wallet_unlocked()
+
     return {
         "persistent_status": wallet_encryption.persistent_status().name,
         "runtime_status": wallet_encryption.runtime_status().name,
@@ -596,6 +670,7 @@ def decrypt_key(crypto_name):
 @login_required
 def get_server_details(crypto_name):
     """Return RPC server credentials and host."""
+    require_admin()
     crypto = Crypto.instances[crypto_name]
     usr, pwd = crypto.get_rpc_credentials()
     host = crypto.gethost()
@@ -606,6 +681,7 @@ def get_server_details(crypto_name):
 @login_required
 def set_server_key(crypto_name):
     """Not implemented yet (placeholder)."""
+    require_admin()
     # TODO: implement
     return {"status": "error", "message": "not implemented yet"}
 
@@ -614,6 +690,7 @@ def set_server_key(crypto_name):
 @login_required
 def set_server_host(crypto_name):
     """Not implemented yet (placeholder)."""
+    require_admin()
     # TODO: implement
     return {"status": "error", "message": "not implemented yet"}
 
@@ -622,6 +699,7 @@ def set_server_host(crypto_name):
 @login_required
 def backup(crypto_name):
     """Return a wallet backup (either file content or streamed binary from a remote URL)."""
+    require_admin()
     crypto = Crypto.instances[crypto_name]
     if isinstance(crypto, (TronToken, Ethereum, Monero, Btc, Ltc, Doge, BitcoinLightning)):
         filename, content = crypto.dump_wallet()
@@ -647,6 +725,7 @@ def backup(crypto_name):
 @login_required
 def set_exchange_rate(crypto_name):
     """Update exchange rate source/values for a crypto/fiat pair."""
+    require_admin()
     req = request.get_json(force=True)
     rate_source = ExchangeRate.query.filter_by(
         crypto=crypto_name, fiat=req["fiat"]
@@ -669,7 +748,13 @@ def set_exchange_rate(crypto_name):
 def estimate_tx_fee(crypto_name, amount):
     """Estimate transaction fee for a given amount (optionally address via query)."""
     crypto = Crypto.instances[crypto_name]
-    return crypto.estimate_tx_fee(amount, address=request.args.get("address"))
+    kwargs = {"address": request.args.get("address")}
+    store = getattr(g, "current_store", None)
+    if store and isinstance(crypto, Ethereum):
+        sw = get_store_wallet(store, crypto_name)
+        if (sw and sw.fda_address) or store.is_default:
+            kwargs["store_id"] = store.id
+    return crypto.estimate_tx_fee(amount, **kwargs)
 
 
 @blp_v1.get("/<string:crypto_name>/task/<string:id>")
@@ -697,8 +782,25 @@ def multipayout(crypto_name):
 def list_addresses(crypto_name):
     """List all known wallet addresses for a crypto."""
     try:
-        addresses = Crypto.instances[crypto_name].get_all_addresses()
+        store = getattr(g, "current_store", None)
+        crypto_inst = Crypto.instances[crypto_name]
+        sw = current_store_wallet(crypto_name)
+        if store and not store.is_default:
+            if not isinstance(crypto_inst, Ethereum):
+                abort(403)
+            if not sw:
+                return {
+                    "status": "error",
+                    "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+                }, 400
+            addresses = crypto_inst.get_all_addresses(store_id=store.id)
+        elif isinstance(crypto_inst, Ethereum) and store:
+            addresses = crypto_inst.get_all_addresses(store_id=store.id)
+        else:
+            addresses = crypto_inst.get_all_addresses()
         return {"status": "success", "addresses": addresses}
+    except HTTPException:
+        raise
     except Exception as e:
         app.logger.exception(f"Failed to list addresses for {crypto_name}")
         return {
@@ -714,11 +816,33 @@ def list_addresses(crypto_name):
 def list_transactions(crypto, addr):
     """List transactions (confirmed + unconfirmed), optionally filtered by crypto/address."""
     try:
+        store = getattr(g, "current_store", None)
         if crypto is None or addr is None:
-            transactions = (
-                *Transaction.query.all(),
-                *UnconfirmedTransaction.query.all(),
-            )
+            confirmed = Transaction.query.join(Invoice)
+            unconfirmed = UnconfirmedTransaction.query
+            if store:
+                confirmed = confirmed.filter(Invoice.store_id == store.id)
+                # Unconfirmed txs are address-scoped; keep only those matching store invoices.
+                store_addrs = [
+                    row[0]
+                    for row in db.session.query(Invoice.addr)
+                    .filter(Invoice.store_id == store.id)
+                    .distinct()
+                ]
+                store_addrs += [
+                    row[0]
+                    for row in db.session.query(InvoiceAddress.addr)
+                    .join(Invoice)
+                    .filter(Invoice.store_id == store.id)
+                    .distinct()
+                ]
+                if store_addrs:
+                    unconfirmed = unconfirmed.filter(
+                        UnconfirmedTransaction.addr.in_(store_addrs)
+                    )
+                else:
+                    unconfirmed = unconfirmed.filter(False)
+            transactions = (*confirmed.all(), *unconfirmed.all())
         else:
             confirmed = (
                 Transaction.query.join(Invoice)
@@ -726,10 +850,15 @@ def list_transactions(crypto, addr):
                 .filter(Transaction.crypto == crypto)
                 .filter((Invoice.addr == addr) | (InvoiceAddress.addr == addr))
             )
-            transactions = (
-                *confirmed,
-                *UnconfirmedTransaction.query.filter_by(crypto=crypto, addr=addr),
+            unconfirmed = UnconfirmedTransaction.query.filter_by(
+                crypto=crypto, addr=addr
             )
+            if store:
+                confirmed = confirmed.filter(Invoice.store_id == store.id)
+                unconfirmed = unconfirmed.join(Invoice).filter(
+                    Invoice.store_id == store.id
+                )
+            transactions = (*confirmed.all(), *unconfirmed.all())
         return jsonify(
             status="success", transactions=[tx.to_json() for tx in transactions]
         )
@@ -749,11 +878,14 @@ def list_transactions(crypto, addr):
 def list_invoices(external_id):
     """List invoices, optionally filtered by external_id (excluding OUTGOING)."""
     try:
+        store = getattr(g, "current_store", None)
         if external_id is None:
-            invoices = Invoice.query.filter(Invoice.status != "OUTGOING").all()
+            query = Invoice.query.filter(Invoice.status != "OUTGOING")
         else:
-            invoices = Invoice.query.filter_by(external_id=external_id)
-        return jsonify(status="success", invoices=[i.to_json() for i in invoices])
+            query = Invoice.query.filter_by(external_id=external_id)
+        if store:
+            query = query.filter_by(store_id=store.id)
+        return jsonify(status="success", invoices=[i.to_json() for i in query.all()])
     except Exception as e:
         app.logger.exception(f"Failed to list invoices")
         return {
@@ -773,7 +905,11 @@ def list_payouts(crypto_name):
         if not amount:
             raise Exception("No amount provided.")
 
-        if Payout.query.filter_by(amount=amount).all():
+        store = getattr(g, "current_store", None)
+        query = Payout.query.filter_by(amount=amount, crypto=crypto_name)
+        if store:
+            query = query.filter_by(store_id=store.id)
+        if query.all():
             return {"status": "success"}
         else:
             return {
@@ -796,11 +932,13 @@ def get_txid_info(txid, external_id):
     """Return lightweight info for a txid bound to an external invoice id."""
     try:
         info = {}
-        if (
-            tx := Transaction.query.join(Invoice)
-            .filter(Transaction.txid == txid, Invoice.external_id == external_id)
-            .first()
-        ):
+        query = Transaction.query.join(Invoice).filter(
+            Transaction.txid == txid, Invoice.external_id == external_id
+        )
+        store = getattr(g, "current_store", None)
+        if store:
+            query = query.filter(Invoice.store_id == store.id)
+        if (tx := query.first()):
             info = {
                 "crypto": tx.crypto,
                 "amount": format_decimal(tx.amount_fiat),
@@ -821,6 +959,7 @@ def get_txid_info(txid, external_id):
 @api_key_required
 def decryption_key():
     """Submit the decryption key when wallet encryption is enabled."""
+    require_default_store()
     if not (key := request.form.get("key")):
         return {"status": "error", "message": "Decryption key is required"}
     if wallet_encryption.runtime_status() is WalletEncryptionRuntimeStatus.success:

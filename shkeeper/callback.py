@@ -28,7 +28,18 @@ def send_unconfirmed_notification(utx: UnconfirmedTransaction):
     ).first()
     invoice = Invoice.query.filter_by(id=invoice_address.invoice_id).first()
     crypto = Crypto.instances[utx.crypto]
-    apikey = crypto.wallet.apikey
+    from shkeeper.services.store_service import store_api_key_for_invoice
+
+    apikey = store_api_key_for_invoice(invoice)
+    if not apikey:
+        app.logger.error(
+            "[%s/%s] Missing store API key for invoice id=%s; "
+            "skip unconfirmed callback to avoid leaking global key",
+            utx.crypto,
+            utx.txid,
+            invoice.id if invoice else None,
+        )
+        return False
 
     notification = {
         "status": "unconfirmed",
@@ -120,7 +131,18 @@ def send_notification(tx):
         str(round(overpaid_fiat.normalize(), 2)) if overpaid_fiat > 0 else "0.00"
     )
 
-    apikey = Crypto.instances[tx.crypto].wallet.apikey
+    from shkeeper.services.store_service import store_api_key_for_invoice
+
+    apikey = store_api_key_for_invoice(tx.invoice)
+    if not apikey:
+        app.logger.error(
+            "[%s/%s] Missing store API key for invoice id=%s; "
+            "skip callback to avoid leaking global key",
+            tx.crypto,
+            tx.txid,
+            tx.invoice.id if tx.invoice else None,
+        )
+        return False
     app.logger.warning(
         f"[{tx.crypto}/{tx.txid}] Posting {json.dumps(notification)} to {tx.invoice.callback_url} with api key [REDACTED]"
     )
@@ -302,7 +324,15 @@ def send_payout_notification(notif: Notification):
     }
 
     crypto = Crypto.instances.get(payout.crypto)
-    apikey = crypto.wallet.apikey if crypto and crypto.wallet else ""
+    apikey = ""
+    if payout.store_id:
+        from shkeeper.models import Store
+
+        store = Store.query.get(payout.store_id)
+        if store:
+            apikey = store.api_key
+    if not apikey and crypto and crypto.wallet:
+        apikey = crypto.wallet.apikey
 
     retries = getattr(notif, "retries", 0)
     wait = (retries + 1) ** 2

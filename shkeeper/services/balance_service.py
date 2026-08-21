@@ -6,7 +6,7 @@ from shkeeper.utils import format_decimal
 from shkeeper.models import ExchangeRate
 from flask import current_app
 
-def _build_balance(crypto_name: str, logger, app):
+def _build_balance(crypto_name: str, logger, app, store=None):
     with app.app_context():
         crypto = Crypto.instances.get(crypto_name)
         if not crypto:
@@ -14,7 +14,15 @@ def _build_balance(crypto_name: str, logger, app):
         fiat = "USD"
         try:
             rate = ExchangeRate.get(fiat, crypto_name).get_rate()
-            crypto_amount = Decimal(crypto.balance() or 0)
+            if store and not store.is_default:
+                from shkeeper.services.store_service import store_wallet_balance
+
+                balance = store_wallet_balance(store, crypto_name)
+                if balance is None:
+                    return None
+                crypto_amount = Decimal(balance or 0)
+            else:
+                crypto_amount = Decimal(crypto.balance() or 0)
             amount_fiat = crypto_amount * Decimal(rate)
             server_status = crypto.getstatus()
         except Exception as e:
@@ -30,11 +38,15 @@ def _build_balance(crypto_name: str, logger, app):
             "server_status": server_status,
         }
 
-def get_balances(includes: list[str] | None):
+def get_balances(includes: list[str] | None, store=None):
     app = current_app._get_current_object()
     logger = app.logger
     data = get_available_cryptos()
     available_coins = data["filtered"]
+    if store and not store.is_default:
+        from shkeeper.services.store_service import cryptos_for_store
+
+        available_coins = [c.crypto for c in cryptos_for_store(store)]
     if includes:
         includes = [c.strip().upper() for c in includes if c.strip()]
         target = [c for c in includes if c in available_coins]
@@ -44,7 +56,7 @@ def get_balances(includes: list[str] | None):
         target = sorted(available_coins)
     with ThreadPoolExecutor() as executor:
         results = list(
-            executor.map(lambda c: _build_balance(c, logger, app), target)
+            executor.map(lambda c: _build_balance(c, logger, app, store), target)
         )
     balances = [x for x in results if x]
     return balances, None

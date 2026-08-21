@@ -55,6 +55,7 @@
                           <p class="common-text dollar">$</p>
                           <p class="total-usd-value common-text">--</p>
                         </div>
+                        {% if not autopayout_disabled %}
                         <div class="d-flex justify-content-between info-content">
                           <p class="common-text">Payout policy:</p>
                           <p class="common-text success-text">{{crypto.wallet.ppolicy.value}}</p>
@@ -63,6 +64,7 @@
                           <p class="common-text">Autopayout status:</p>
                           <p class="pstatus common-text success-text">{{crypto.wallet.payout}}</p>
                         </div>
+                        {% endif %}
                         <div class="d-flex justify-content-between info-content">
                           <p class="common-text">API status:</p>
                           <p crypto="{{crypto.crypto}}"class="apistatus common-text">Disabled</p>

@@ -27,24 +27,63 @@ class Ethereum(Crypto):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/calc-tx-fee/{amount}",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(store_id=kwargs.get("store_id")),
         ).json(parse_float=Decimal)
         return response
 
+    def _fda_payload(self, store_id=None):
+        return {"store_id": int(store_id) if store_id is not None else 1}
+
     @property
     def fee_deposit_account(self):
+        return self.fee_deposit_account_for()
+
+    def fee_deposit_account_for(self, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/fee-deposit-account",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(store_id=store_id),
         ).json(parse_float=Decimal)
 
         FeeDepositAccount = namedtuple("FeeDepositAccount", "addr balance")
         return FeeDepositAccount(response["account"], Decimal(response["balance"]))
 
-    def balance(self):
+    def create_fee_deposit_account(self, store_id=None):
+        try:
+            # Sidecar requires an explicit store_id (default store is 1).
+            payload = {"store_id": int(store_id) if store_id is not None else 1}
+            response = requests.post(
+                f"http://{self.gethost()}/{self.crypto}/create-fee-deposit-account",
+                auth=self.get_auth_creds(),
+                json=payload,
+                timeout=60,
+            ).json(parse_float=Decimal)
+        except Exception as exc:
+            raise Exception(
+                f"create-fee-deposit-account failed for {self.crypto}: {exc}"
+            ) from exc
+        if response.get("status") == "error":
+            raise Exception(
+                response.get("msg")
+                or response.get("message")
+                or f"Failed to create fee-deposit account for {self.crypto}"
+            )
+        account = response.get("account")
+        if not account:
+            raise Exception(
+                f"create-fee-deposit-account bad response for {self.crypto}: {response}"
+            )
+        return account
+
+    def balance(self, store_id=None):
+        return self.balance_for_account(store_id=store_id)
+
+    def balance_for_account(self, store_id=None):
         try:
             response = requests.post(
                 f"http://{self.gethost()}/{self.crypto}/balance",
                 auth=self.get_auth_creds(),
+                json=self._fda_payload(store_id=store_id),
             ).json(parse_float=Decimal)
             balance = response["balance"]
         except Exception as e:
@@ -86,12 +125,21 @@ class Ethereum(Crypto):
             return "Offline"
 
     def mkaddr(self, **kwargs):
+        store_id = kwargs.get("store_id")
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/generate-address",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(store_id=store_id),
         ).json(parse_float=Decimal)
-        addr = response["address"]
-        return addr
+        if response.get("status") == "error" or "address" not in response:
+            msg = response.get("msg") or response.get("message") or str(response)
+            if "password" in msg.lower() or "shkeeper" in msg.lower():
+                raise RuntimeError(
+                    "Wallet encryption is locked. Ask the admin to unlock it at /unlock "
+                    "or via POST /api/v1/decryption-key before creating payment addresses."
+                )
+            raise RuntimeError(f"Failed to generate address: {msg}")
+        return response["address"]
 
     def getaddrbytx(self, tx):
         response = requests.post(
@@ -104,39 +152,81 @@ class Ethereum(Crypto):
             result.append([address, Decimal(amount), confirmations, category])
         return result
 
-    def dump_wallet(self):
-        response = requests.post(
-            f"http://{self.gethost()}/{self.crypto}/dump",
-            auth=self.get_auth_creds(),
-            timeout=60,
-        ).json(parse_float=Decimal)
+    def dump_wallet(self, store_id=None):
+        # Sidecar dump is always store-scoped. When store_id is omitted (admin
+        # backup), merge dumps for default store + every known StoreWallet.
+        if store_id is None:
+            from shkeeper.models import StoreWallet
+
+            store_ids = {1}
+            store_ids.update(
+                sw.store_id
+                for sw in StoreWallet.query.filter_by(crypto=self.crypto).all()
+                if sw.store_id
+            )
+            merged = {}
+            errors = []
+            for sid in sorted(store_ids):
+                part = requests.post(
+                    f"http://{self.gethost()}/{self.crypto}/dump",
+                    auth=self.get_auth_creds(),
+                    json=self._fda_payload(store_id=sid),
+                    timeout=60,
+                ).json(parse_float=Decimal)
+                if not isinstance(part, dict) or part.get("status") == "error":
+                    errors.append(f"store_id={sid}: {part}")
+                    continue
+                merged.update(part)
+            if errors:
+                raise RuntimeError(
+                    f"Wallet dump failed for {self.crypto}: " + "; ".join(errors)
+                )
+            response = merged
+        else:
+            response = requests.post(
+                f"http://{self.gethost()}/{self.crypto}/dump",
+                auth=self.get_auth_creds(),
+                json=self._fda_payload(store_id=store_id),
+                timeout=60,
+            ).json(parse_float=Decimal)
         now = datetime.datetime.now().strftime("%F_%T")
         filename = f"{now}_{self.crypto}_shkeeper_wallet.json"
-        # content = json.dumps(response['accounts'], indent=4)
         content = json.dumps(response, indent=4)
         return filename, content
 
     def create_wallet(self, *args, **kwargs):
         return {"error": None}
 
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
+    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False, store_id=None):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
-            fee = Decimal(self.estimate_tx_fee(amount)["fee"])
+            fee = Decimal(self.estimate_tx_fee(amount, store_id=store_id)["fee"])
             if fee >= amount:
                 return f"Payout failed: not enought ETH to pay for transaction. Need {fee}, balance {amount}"
             else:
                 amount -= fee
+        payload = {"store_id": int(store_id) if store_id is not None else 1}
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
             auth=self.get_auth_creds(),
+            json=payload,
         ).json(parse_float=Decimal)
         return response
 
-    def multipayout(self, payout_list):
+    def multipayout(self, payout_list, store_id=None):
+        serializable_payouts = []
+        for item in payout_list:
+            entry = dict(item)
+            if "amount" in entry and isinstance(entry["amount"], Decimal):
+                entry["amount"] = str(entry["amount"])
+            serializable_payouts.append(entry)
+        payload = {
+            "payouts": serializable_payouts,
+            "store_id": int(store_id) if store_id is not None else 1,
+        }
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/multipayout",
             auth=self.get_auth_creds(),
-            json=payout_list,
+            json=payload,
         ).json(parse_float=Decimal)
         return response
 
@@ -156,9 +246,10 @@ class Ethereum(Crypto):
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
 
-    def get_all_addresses(self):
+    def get_all_addresses(self, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/get_all_addresses",
             auth=self.get_auth_creds(),
+            json=self._fda_payload(store_id=store_id),
         ).json(parse_float=Decimal)
         return response

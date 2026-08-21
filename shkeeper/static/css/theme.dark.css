@@ -3,6 +3,7 @@
   --secondary-bcg-color: #151623;
   --main-text-color: #e9ecef;
   --inactive-text-color: #ced4da;
+  --label-text-color: #adb5bd;
   --input-placeholder-color: #d1d6da9c;
   --accent-color: #50add7;
   --accent-secondary-color: #cfe2ff;
@@ -16,6 +17,12 @@
   --active-btn-color: #052c65;
   --emphasized-btn-color: #e9ecef;
   --box-shadow-color: #adb5bd0b;
+  --theme-switch-track: #2a2d3e;
+  --theme-switch-border: #6c757d;
+  --theme-switch-thumb: #ced4da;
+  --theme-switch-track-active: #1e2130;
+  --theme-switch-border-active: #50add7;
+  --theme-switch-thumb-active: #50add7;
 }
 
 @media (max-width: 1024px) {

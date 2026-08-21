@@ -1,6 +1,9 @@
 <table class="transactions-data-table w-100 common-text text-nowrap">
   <thead>
     <tr>
+      {% if show_store %}
+      <th class="store table-subtitle">Store</th>
+      {% endif %}
       <th class="transactions">Date</th>
       <th class="address table-subtitle">Destination</th>
       <th class="amount table-subtitle">Amount</th>
@@ -14,6 +17,9 @@
   <tbody>
     {% for payout in payouts %}
     <tr>
+      {% if show_store %}
+      <td class="store">{{ payout.store_name }}</td>
+      {% endif %}
       <td class="date">{{payout.created_at.strftime('%Y-%m-%d %H:%M')}}</td>
       <td class="address">{{payout.dest_addr}}</td>
       <td class="amount">{{payout.amount|abs|format_decimal}}</td>

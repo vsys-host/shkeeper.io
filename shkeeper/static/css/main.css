@@ -515,12 +515,14 @@ nav .nav-item:last-child {
 
 /* Theme switcher */
 
-.side-menu .theme-switch__box {
-  opacity: 0;
-  transition: opacity 250ms linear;
+.theme-switch__box {
+  position: relative;
+  flex-shrink: 0;
+  width: 50px;
+  height: 26px;
 }
 
-.side-menu.is-open .theme-switch__box {
+.side-menu .theme-switch__box {
   opacity: 1;
 }
 
@@ -528,23 +530,20 @@ nav .nav-item:last-child {
   display: none;
 }
 
-.theme-switch__input,
 .theme-switch__label {
   position: absolute;
+  top: 50%;
+  left: 0;
   z-index: 1;
   transform: translateY(-50%);
   cursor: pointer;
-}
-
-
-.theme-switch__label {
-  transition: background-color 200ms ease-in-out;
+  transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out;
   width: 50px;
   height: 26px;
   border-radius: 50px;
   text-align: center;
-  background-color: #f8f9fa;
-  border: 1px solid lightSlateGray;
+  background-color: var(--theme-switch-track, #f8f9fa);
+  border: 1px solid var(--theme-switch-border, #6c757d);
 }
 
 .theme-switch__label span {
@@ -561,20 +560,22 @@ nav .nav-item:last-child {
   height: 20px;
   content: '';
   border-radius: 50%;
-  background-color: lightGray;
-  transition: all 200ms ease;
+  background-color: var(--theme-switch-thumb, #adb5bd);
+  transition: transform 200ms ease, background-color 200ms ease;
 }
 
 .theme-switch__input:checked~.theme-switch__label {
-  background-color: transparent;
+  background-color: var(--theme-switch-track-active, #3a3f4b);
+  border-color: var(--theme-switch-border-active, var(--accent-color));
 }
 
 .theme-switch__input:checked:hover~.theme-switch__label span::after {
-  filter: brightness(1.2);
+  filter: brightness(1.1);
 }
 
 .theme-switch__input:checked~.theme-switch__label span::after {
   transform: translate3d(24px, 0, 0);
+  background-color: var(--theme-switch-thumb-active, var(--accent-color));
 }
 
 
@@ -1349,6 +1350,7 @@ button#set-all {
 
 .form-control {
   padding: 4px 8px;
+  color: var(--main-text-color);
   background-color: transparent;
   border: 1px solid var(--muted-color);
   box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.04);
@@ -1634,7 +1636,91 @@ button#set-all {
 }
 
 .transactions-data-table .table-subtitle {
-  color: var(--input-placeholder-color)
+  color: var(--input-placeholder-color);
+}
+
+.store-wallets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 860px;
+}
+
+.store-wallet-card {
+  display: block;
+  border: 1px solid var(--muted-color);
+  border-radius: 8px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.store-wallet-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.store-wallet-card__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.store-wallet-card .table-subtitle {
+  color: var(--label-text-color);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.store-wallet-card__address,
+.store-wallet-card__input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  font-size: 13px;
+}
+
+.store-wallet-card__address {
+  color: var(--accent-color);
+}
+
+.store-wallet-card__input {
+  color: var(--main-text-color);
+}
+
+.store-wallet-card__input::placeholder {
+  color: var(--label-text-color);
+  opacity: 1;
+}
+
+.store-wallet-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-end;
+}
+
+.store-wallet-card__fee {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 140px;
+}
+
+.store-wallet-card__fee .table-subtitle {
+  color: var(--label-text-color);
+}
+
+.store-wallet-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .payout-wrapper {

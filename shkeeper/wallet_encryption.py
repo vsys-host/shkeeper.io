@@ -66,6 +66,8 @@ class wallet_encryption:
     @classmethod
     def set_key(cls, key):
         cls._key = key
+        if hasattr(cls, "_fernet_key"):
+            delattr(cls, "_fernet_key")
 
     @classmethod
     def fernet_key(cls):
@@ -152,3 +154,30 @@ class wallet_encryption:
             .decrypt(base64.urlsafe_b64decode(ciphertext))
             .decode()
         )
+
+
+def ensure_wallet_unlocked():
+    from flask import has_app_context, current_app as app
+
+    WE = wallet_encryption
+    PS = WalletEncryptionPersistentStatus
+    RS = WalletEncryptionRuntimeStatus
+
+    status = WE.persistent_status()
+    if status is PS.disabled:
+        return True
+    if status is PS.pending:
+        return False
+    if WE.runtime_status() is RS.success:
+        return True
+
+    if not has_app_context() or not app.config.get("DEV_MODE"):
+        return False
+
+    auto_key = app.config.get("DEV_MODE_ENC_PW")
+    if not auto_key or not WE.test_key(auto_key):
+        return False
+
+    WE.set_key(auto_key)
+    WE.set_runtime_status(RS.success)
+    return True
