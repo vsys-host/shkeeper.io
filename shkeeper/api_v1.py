@@ -37,6 +37,7 @@ from shkeeper.services.tenancy import (
     store_owner_wallet,
 )
 from shkeeper.services.store_service import get_store_wallet
+from shkeeper.services.multistore import crypto_supports_multistore
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import (
@@ -764,6 +765,9 @@ def estimate_tx_fee(crypto_name, amount):
 def get_task(crypto_name, id):
     """Get task/job details by id from crypto backend."""
     crypto = Crypto.instances[crypto_name]
+    store = getattr(g, "current_store", None)
+    if store and crypto_supports_multistore(crypto_name):
+        return crypto.get_task(id, store_id=store.id)
     return crypto.get_task(id)
 
 @blp_v1.post("/<string:crypto_name>/multipayout")
