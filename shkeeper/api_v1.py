@@ -753,8 +753,12 @@ def estimate_tx_fee(crypto_name, amount):
     store = getattr(g, "current_store", None)
     if store and isinstance(crypto, (Ethereum, TronToken)):
         sw = get_store_wallet(store, crypto_name)
-        if (sw and sw.fda_address) or store.is_default:
-            kwargs["store_id"] = store.id
+        if not (sw and sw.fda_address) and not store.is_default:
+            return {
+                "status": "error",
+                "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+            }, 400
+        kwargs["store_id"] = store.id
     return crypto.estimate_tx_fee(amount, **kwargs)
 
 
