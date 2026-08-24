@@ -31,11 +31,18 @@ class TronToken(Crypto):
         password = environ.get(f"{self.crypto}_PASSWORD", "shkeeper")
         return (username, password)
 
-    def balance(self):
+    @staticmethod
+    def _store_headers(store_id=None):
+        if store_id is None:
+            return {}
+        return {"X-Store-ID": str(store_id)}
+
+    def balance(self, store_id=None):
         try:
             response = requests.post(
                 f"http://{self.gethost()}/{self.crypto}/balance",
                 auth=self.get_auth_creds(),
+                headers=self._store_headers(store_id),
             ).json(parse_float=Decimal)
             balance = response["balance"]
         except Exception as e:
@@ -43,6 +50,9 @@ class TronToken(Crypto):
             balance = False
 
         return Decimal(balance)
+
+    def balance_for_account(self, store_id=None):
+        return self.balance(store_id=store_id)
 
     def getstatus(self):
         try:
@@ -65,9 +75,11 @@ class TronToken(Crypto):
             return "Offline"
 
     def mkaddr(self, **kwargs):
+        store_id = kwargs.get("store_id")
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/generate-address",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
         addr = response["base58check_address"]
         return addr
@@ -92,10 +104,11 @@ class TronToken(Crypto):
         _, _, confirmations, _ = transactions[0]
         return confirmations
 
-    def dump_wallet(self):
+    def dump_wallet(self, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/dump",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
 
         now = datetime.datetime.now().strftime("%F_%T")
@@ -108,24 +121,53 @@ class TronToken(Crypto):
 
     @property
     def fee_deposit_account(self):
+        return self.fee_deposit_account_for()
+
+    def fee_deposit_account_for(self, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/fee-deposit-account",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
 
         FeeDepositAccount = namedtuple("FeeDepositAccount", "addr balance")
         return FeeDepositAccount(response["account"], Decimal(response["balance"]))
 
+    def create_fee_deposit_account(self, store_id):
+        response = requests.post(
+            f"http://{self.gethost()}/tenant/{int(store_id)}",
+            auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
+        ).json(parse_float=Decimal)
+        if response.get("status") != "success":
+            raise RuntimeError(
+                response.get("message")
+                or response.get("msg")
+                or f"Failed to create Tron tenant {store_id}"
+            )
+        fee_deposit = response.get("fee_deposit")
+        if isinstance(fee_deposit, dict):
+            fee_deposit = fee_deposit.get("address") or fee_deposit.get("account")
+        if not fee_deposit:
+            raise RuntimeError(
+                f"Tron tenant {store_id} response has no fee_deposit address"
+            )
+        return fee_deposit
+
     def estimate_tx_fee(self, amount, **kwargs):
+        store_id = kwargs.get("store_id")
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/calc-tx-fee/{amount}",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
         return response
 
-    def mkpayout(self, destination, amount, fee, subtract_fee_from_amount=False):
+    def mkpayout(
+        self, destination, amount, fee, subtract_fee_from_amount=False, store_id=None
+    ):
         if self.crypto == self.network_currency and subtract_fee_from_amount:
-            fee = Decimal(self.estimate_tx_fee(amount)["fee"])
+            fee = Decimal(self.estimate_tx_fee(amount, store_id=store_id)["fee"])
             if fee >= amount:
                 return f"Payout failed: not enought TRX to pay for transaction. Need {fee}, balance {amount}"
             else:
@@ -133,20 +175,23 @@ class TronToken(Crypto):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/payout/{destination}/{amount}",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
         return response
 
-    def get_task(self, id):
+    def get_task(self, id, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/task/{id}",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
         return response
 
-    def multipayout(self, payout_list):
+    def multipayout(self, payout_list, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/multipayout",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
             json=payout_list,
         ).json(parse_float=Decimal)
         return response
@@ -181,39 +226,44 @@ class TronToken(Crypto):
             error_text = f"# HELP {host}_status Connection status to {host}\n# TYPE {host}_status gauge\n{host}_status 0.0\n"
             return error_text
 
-    def get_all_addresses(self):
+    def get_all_addresses(self, store_id=None):
         response = requests.get(
             f"http://{self.gethost()}/{self.crypto}/addresses",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         ).json(parse_float=Decimal)
         return response["accounts"]
 
-    def get_account_info(self) -> TronAccountResponse | TronError:
+    def get_account_info(self, store_id=None) -> TronAccountResponse | TronError:
         response = requests.get(
             f"http://{self.gethost()}/staking",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         )
         # adaptor = TypeAdapter(Annotated[Union[TronAccountResponse, TronError]])
         adaptor = TypeAdapter(Union[TronAccountResponse, TronError])
         return adaptor.validate_json(response.text)
 
-    def get_staking_config(self):
+    def get_staking_config(self, store_id=None):
         response = requests.get(
             f"http://{self.gethost()}/staking/info",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         )
         return response.json(parse_float=Decimal)
 
-    def stake_trx(self, amount, resource):
+    def stake_trx(self, amount, resource, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/staking/freeze/{amount}/{resource}",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         )
         return response.json(parse_float=Decimal)
 
-    def undelegate_trx(self, address, amount, resource):
+    def undelegate_trx(self, address, amount, resource, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/staking/undelegate/{address}/{amount}/{resource}",
             auth=self.get_auth_creds(),
+            headers=self._store_headers(store_id),
         )
         return response.json(parse_float=Decimal)

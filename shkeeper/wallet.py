@@ -102,7 +102,7 @@ def _fee_deposit_for_ui(crypto, crypto_name):
     from shkeeper.services.store_service import get_store_wallet
 
     store = getattr(g, "current_store", None)
-    if store and isinstance(crypto, Ethereum):
+    if store and isinstance(crypto, (Ethereum, TronToken)):
         sw = get_store_wallet(store, crypto_name)
         if sw and sw.fda_address:
             return crypto.fee_deposit_account_for(store_id=store.id)
@@ -119,7 +119,7 @@ class CryptoUIView:
         return getattr(self._crypto, item)
 
     def balance(self):
-        if isinstance(self._crypto, Ethereum):
+        if isinstance(self._crypto, (Ethereum, TronToken)):
             store = getattr(g, "current_store", None)
             return self._crypto.balance_for_account(
                 store_id=store.id if store else None,

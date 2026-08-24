@@ -28,6 +28,10 @@ MULTISTORE_SUPPORTED = frozenset(
         "AVAX",
         "AVALANCHE-USDT",
         "AVALANCHE-USDC",
+        # Tron
+        "TRX",
+        "USDT",
+        "USDC",
     }
 )
 

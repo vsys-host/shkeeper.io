@@ -17,6 +17,7 @@ from shkeeper.models import (
 )
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.modules.classes.ethereum import Ethereum
+from shkeeper.modules.classes.tron_token import TronToken
 from shkeeper.services.multistore import (
     DEFAULT_STORE_NAME,
     crypto_supports_multistore,
@@ -79,7 +80,7 @@ def _link_default_store_wallets(store: Store) -> bool:
     changed = False
     for crypto_name in filter_multistore_cryptos(Crypto.instances.keys()):
         crypto = Crypto.instances.get(crypto_name)
-        if not crypto or not isinstance(crypto, Ethereum):
+        if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
             continue
         sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first()
         if sw and sw.status == StoreWalletStatus.READY and sw.fda_address:
@@ -175,7 +176,7 @@ def provision_store_wallets(store: Store, cryptos=None):
         if not crypto_supports_multistore(crypto_name):
             continue
         crypto = Crypto.instances.get(crypto_name)
-        if not crypto or not isinstance(crypto, Ethereum):
+        if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
             continue
         target_networks.add(crypto.network_currency)
         sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first()
@@ -192,7 +193,7 @@ def provision_store_wallets(store: Store, cryptos=None):
     by_network = {}
     for sw in StoreWallet.query.filter_by(store_id=store.id).all():
         crypto = Crypto.instances.get(sw.crypto)
-        if not crypto or not isinstance(crypto, Ethereum):
+        if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
             continue
         if crypto.network_currency not in target_networks:
             continue
@@ -222,7 +223,7 @@ def provision_crypto_for_all_stores(crypto_name: str):
     if not crypto_supports_multistore(crypto_name):
         return
     crypto = Crypto.instances.get(crypto_name)
-    if not crypto or not isinstance(crypto, Ethereum):
+    if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
         return
 
     # Default store FDA uses store_id=1 (same as Store.id).
@@ -240,7 +241,7 @@ def provision_crypto_for_all_stores(crypto_name: str):
         name
         for name in filter_multistore_cryptos(Crypto.instances.keys())
         if Crypto.instances.get(name)
-        and isinstance(Crypto.instances[name], Ethereum)
+        and isinstance(Crypto.instances[name], (Ethereum, TronToken))
         and Crypto.instances[name].network_currency == crypto.network_currency
     ]
     for store in stores:
@@ -280,7 +281,7 @@ def retry_provisioning(store: Store, crypto_name: str):
     """Retry FDA provisioning for one crypto — one FDA per store per network."""
     sw = StoreWallet.query.filter_by(store_id=store.id, crypto=crypto_name).first_or_404()
     crypto = Crypto.instances.get(crypto_name)
-    if not crypto or not isinstance(crypto, Ethereum):
+    if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
         raise ValueError(f"{crypto_name} is not an ethereum-like crypto")
 
     sw.status = StoreWalletStatus.PENDING
@@ -293,7 +294,7 @@ def retry_provisioning(store: Store, crypto_name: str):
         other_crypto = Crypto.instances.get(other.crypto)
         if (
             other_crypto
-            and isinstance(other_crypto, Ethereum)
+            and isinstance(other_crypto, (Ethereum, TronToken))
             and other_crypto.network_currency == crypto.network_currency
         ):
             other.status = StoreWalletStatus.PENDING
@@ -334,7 +335,7 @@ def _provision_network(store: Store, network: str, items):
             if (
                 other.fda_address
                 and other_crypto
-                and isinstance(other_crypto, Ethereum)
+                and isinstance(other_crypto, (Ethereum, TronToken))
                 and other_crypto.network_currency == network
             ):
                 existing_addr = other.fda_address
@@ -357,7 +358,7 @@ def _reconcile_store_fda_addresses(store: Store):
     by_network = {}
     for sw in StoreWallet.query.filter_by(store_id=store.id).all():
         crypto = Crypto.instances.get(sw.crypto)
-        if not crypto or not isinstance(crypto, Ethereum):
+        if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
             continue
         network = crypto.network_currency
         by_network.setdefault(network, []).append((sw, crypto))
@@ -389,7 +390,7 @@ def get_store_wallet(store: Store, crypto_name: str):
 
 def store_wallet_balance(store: Store, crypto_name: str, sw: StoreWallet = None):
     crypto = Crypto.instances.get(crypto_name)
-    if not crypto or not isinstance(crypto, Ethereum):
+    if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
         return None
 
     sw = sw or get_store_wallet(store, crypto_name)
@@ -423,7 +424,7 @@ def store_balances_map(stores, crypto_names):
         for crypto_name in crypto_names:
             sw = wallet_by_key.get((store.id, crypto_name))
             crypto = Crypto.instances.get(crypto_name)
-            if not crypto or not isinstance(crypto, Ethereum):
+            if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
                 continue
             if (sw and sw.fda_address) or (
                 store.is_default and crypto.crypto == crypto.network_currency
@@ -521,7 +522,7 @@ def _known_fda_addresses(crypto_name: str) -> set[str]:
         if sw.fda_address
     }
     crypto = Crypto.instances.get(crypto_name)
-    if crypto and isinstance(crypto, Ethereum):
+    if crypto and isinstance(crypto, (Ethereum, TronToken)):
         try:
             fda = crypto.fee_deposit_account_for(store_id=1)
             if fda and fda.addr:
@@ -538,7 +539,7 @@ def _known_fda_addresses(crypto_name: str) -> set[str]:
 def _sidecar_managed_addresses(crypto_name: str) -> set[str]:
     """All addresses tracked by the ethereum-like sidecar for this crypto."""
     crypto = Crypto.instances.get(crypto_name)
-    if not crypto or not isinstance(crypto, Ethereum):
+    if not crypto or not isinstance(crypto, (Ethereum, TronToken)):
         return set()
     store_ids = {1}
     store_ids.update(
