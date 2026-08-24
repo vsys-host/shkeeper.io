@@ -4,6 +4,7 @@ from shkeeper.services.crypto_cache import get_available_cryptos
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.utils import format_decimal
 from shkeeper.models import ExchangeRate
+from shkeeper.services.multistore import crypto_supports_multistore
 from flask import current_app
 
 def _build_balance(crypto_name: str, logger, app, store=None):
@@ -14,7 +15,7 @@ def _build_balance(crypto_name: str, logger, app, store=None):
         fiat = "USD"
         try:
             rate = ExchangeRate.get(fiat, crypto_name).get_rate()
-            if store and not store.is_default:
+            if store and crypto_supports_multistore(crypto_name):
                 from shkeeper.services.store_service import store_wallet_balance
 
                 balance = store_wallet_balance(store, crypto_name)
