@@ -259,7 +259,13 @@ class TronToken(Crypto):
         )
         return response.json(parse_float=Decimal)
 
+    @staticmethod
+    def _validate_staking_store_id(store_id):
+        if store_id is not None and int(store_id) > 1:
+            raise ValueError("Staking operations not allowed for store_id > 1")
+
     def stake_trx(self, amount, resource, store_id=None):
+        self._validate_staking_store_id(store_id)
         response = requests.post(
             f"http://{self.gethost()}/staking/freeze/{amount}/{resource}",
             auth=self.get_auth_creds(),
@@ -268,6 +274,7 @@ class TronToken(Crypto):
         return response.json(parse_float=Decimal)
 
     def undelegate_trx(self, address, amount, resource, store_id=None):
+        self._validate_staking_store_id(store_id)
         response = requests.post(
             f"http://{self.gethost()}/staking/undelegate/{address}/{amount}/{resource}",
             auth=self.get_auth_creds(),
