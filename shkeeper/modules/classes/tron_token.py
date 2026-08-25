@@ -188,6 +188,13 @@ class TronToken(Crypto):
         return response
 
     def multipayout(self, payout_list, store_id=None):
+        payout_list = [
+            {
+                **i,
+                "amount": str(i["amount"]),
+            }
+            for i in payout_list
+        ]
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/multipayout",
             auth=self.get_auth_creds(),
