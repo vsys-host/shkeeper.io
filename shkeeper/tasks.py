@@ -127,3 +127,33 @@ def task_create_wallet():
                     f"[Create Wallet] {crypto.crypto} shkeeper wallet "
                     f"creation error: {e}"
                 )
+
+
+@scheduler.task("interval", id="retry_store_provisioning", seconds=30)
+def task_retry_store_provisioning():
+    """Retry FDA provisioning after sidecars come up (SHKeeper may start first)."""
+    with scheduler.app.app_context():
+        from shkeeper.services.multistore import filter_multistore_cryptos
+        from shkeeper.services.store_service import ensure_store_wallets_provisioned
+
+        available = set(filter_multistore_cryptos(Crypto.instances.keys()))
+        if not available:
+            return
+
+        stores = Store.query.filter(Store.status == StoreStatus.ACTIVE).all()
+        for store in stores:
+            wallets = StoreWallet.query.filter_by(store_id=store.id).all()
+            existing = {sw.crypto for sw in wallets}
+            incomplete = any(
+                sw.crypto in available
+                and (sw.status != StoreWalletStatus.READY or not sw.fda_address)
+                for sw in wallets
+            )
+            if not (available - existing) and not incomplete:
+                continue
+            try:
+                ensure_store_wallets_provisioned(store)
+            except Exception:
+                scheduler.app.logger.exception(
+                    "[Retry store provisioning] store id=%s failed", store.id
+                )
