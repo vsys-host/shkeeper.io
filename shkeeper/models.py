@@ -10,6 +10,8 @@ import bcrypt
 import pyotp
 from flask import current_app as app, has_app_context
 
+from sqlalchemy.exc import IntegrityError
+
 from shkeeper import db
 from shkeeper.modules.classes.rate_source import RateSource
 from shkeeper.modules.classes.crypto import Crypto
@@ -780,7 +782,7 @@ class Payout(db.Model):
             external_id=external_id,
         )
         db.session.add(p)
-        db.session.commit()
+        cls._commit_or_raise_duplicate_external_id(external_id, crypto)
         txids = payout.get("txids")
         if txids:
             if isinstance(txids, str):
@@ -790,6 +792,22 @@ class Payout(db.Model):
                 db.session.add(ptx)
             db.session.commit()
         return p
+
+    @classmethod
+    def _commit_or_raise_duplicate_external_id(cls, external_id, crypto=None):
+        try:
+            db.session.commit()
+        except IntegrityError as e:
+            db.session.rollback()
+            if external_id:
+                q = cls.query.filter_by(external_id=external_id)
+                if crypto:
+                    q = q.filter_by(crypto=crypto)
+                if q.first() is not None:
+                    raise ValueError(
+                        f"Payout with this external_id already exists: {external_id}"
+                    ) from e
+            raise
 
     @staticmethod
     def _format_mkpayout_error(error):
@@ -821,7 +839,7 @@ class Payout(db.Model):
             external_id=external_id or None,
         )
         db.session.add(p)
-        db.session.commit()
+        cls._commit_or_raise_duplicate_external_id(external_id or None, crypto)
         return p
 
     @classmethod
@@ -891,6 +909,66 @@ class Payout(db.Model):
             f"[register_from_mkpayout] unexpected response type -> no record {log_ctx} res_type={type(res).__name__} res={res}"
         )
         return None
+
+    def _mark_failed(self, error):
+        self.status = PayoutStatus.FAIL
+        self.success = "No"
+        self.error = self._format_mkpayout_error(error)
+        db.session.commit()
+        return self
+
+    def apply_mkpayout_response(self, res):
+        log_ctx = (
+            f"payout_id={self.id} crypto={self.crypto} dest={self.dest_addr} "
+            f"amount={self.amount} external_id={self.external_id}"
+        )
+        app.logger.info(
+            f"[apply_mkpayout_response] start {log_ctx} "
+            f"res_type={type(res).__name__} res={res}"
+        )
+
+        if isinstance(res, dict):
+            if res.get("error"):
+                app.logger.warning(
+                    f"[apply_mkpayout_response] dict with error -> FAIL {log_ctx} "
+                    f"error={res['error']}"
+                )
+                return self._mark_failed(res["error"])
+            task_id = res.get("task_id")
+            result = res.get("result")
+            if task_id or result:
+                if task_id:
+                    self.task_id = task_id
+                txids = []
+                if result:
+                    txids = result if isinstance(result, list) else [result]
+                app.logger.info(
+                    f"[apply_mkpayout_response] success {log_ctx} "
+                    f"task_id={task_id} txids={txids}"
+                )
+                for txid in txids:
+                    if not any(t.txid == txid for t in self.transactions):
+                        db.session.add(PayoutTx(payout_id=self.id, txid=txid))
+                db.session.commit()
+                return self
+            message = f"Unexpected mkpayout response (missing error/task_id/result): {res}"
+            app.logger.warning(
+                f"[apply_mkpayout_response] dict without error/task_id/result "
+                f"-> FAIL {log_ctx} res={res}"
+            )
+            return self._mark_failed(message)
+        elif isinstance(res, str):
+            app.logger.warning(
+                f"[apply_mkpayout_response] str response -> FAIL {log_ctx} error={res}"
+            )
+            return self._mark_failed(res)
+
+        message = f"Unexpected mkpayout response type {type(res).__name__}: {res}"
+        app.logger.error(
+            f"[apply_mkpayout_response] unexpected response type -> FAIL {log_ctx} "
+            f"res_type={type(res).__name__} res={res}"
+        )
+        return self._mark_failed(message)
 
 
 class Notification(db.Model):
