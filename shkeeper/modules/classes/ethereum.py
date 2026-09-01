@@ -97,7 +97,7 @@ class Ethereum(Crypto):
         _, _, confirmations, _ = transactions[0]
         return confirmations
 
-    def get_task(self, id):
+    def get_task(self, id, store_id=None):
         response = requests.post(
             f"http://{self.gethost()}/{self.crypto}/task/{id}",
             auth=self.get_auth_creds(),
