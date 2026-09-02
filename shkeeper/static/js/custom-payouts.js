@@ -479,6 +479,7 @@ function build_filter_args() {
     [
         // {element_name: "statusName", arg_name: "status"},
         {element_name: "cryptoName", arg_name: "crypto"},
+        {element_name: "successName", arg_name: "success"},
         {element_name: "date-input", arg_name: "created_at"},
     ].forEach((e) => {
         let value = document.getElementsByName(e.element_name)[0].value;
@@ -541,6 +542,7 @@ function update_tx_table(page=1) {
 [
     // "statusName",
     "cryptoName",
+    "successName",
     "date-input"
 ].forEach((e) => {
     document.getElementsByName(e)[0].addEventListener("change", (e) => update_tx_table());

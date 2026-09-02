@@ -47,6 +47,17 @@
           </select>
         </div>
 
+        <div class="d-flex align-items-center">
+          <select
+            name="successName"
+            class="form-select common-text transactions-select"
+          >
+            <option value="" selected>Any success status</option>
+            <option value="Yes">Success - Yes</option>
+            <option value="No">Success - No</option>
+          </select>
+        </div>
+
         {# <div class="d-flex align-items-center">
           <input
             class="checkbox form-check-input me-2"
@@ -114,7 +125,7 @@
 
         <div class="settings-confined">
           <p class="mb-1">Payout amount (crypto)</p>
-          
+
           <div class="d-flex align-items-center">
             <input
             class="checkbox form-check-input me-2"
