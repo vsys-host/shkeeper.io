@@ -104,6 +104,25 @@ PYUSD (ERC20, Solana)
 
 ![image](https://github.com/user-attachments/assets/e7c637af-8da6-455b-80f5-9b054cfff03b)
 
+### Mark as Paid (custom patch)
+
+This fork adds a **Mark as Paid** button (✓) for invoices with `PARTIAL` or `UNPAID` status in the WebUI 
+transactions table. Clicking the button changes the invoice status to PAID and triggers the payment callback 
+notification, allowing manual confirmation of payments received outside the system.
+
+![Mark as Paid button](docs/images/Mark_as_Paid.png)
+
+The button appears in the **Status** column of the Transactions table. Clicking it:
+1. Changes the invoice status to `PAID`
+2. Triggers the payment callback notification
+
+This is useful when a partial payment is received and you want to manually confirm the invoice as fully paid.
+
+#### Modified files
+- `shkeeper/wallet.py` — new POST endpoint `/invoice/<id>/mark-paid`
+- `shkeeper/templates/wallet/transactions_table.j2` — button in Status column
+- `shkeeper/static/js/custom-transactions.js` — `markAsPaid()` function
+
 <a name="installation"></a>
 ## 4. Installation
 
