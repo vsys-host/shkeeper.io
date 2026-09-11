@@ -57,6 +57,10 @@ def create_app(test_config=None):
     """Create and configure an instance of the Flask application."""
     app = Flask(__name__, instance_relative_config=True)
 
+    @app.context_processor
+    def inject_theme():
+        return {"theme": request.cookies.get("theme", "light")}
+
     #  Force autoescaping globally
     app.jinja_env.autoescape = True
 

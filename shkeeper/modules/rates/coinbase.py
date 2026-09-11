@@ -9,41 +9,10 @@ class Coinbase(RateSource):
     name = "coinbase"
 
     def get_rate(self, fiat, crypto):
-        if fiat == "USD" and crypto in self.USDT_CRYPTOS:
-            return Decimal(1.0)
+        parity, fiat, crypto = self.normalize_symbols(fiat, crypto)
+        if parity is not None:
+            return parity
 
-        if crypto in self.USDC_CRYPTOS:
-            crypto = "USDC"
-        
-        if crypto in self.USDT_CRYPTOS:
-            crypto = "USDT"
-
-        if crypto in self.BTC_CRYPTOS:
-            crypto = "BTC"
-
-        if crypto in self.FIRO_CRYPTOS:
-            crypto = "FIRO"
-
-        if crypto in self.ETH_CRYPTOS:
-            crypto = "ETH"
-        
-        if crypto == "ARB-TOKEN":
-            crypto = "ARB"
-        
-        if crypto == "OP-TOKEN":
-            crypto = "OP"
-
-        # MATIC (native currency in Polygon renamed to POL)
-        if crypto == "MATIC":
-            crypto = "POL"
-
-        # TON (native currency in TON renamed to GRAM) not implemented yet
-        # if crypto == "TON":
-        #     crypto = "GRAM"
-
-        if fiat == "USD":
-            fiat = "USDT"
-            
         url = f"https://api.coinbase.com/v2/exchange-rates?currency={crypto}"
         answer = requests.get(url)
         if answer.status_code == requests.codes.ok:
