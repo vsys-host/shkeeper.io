@@ -7,7 +7,7 @@ from flask import current_app as app, g
 from shkeeper import db
 from shkeeper.models import Payout, UserRole
 from shkeeper.modules.classes.crypto import Crypto
-from shkeeper.services.multistore import crypto_supports_multistore
+from shkeeper.services.multistore import crypto_supports_multistore, store_wallet_is_ready
 from shkeeper.services.store_service import (
     _address_key,
     effective_fee_percent,
@@ -71,7 +71,8 @@ class PayoutService:
         if not store or not crypto_supports_multistore(crypto_name):
             return store, {}
         sw = get_store_wallet(store, crypto_name)
-        if not sw or not sw.fda_address:
+        crypto = Crypto.instances.get(crypto_name)
+        if not store_wallet_is_ready(sw, crypto):
             return store, {}
         return store, {"store_id": store.id}
 
@@ -160,7 +161,7 @@ class PayoutService:
                 )
             if store and not store.is_default:
                 raise ValueError(
-                    f"Fee-deposit account is not provisioned for {crypto_name}"
+                    f"Store wallet is not provisioned for {crypto_name}"
                 )
             return crypto.mkpayout(destination, amount, fee, store_id=store_id)
         return crypto.mkpayout(destination, amount, fee)
@@ -172,7 +173,7 @@ class PayoutService:
                 return crypto.multipayout(payout_list, **source)
             if store and not store.is_default:
                 raise ValueError(
-                    f"Fee-deposit account is not provisioned for {crypto_name}"
+                    f"Store wallet is not provisioned for {crypto_name}"
                 )
             return crypto.multipayout(payout_list, store_id=store_id)
         return crypto.multipayout(payout_list)
@@ -222,8 +223,8 @@ class PayoutService:
                 ],
             )
             if len(expanded) > 1:
-                # ETH has no Bitcoin-style atomic sendmany; sidecar sends one tx per
-                # destination from the same FDA in a single multipayout task.
+                # BTC/LTC/DOGE: one on-chain tx with all outputs (sendmany).
+                # ETH/Tron: one sidecar multipayout task, still one chain tx per dest.
                 return cls.multiple_payout(
                     crypto_name,
                     expanded,

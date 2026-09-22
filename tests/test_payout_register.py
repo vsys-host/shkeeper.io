@@ -132,6 +132,7 @@ class TestRegisterFromMkpayout(_AppContextTestCase):
             "BTC",
             task_id="task-123",
             external_id="ext-1",
+            store_id=None,
         )
         self.add_failed.assert_not_called()
         self.assertIs(out, self.add.return_value)
@@ -240,10 +241,16 @@ class TestWalletDoPayout(_AppContextTestCase):
 
         wallet.do_payout()
 
+        crypto.balance.assert_called_with(store_id=1)
         crypto.mkpayout.assert_called_once_with(
-            "0xdest", Decimal("7"), "0.001", subtract_fee_from_amount=True
+            "0xdest",
+            Decimal("7"),
+            "0.001",
+            subtract_fee_from_amount=True,
+            store_id=1,
         )
         self.assertEqual(self.register.call_args.args[1]["amount"], Decimal("7"))
+        self.assertEqual(self.register.call_args.kwargs.get("store_id"), 1)
 
     def test_percent_policy_records_should_payout_amount(self) -> None:
         from shkeeper.models import PayoutReservePolicy
@@ -259,10 +266,131 @@ class TestWalletDoPayout(_AppContextTestCase):
 
         wallet.do_payout()
 
+        crypto.balance.assert_called_with(store_id=1)
         crypto.mkpayout.assert_called_once_with(
-            "0xdest", Decimal("8"), "0.001", subtract_fee_from_amount=True
+            "0xdest",
+            Decimal("8"),
+            "0.001",
+            subtract_fee_from_amount=True,
+            store_id=1,
         )
         self.assertEqual(self.register.call_args.args[1]["amount"], Decimal("8"))
+        self.assertEqual(self.register.call_args.kwargs.get("store_id"), 1)
+
+
+class TestUpdateFromNotify(_AppContextTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.db_patcher = mock.patch("shkeeper.models.db")
+        self.db = self.db_patcher.start()
+        self.addCleanup(self.db_patcher.stop)
+
+    def test_store_fee_and_merchant_share_one_btc_txid(self) -> None:
+        fee = mock.Mock()
+        fee.id = 11
+        fee.task_id = "task-1"
+        fee.dest_addr = "tb1q9jrhnfe5neu720h2v8xjeu4gged0j37pem2x0x"
+        fee.transactions = []
+        merchant = mock.Mock()
+        merchant.id = 12
+        merchant.task_id = "task-1"
+        merchant.dest_addr = "tb1qxfsnwjyfucv4scm3eql0gm68exxp2zgd6ckwc9"
+        merchant.transactions = []
+        fee.created_at = "2026-09-14 11:50:00"
+        merchant.created_at = "2026-09-14 11:50:00"
+        old_fee = mock.Mock()
+        old_fee.id = 1
+        old_fee.task_id = "task-old"
+        old_fee.dest_addr = fee.dest_addr
+        old_fee.created_at = "2026-09-14 09:24:00"
+        old_fee.transactions = []
+        old_merchant = mock.Mock()
+        old_merchant.id = 2
+        old_merchant.task_id = "task-old"
+        old_merchant.dest_addr = merchant.dest_addr
+        old_merchant.created_at = "2026-09-14 09:24:00"
+        old_merchant.transactions = []
+        txid = "14acab8acae85d8f759ce11249605eaebc9e9fb264e67abc1af12679ea0e58b1"
+        query = mock.Mock()
+        query.filter.return_value.all.return_value = [
+            old_fee,
+            old_merchant,
+            fee,
+            merchant,
+        ]
+        query.filter_by.return_value.all.return_value = [fee, merchant]
+        Payout.query = query
+        try:
+            Payout.update_from_notify(
+                "BTC",
+                [
+                    {
+                        "dest": fee.dest_addr,
+                        "amount": 5.21e-06,
+                        "status": "success",
+                        "txids": [txid],
+                    },
+                    {
+                        "dest": merchant.dest_addr,
+                        "amount": 4.693e-05,
+                        "status": "success",
+                        "txids": [txid],
+                    },
+                ],
+            )
+        finally:
+            delattr(Payout, "query")
+
+        added = [c.args[0] for c in self.db.session.add.call_args_list]
+        self.assertEqual({row.payout_id for row in added}, {11, 12})
+        self.assertEqual({row.txid for row in added}, {txid})
+        self.db.session.commit.assert_called()
+
+    def test_attaches_newest_payout_per_destination(self) -> None:
+        fee = mock.Mock()
+        fee.id = 21
+        fee.task_id = None
+        fee.dest_addr = "tb1qfee"
+        fee.created_at = "2026-09-21 12:00:00"
+        fee.transactions = []
+        merchant = mock.Mock()
+        merchant.id = 22
+        merchant.task_id = None
+        merchant.dest_addr = "tb1qmerchant"
+        merchant.created_at = "2026-09-21 12:00:02"
+        merchant.transactions = []
+        old_fee = mock.Mock()
+        old_fee.id = 1
+        old_fee.task_id = None
+        old_fee.dest_addr = fee.dest_addr
+        old_fee.created_at = "2026-09-21 10:00:00"
+        old_fee.transactions = []
+        txid = "aa" * 32
+        query = mock.Mock()
+        query.filter.return_value.all.return_value = [old_fee, fee, merchant]
+        Payout.query = query
+        try:
+            Payout.update_from_notify(
+                "BTC",
+                [
+                    {
+                        "dest": fee.dest_addr,
+                        "status": "success",
+                        "txids": [txid],
+                    },
+                    {
+                        "dest": merchant.dest_addr,
+                        "status": "success",
+                        "txids": [txid],
+                    },
+                ],
+            )
+        finally:
+            delattr(Payout, "query")
+
+        added = [c.args[0] for c in self.db.session.add.call_args_list]
+        self.assertEqual({row.payout_id for row in added}, {21, 22})
+        self.assertEqual({row.txid for row in added}, {txid})
 
 
 if __name__ == "__main__":

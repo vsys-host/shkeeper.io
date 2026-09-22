@@ -1,4 +1,4 @@
-from shkeeper.modules.classes.shkeeper_wallet_crypto import UtxoLikeWalletCrypto
+from shkeeper.modules.classes.utxo_like_wallet_crypto import UtxoLikeWalletCrypto
 
 
 class Doge(UtxoLikeWalletCrypto):

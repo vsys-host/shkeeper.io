@@ -137,6 +137,11 @@ def create_app(test_config=None):
         pass
 
     # clear all session on app restart
+    # if not app.config.get("DEV_MODE"):
+    #     if sess_dir := app.config.get("SESSION_FILE_DIR"):
+    #         shutil.rmtree(sess_dir, ignore_errors=True)
+    #     from flask_session import Session
+    #     Session(app)
     if sess_dir := app.config.get("SESSION_FILE_DIR"):
         if app.config.get("DEV_MODE"):
             pass

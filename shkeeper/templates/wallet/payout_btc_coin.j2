@@ -23,13 +23,16 @@
         <div><p>Destination:</p></div>
         <div class="dropdown ms-0">
           <div class="dropdown__header d-flex flex-row align-items-center">
-            <input class="dropdown__current" value="{{ crypto.wallet.pdest}}" id="paddress">
+            <input class="dropdown__current" value="{% if payout_locked_destination %}{{ payout_locked_destination }}{% elif not is_store_owner %}{{ crypto.wallet.pdest }}{% endif %}" id="paddress" {% if is_store_owner %}readonly{% endif %}{% if is_store_owner and not payout_locked_destination %} placeholder="Merchant wallet is not configured"{% endif %}>
+            {% if not is_store_owner %}
             <div class="dropdown__button">
               <svg class="dropdown-arrow__icon" width="16" height="16">
                 <use href="{{ url_for('static', filename='images/icons.' + theme + '.svg') }}#dropdown-menu-arrow"></use>
               </svg>
             </div>
+            {% endif %}
           </div>
+          {% if not is_store_owner %}
           <div class="dropdown__body">
             {% for pd in pdest %}
             <div class="dropdown__item">
@@ -54,6 +57,14 @@
               </button>
             </div>
           </div>
+          {% endif %}
+          {% if is_store_owner %}
+            {% if payout_locked_destination %}
+            <p class="common-text warning-text mt-2 mb-0">Payouts are locked to your merchant wallet.</p>
+            {% else %}
+            <p class="common-text danger-text mt-2 mb-0">Merchant wallet is not configured. Ask the admin to set it before payout.</p>
+            {% endif %}
+          {% endif %}
         </div>
 
         <div><p>Amount:</p></div>
@@ -107,7 +118,7 @@
   </div>
   <div class="row">
     <div class="col d-flex justify-content-end mt-5">
-      <button type="submit" class="btn btn-outline-primary btn-outline-primary__customization btn-fixed-w me-3 send-payment" data-progress="off">
+      <button type="submit" class="btn btn-outline-primary btn-outline-primary__customization btn-fixed-w me-3 send-payment" data-progress="off"{% if is_store_owner and not payout_locked_destination %} disabled{% endif %}>
         <span class="tx_standby">Send</span>
         <span class="tx_in_progress" style="display: none;">
           <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
@@ -222,6 +233,10 @@
     document.tx_complete = false;
 
     let addr = document.querySelector("#paddress").value.trim();
+    if (!addr) {
+      alert({% if is_store_owner %}'Merchant wallet is not configured. Ask the admin to set it before payout.'{% else %}'Please enter destination address.'{% endif %});
+      return;
+    }
     let amount = document.querySelector(".fee-input").value;
     let callbackUrl = validateCallback(document.getElementById("callback-url"));
     if (callbackUrl === false) return;

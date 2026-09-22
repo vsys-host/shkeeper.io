@@ -37,6 +37,7 @@ from shkeeper.services.tenancy import (
     store_owner_wallet,
 )
 from shkeeper.services.store_service import get_store_wallet
+from shkeeper.services.multistore import is_multistore_backend, store_wallet_is_ready
 from shkeeper.callback import send_notification, send_unconfirmed_notification
 from shkeeper.utils import format_decimal
 from shkeeper.wallet_encryption import (
@@ -402,13 +403,11 @@ def get_fee_deposit_address(crypto_name):
             "message": f"Crypto {crypto_name} is not enabled",
         }, 400
 
-    from shkeeper.modules.classes.ethereum import Ethereum
-
     crypto = Crypto.instances[crypto_name]
     store = getattr(g, "current_store", None)
-    if store and isinstance(crypto, (Ethereum, TronToken)):
+    if store and is_multistore_backend(crypto):
         sw = get_store_wallet(store, crypto_name)
-        if sw and sw.fda_address:
+        if store_wallet_is_ready(sw, crypto):
             fda = crypto.fee_deposit_account_for(store_id=store.id)
             fee_deposit_address = fda.addr
         elif store.is_default:
@@ -416,7 +415,7 @@ def get_fee_deposit_address(crypto_name):
         else:
             return {
                 "status": "error",
-                "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+                "message": f"Store wallet is not provisioned for {crypto_name}",
             }, 400
     else:
         fee_deposit_address = crypto.fee_deposit_account.addr
@@ -448,7 +447,6 @@ def status(crypto_name):
 def balance(crypto_name):
     if crypto_name not in Crypto.instances.keys():
         return {"status": "error", "message": f"Crypto {crypto_name} is not enabled"}
-    from shkeeper.modules.classes.ethereum import Ethereum
     from shkeeper.services.store_service import get_store_wallet
 
     crypto = Crypto.instances[crypto_name]
@@ -457,14 +455,14 @@ def balance(crypto_name):
     current_rate = rate.get_rate()
     store = getattr(g, "current_store", None)
     balance = None
-    if store and isinstance(crypto, (Ethereum, TronToken)):
+    if store and is_multistore_backend(crypto):
         sw = get_store_wallet(store, crypto_name)
-        if sw and sw.fda_address:
+        if store_wallet_is_ready(sw, crypto):
             balance = crypto.balance_for_account(store_id=store.id)
         elif not store.is_default:
             return {
                 "status": "error",
-                "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+                "message": f"Store wallet is not provisioned for {crypto_name}",
             }, 400
     if balance is None:
         balance = crypto.balance()
@@ -537,8 +535,9 @@ def payoutnotify(crypto_name):
 
         data = request.get_json(force=True)
         app.logger.info(f"Payout notification: {data}")
-        # for p in data:
-        #     Payout.add(p, crypto_name)
+        # Do not Payout.add here: rows are created when the payout is submitted.
+        # Attach txids to those existing rows (store fee+merchant share one BTC tx).
+        Payout.update_from_notify(crypto_name, data)
 
         return {"status": "success"}
     except Exception as e:
@@ -750,12 +749,12 @@ def estimate_tx_fee(crypto_name, amount):
     crypto = Crypto.instances[crypto_name]
     kwargs = {"address": request.args.get("address")}
     store = getattr(g, "current_store", None)
-    if store and isinstance(crypto, (Ethereum, TronToken)):
+    if store and is_multistore_backend(crypto):
         sw = get_store_wallet(store, crypto_name)
-        if not (sw and sw.fda_address) and not store.is_default:
+        if not store_wallet_is_ready(sw, crypto) and not store.is_default:
             return {
                 "status": "error",
-                "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+                "message": f"Store wallet is not provisioned for {crypto_name}",
             }, 400
         kwargs["store_id"] = store.id
     return crypto.estimate_tx_fee(amount, **kwargs)
@@ -790,15 +789,15 @@ def list_addresses(crypto_name):
         crypto_inst = Crypto.instances[crypto_name]
         sw = current_store_wallet(crypto_name)
         if store and not store.is_default:
-            if not isinstance(crypto_inst, (Ethereum, TronToken)):
+            if not is_multistore_backend(crypto_inst):
                 abort(403)
-            if not sw:
+            if not store_wallet_is_ready(sw, crypto_inst):
                 return {
                     "status": "error",
-                    "message": f"Fee-deposit account is not provisioned for {crypto_name}",
+                    "message": f"Store wallet is not provisioned for {crypto_name}",
                 }, 400
             addresses = crypto_inst.get_all_addresses(store_id=store.id)
-        elif isinstance(crypto_inst, (Ethereum, TronToken)) and store:
+        elif is_multistore_backend(crypto_inst) and store:
             addresses = crypto_inst.get_all_addresses(store_id=store.id)
         else:
             addresses = crypto_inst.get_all_addresses()

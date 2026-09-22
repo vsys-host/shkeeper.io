@@ -5,6 +5,7 @@ from flask_apscheduler import APScheduler
 from shkeeper import scheduler, callback
 from shkeeper.modules.classes.crypto import Crypto
 from shkeeper.models import *
+from shkeeper.services.multistore import autopayout_store_kwargs, store_wallet_is_ready
 
 @scheduler.task("interval", id="callback", seconds=60)
 def task_callback():
@@ -34,15 +35,17 @@ def task_payout():
     with scheduler.app.app_context():
         scheduler.app.logger.info(f"[Autopayout] Task started")
         for crypto in Crypto.instances.values():
+            store_kwargs = autopayout_store_kwargs(crypto.crypto)
             if crypto.wallet.ppolicy == PayoutPolicy.LIMIT:
                 scheduler.app.logger.info(
                     f"[Autopayout] {crypto.crypto} payout policy is {crypto.wallet.ppolicy}"
                 )
                 limit = Decimal(crypto.wallet.pcond)
-                if crypto.balance() >= limit:
+                balance = crypto.balance(**store_kwargs)
+                if balance >= limit:
                     scheduler.app.logger.info(
                         f"[Autopayout] {crypto.crypto} payout limit reached. "
-                        f"Need: {limit}, has: {crypto.balance()}"
+                        f"Need: {limit}, has: {balance}"
                     )
                     res = crypto.wallet.do_payout()
                     scheduler.app.logger.info(
@@ -51,14 +54,14 @@ def task_payout():
                 else:
                     scheduler.app.logger.info(
                         f"[Autopayout] {crypto.crypto} payout limit is not reached. "
-                        f"Need: {limit}, has: {crypto.balance()}"
+                        f"Need: {limit}, has: {balance}"
                     )
 
             elif crypto.wallet.ppolicy == PayoutPolicy.SCHEDULED:
                 scheduler.app.logger.info(
                     f"[Autopayout] {crypto.crypto} payout policy is {crypto.wallet.ppolicy}"
                 )
-                if crypto.balance() == 0:
+                if crypto.balance(**store_kwargs) == 0:
                     scheduler.app.logger.info(
                         f"[Autopayout] {crypto.crypto} has no coins"
                     )
@@ -146,7 +149,7 @@ def task_retry_store_provisioning():
             existing = {sw.crypto for sw in wallets}
             incomplete = any(
                 sw.crypto in available
-                and (sw.status != StoreWalletStatus.READY or not sw.fda_address)
+                and not store_wallet_is_ready(sw, Crypto.instances.get(sw.crypto))
                 for sw in wallets
             )
             if not (available - existing) and not incomplete:
